@@ -1,0 +1,73 @@
+# 本地与云部署
+
+代码不依赖本机路径或云厂商 SDK。浏览器只访问同源 Nginx；Go API 访问 PostgreSQL；Python 私网服务访问授权 MySQL 视图与 HTTPS 模型接口。正式环境使用托管数据库、镜像仓库、受控 Secret 与 TLS 入口。
+
+| 配置 | 本地 | 云端 |
+| --- | --- | --- |
+| 镜像 | Compose 本机构建 | CI 构建/推送，不可变 tag/digest |
+| 元数据 | PostgreSQL 17 | 托管 PostgreSQL，运行账号无 DDL |
+| 分析库 | MySQL 8.4 | 托管 MySQL 8，视图专用只读账号 |
+| Cookie / 入口 | localhost HTTP / 非 Secure | HTTPS / Secure、HttpOnly、SameSiteStrict |
+| 数据库连接 | Compose 内网 | 私网安全组 + 证书/主机名验证 |
+| 模型 | 可无密钥，标注规则解析 | Secret 注入 key 和 HTTPS endpoint |
+| 文件 | 导入时读取 CSV | 一次性运维 Job，运行时不需要 CSV |
+
+## 云主机 Compose
+
+1. 准备私网托管数据库、镜像仓库、TLS 代理或负载均衡器，以及数据库初始化运维环境。数据库、API、分析服务不向公网开放。
+2. 构建并推送三个镜像；地址只是模板。
+
+```powershell
+docker build -f deploy/Dockerfile.api -t REGISTRY/olist-api:VERSION .
+docker build -f deploy/Dockerfile.agent -t REGISTRY/olist-agent:VERSION .
+docker build -f deploy/Dockerfile.web -t REGISTRY/olist-web:VERSION .
+# 登录自己的仓库后推送以上版本。
+```
+
+3. 复制 `deploy/cloud.env.example` 到受控 `.env.cloud`，替换占位值。PostgreSQL 使用 `sslmode=verify-full`；私有 CA 用 `sslrootcert` 指定并另挂载至 API/迁移容器。模型与数据库 DNS 必须可解析。
+4. MySQL 映射配置 `ssl_ca: "/run/secrets/mysql-ca.pem"`；`MYSQL_CA_FILE` 填宿主机数据库厂商 CA 的绝对路径。程序验证证书及主机名，不能随意把 DNS 替换成 IP。
+5. 在私网运维环境安装锁定依赖，按 README 导入真实数据，建立受控角色映射。初始化管理账号不注入长驻 API/agent。
+6. 校验并启动，不打印解析后的密码。
+
+```bash
+docker compose --env-file .env.cloud -f deploy/compose.cloud.yaml config --quiet
+docker compose --env-file .env.cloud -f deploy/compose.cloud.yaml up -d
+```
+
+迁移使用独立 `MIGRATION_DATABASE_URL`，完成后 API 才启动。迁移按文件版本记录 SHA256，在事务与锁下串行执行；禁止改写已应用版本，通过新增 SQL 演进。应用回滚不会自动撤销破坏性 schema 变更。
+
+7. 私网一次性执行 `api -command bootstrap`，stdin 提供管理员密码。可由专门初始化身份执行，不需要把 DDL 权限赋给运行账号。
+8. TLS 代理将同域名 `/` 和 `/api/*` 转发到 web:8080。`PUBLIC_ORIGIN` 必须是最终 HTTPS origin（无路径/尾斜杠）。跨机器负载均衡时 `BIND_HOST` 设私网地址，安全组只允许负载均衡来源；本机 TLS 代理保持 127.0.0.1。
+9. SSE 上游禁用缓冲，空闲超时大于心跳 10 秒（建议至少 65 秒）；入口配置登录限速、请求体限制、HSTS。M1 登录限速按直接连接 IP；统一代理下账号共享额度，上线前需按可信代理规则完善真实 IP 限速，不能信任任意 X-Forwarded-For。
+
+PostgreSQL 最小运行授权示例（由管理员执行，替换实际 schema/身份）：
+
+```sql
+GRANT CONNECT ON DATABASE platform TO platform_runtime;
+GRANT USAGE ON SCHEMA public TO platform_runtime;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tenants, users, sessions, tasks, task_events, task_outbox TO platform_runtime;
+-- 无 schema_migrations 权限，无 DDL；检查默认 PUBLIC schema 权限。
+```
+
+容器以非 root、只读根文件系统运行，临时文件在 tmpfs。日志不记录请求体、Cookie、密钥或 DSN。
+
+## Kubernetes
+
+`deploy/kubernetes.yaml` 含 API/agent/web 双副本、ClusterIP、TLS Ingress、入站 NetworkPolicy、独立迁移 Job、资源限制和探针。它是待配置模板，不能直接宣称线上可用。
+
+1. 创建 `olist` namespace、`olist-config` ConfigMap：PUBLIC_ORIGIN、LLM_BASE_URL、LLM_MODEL。密码不放 ConfigMap。
+2. 创建 `olist-secrets`：DATABASE_URL、MIGRATION_DATABASE_URL、SERVICE_KEY、TENANT_DATASOURCES、可选 LLM_API_KEY；`mysql-ca` Secret 包含 `ca.pem`，映射使用 `/run/secrets/mysql/ca.pem`。配置静态加密、RBAC、轮换，实际 Secret YAML 不提交 Git。
+3. 替换镜像、域名、Ingress class；配置 ingress controller 与 `olist-web-tls` Secret。NetworkPolicy 要求支持它的 CNI；安全组限制数据库及出口。
+4. 单独执行 `platform-migrate` Job，等待成功再滚动 Deployment。整份 YAML 的资源顺序不能保证迁移完成。每次发布使用新 Job 名称。
+5. API 只获运行 DSN/服务密钥，agent 只获数据源/模型密钥，web 不接触数据库密钥。初始账号通过一次性 Job 创建。
+6. 先 `kubectl apply --dry-run=server`，再验收探针、登录/问数、SSE 跨实例续传、越权、停止、滚动重启与故障恢复。
+
+Go 用数据库租约与执行版本抢占任务，多实例共享 50 活跃/100 排队额度，同用户一个执行任务。M1 使用 PostgreSQL worker/outbox，尚未完成 Celery/LangGraph。
+
+## 运营与验收边界
+
+启用托管库备份/PITR、恢复演练、容量/错误告警，固定资源压测。更新先备份/迁移再切镜像，数据源变更重启 agent。过期 sessions、任务/事件需明确保留策略。
+
+M1 限制：分析调用 35 秒，SQL 10 秒，任务累计 3 次执行且首次开始后 5 分钟，模型输出 800 tokens，结果 1000 行/2 MiB。提供商费用预算及节点预算未完成。停止禁止后续写回和重试，Go 中断等待；已送入 MySQL 的查询可能继续到 10 秒上限，分布式主动取消是 M2 验收项。
+
+本机只验证配置与原生链路，未构建 Linux 容器、未部署云账号。TLS、Ingress、多副本滚动、灾备、P95 和 99.9% 必须在目标环境实测。

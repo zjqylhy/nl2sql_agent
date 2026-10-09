@@ -1,0 +1,41 @@
+name: M1 validation
+on: [push, pull_request]
+permissions: {contents: read}
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env: {POSTGRES_USER: test, POSTGRES_PASSWORD: test-only-ci-password, POSTGRES_DB: test}
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U test -d test"
+          --health-interval 5s --health-timeout 3s --health-retries 20
+      mysql:
+        image: mysql:8.4
+        env: {MYSQL_ROOT_PASSWORD: test-only-ci-password, MYSQL_ROOT_HOST: "%"}
+        ports: ["3306:3306"]
+        options: >-
+          --health-cmd "mysqladmin ping -h localhost --silent"
+          --health-interval 5s --health-timeout 3s --health-retries 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: {go-version: "1.27"}
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - uses: actions/setup-node@v4
+        with: {node-version: "24", cache: npm, cache-dependency-path: web/package-lock.json}
+      - run: go vet ./... && go test -race ./...
+        env: {TEST_DATABASE_URL: "postgres://test:test-only-ci-password@localhost:5432/test?sslmode=disable"}
+      - run: pip install -r agent/requirements.lock
+      - run: python -m pytest agent/tests -q
+        env:
+          PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+          MYSQL_TEST_HOST: localhost
+          MYSQL_TEST_PASSWORD: test-only-ci-password
+      - run: npm ci && npm run build
+        working-directory: web
+      - run: docker compose --env-file .env.example config --quiet
+      - run: docker compose --env-file .env.example build api agent web

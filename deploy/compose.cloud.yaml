@@ -1,0 +1,45 @@
+# 使用相同镜像连接云托管数据库，入口由云负载均衡器终止 TLS。
+name: olist-agent-cloud
+services:
+  migrate:
+    image: ${API_IMAGE:?set API_IMAGE}
+    command: ["-command","migrate"]
+    environment:
+      DATABASE_URL: ${MIGRATION_DATABASE_URL:?set MIGRATION_DATABASE_URL}
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+  agent:
+    image: ${AGENT_IMAGE:?set AGENT_IMAGE}
+    environment:
+      SERVICE_KEY: ${SERVICE_KEY:?set SERVICE_KEY}
+      TENANT_DATASOURCES: ${TENANT_DATASOURCES:?set TENANT_DATASOURCES}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+    volumes: ["${MYSQL_CA_FILE:?set MYSQL_CA_FILE}:/run/secrets/mysql-ca.pem:ro"]
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+  api:
+    image: ${API_IMAGE:?set API_IMAGE}
+    environment:
+      DATABASE_URL: ${DATABASE_URL:?set DATABASE_URL}
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:?set HTTPS PUBLIC_ORIGIN}
+      COOKIE_SECURE: "true"
+      SERVICE_KEY: ${SERVICE_KEY:?set SERVICE_KEY}
+      AGENT_URL: http://agent:8000
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      agent: {condition: service_started}
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+  web:
+    image: ${WEB_IMAGE:?set WEB_IMAGE}
+    ports: ["${BIND_HOST:-127.0.0.1}:${HTTP_PORT:-8088}:8080"]
+    depends_on: [api]
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
