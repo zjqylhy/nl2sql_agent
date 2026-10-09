@@ -1,5 +1,35 @@
 # 本地与云部署
 
+## 本地部署（Windows）
+
+项目目录：`C:\Users\LHY95\Documents\Codex\nl2sql_agent`。本地容器部署入口为 http://localhost:8088；需要 Docker Desktop 的 Linux containers 模式。
+
+```powershell
+Set-Location C:\Users\LHY95\Documents\Codex\nl2sql_agent
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+# 首次启动前编辑 .env，替换密码与 SERVICE_KEY 占位值。
+docker compose config --quiet
+docker compose up -d --build
+docker compose ps
+```
+
+首次还需导入 Olist、填写数据源映射、创建管理员账号，完整命令见 [README：Windows 本地启动](../README.md#windows-本地启动)。仅启动容器不会自动创建账号或导入数据。
+
+| 本地方式 | 浏览器入口 | 说明 |
+| --- | --- | --- |
+| Docker Compose | http://localhost:8088 | 前端为唯一主机入口，数据库与分析服务在容器内网 |
+| 源码调试 | http://localhost:5173 | Vite 前端代理 Go :8080；Python :8000，分别启动 |
+
+2026-10-10 验收使用本机原生进程及临时数据库，入口为 :5173；验收后已全部关闭，没有留下常驻实例。当时机器没有 Docker 引擎，因此 :8088 容器部署尚未实际启动。详见 [验证记录](validation.md)。
+
+```powershell
+# 查看日志或停止本地容器；down 不删除数据库 volume。
+docker compose logs --tail 100 api agent web
+docker compose down
+```
+
+## 部署结构
+
 代码不依赖本机路径或云厂商 SDK。浏览器只访问同源 Nginx；Go API 访问 PostgreSQL；Python 私网服务访问授权 MySQL 视图与 HTTPS 模型接口。正式环境使用托管数据库、镜像仓库、受控 Secret 与 TLS 入口。
 
 | 配置 | 本地 | 云端 |
