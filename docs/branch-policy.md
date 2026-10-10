@@ -2,10 +2,11 @@
 
 ## 已确认需求
 
-- 仅保护 `master`，现有 `main` 不改名。
+- 默认主分支为 `master`，原 `main` 重命名为 `master`，同步本地分支引用。
 - 修改必须在新分支提交并 push，再通过 PR/MR 合入 `master`。
 - 禁止直接 push、强推或删除 `master`，管理员也不配置绕过权限。
-- 不额外要求审批人数或 CI 检查；此处的 PR 对应 GitHub 的合并请求。
+- 合入至少需要 1 个 approve，新增提交会使旧 approve 失效；此处的 PR 对应 GitHub 的合并请求。
+- 必需 CI 为 GitHub Actions 的 `checks`（M1 validation）和 `agent-quality`（Agent quality），两项全部通过，且分支需与最新主分支同步。
 
 ## 远端强制规则
 
@@ -42,8 +43,8 @@ git commit -m "描述修改"
 git push -u origin feature/my-change
 ```
 
-推送后在 GitHub 创建 PR，base 选择 `master`，检查通过后通过 GitHub 合入。
-目前仓库只有 `main`，需先按项目决定创建 `master`，才可选择它作为 PR 的 base；本方案不创建或重命名主分支。
+推送后在 GitHub 创建 PR，base 选择 `master`。获得至少 1 个 approve，且必需 CI 全部通过后，通过 GitHub 合入。
+手动触发的 Live agent acceptance 不属于每个 PR 的必需 CI；它依赖独立基线和模型环境。
 
 ## 验收标准
 
@@ -51,6 +52,8 @@ git push -u origin feature/my-change
 脚本仅使用 `.cache` 下的临时仓库，保留夹具方便排查，不访问项目远端。
 
 - 本地真实 Git 推送至临时仓库：`master` 的普通推送、目标映射、强推、删除、混合引用均失败。
-- 新功能分支、`main` 和 `master` tag 推送成功。
-- 远端启用后读取 ruleset，确认 Active、无绕过权限且三项规则齐全。
-- 远端验收需确认直接推送被拒绝、功能分支 PR 可正常合入。
+- 新功能分支、其他开发分支和 `master` tag 推送成功。
+- 远端默认分支为 `master`，不存在旧的 `main` 分支。
+- 远端读取 ruleset，确认 Active、无绕过权限，包含 PR、删除保护、强推保护和必需状态检查。
+- PR 规则要求至少 1 个 approve，新增提交使旧 approve 失效；必需检查绑定 GitHub Actions，且启用最新主分支验证。
+- 远端验收需确认直接推送被拒绝，缺少 approve 或任一必需 CI 未通过时禁止合入。
