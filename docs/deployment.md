@@ -28,6 +28,21 @@ docker compose logs --tail 100 api agent web
 docker compose down
 ```
 
+### Docker Hub 认证连接超时
+
+若构建提示 `failed to fetch anonymous token`，并在访问 `auth.docker.io` 时超时，先检查网络与代理。Docker Desktop 的引擎代理和执行 Compose 的终端代理需要分别确认；本机排查中，引擎拉取成功，但 Buildx 获取令牌仍直连，设置终端代理后 API 镜像构建通过。
+
+Docker Desktop 在 Settings → Resources → Proxies 中使用系统代理或正确的手动代理。然后在执行构建的 PowerShell 窗口设置 HTTP/HTTPS 代理；下面的 `33210` 是本机 Clash 当前端口，其他机器应替换为实际 HTTP 或 mixed 端口：
+
+```powershell
+$env:HTTP_PROXY = 'http://127.0.0.1:33210'
+$env:HTTPS_PROXY = 'http://127.0.0.1:33210'
+docker compose up -d --build
+docker compose ps
+```
+
+这些环境变量只影响当前终端及其子进程，新终端需重新设置。不要将本机代理地址写入应用镜像或云部署配置。Docker Desktop 代理设置见 [官方说明](https://docs.docker.com/desktop/settings-and-maintenance/settings/#proxies)。
+
 ## 部署结构
 
 代码不依赖本机路径或云厂商 SDK。浏览器只访问同源 Nginx；Go API 访问 PostgreSQL；Python 私网服务访问授权 MySQL 视图与 HTTPS 模型接口。正式环境使用托管数据库、镜像仓库、受控 Secret 与 TLS 入口。
