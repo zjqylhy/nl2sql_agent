@@ -20,7 +20,7 @@ docker compose ps
 | Docker Compose | http://localhost:8088 | 前端为唯一主机入口，数据库与分析服务在容器内网 |
 | 源码调试 | http://localhost:5173 | Vite 前端代理 Go :8080；Python :8000，分别启动 |
 
-2026-10-10 初次功能验收使用本机原生进程及临时数据库，入口为 :5173；验收后已全部关闭。同日修复 Docker Desktop 与代理连接后，已完整构建本地镜像并启动 Compose，:8088 页面和 `/healthz` 均返回 HTTP 200。容器环境的数据导入与登录问数尚未验收。详见 [验证记录](validation.md)。
+2026-10-10 初次功能验收使用本机原生进程及临时数据库，入口为 :5173；验收后已全部关闭。同日修复 Docker Desktop 与代理连接后，已完整构建本地镜像并启动 Compose，:8088 页面和 `/healthz` 均返回 HTTP 200。容器环境已核对 Olist 导入并完成单次真实模型查询，完整回归和人工验收尚未完成。详见 [验证记录](validation.md)。
 
 ```powershell
 # 查看日志或停止本地容器；down 不删除数据库 volume。

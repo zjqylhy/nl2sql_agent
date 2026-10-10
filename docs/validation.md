@@ -25,6 +25,7 @@ Windows；Go 1.27.1、Python 3.12、Node.js 24。功能验收使用临时 Postgr
 | 迁移 | 重复执行幂等；改写已应用 SQL 校验值时拒绝迁移 |
 | 部署模板 | 官方 Docker Compose 5.6.0 校验本地及云配置；Kubernetes 9 个资源 YAML 解析通过 |
 | 本地容器部署 | API/迁移/agent/web 镜像完整构建通过；两个数据库 healthy，迁移 Exited (0)，应用服务运行；:8088 页面与 /healthz 返回 200 |
+| 真实模型调用 | 将 Windows 用户 DEEPSEEK_API_KEY 接入本地 LLM_API_KEY 并重建 agent；单次“本月 GMV 按州统计”内部请求返回 200/completed，parser=llm、deepseek-flash、338 Token、26 行结果 |
 | 浏览器 | 本地登录、问数、历史回查、真实州分组图表显示通过 |
 
 验收脚本 `scripts/verify.ps1` 已实际执行通过。Windows 验证前应停止 Vite，避免 npm ci 遇到 esbuild 文件锁。
@@ -48,9 +49,9 @@ Windows；Go 1.27.1、Python 3.12、Node.js 24。功能验收使用临时 Postgr
 
 ## 未验证与后续
 
-本地 Linux 镜像构建与 Compose 启动已验证；容器环境的数据导入、登录问数和完整集成测试尚未执行。CI 工作流已配置测试和镜像构建，但尚未在远端运行。Compose 校验和 YAML 解析不能代替 Kubernetes server dry-run。
+本地 Linux 镜像构建与 Compose 启动已验证；容器数据库已核对导入 99,441 笔订单，并完成单次真实模型查询，完整容器集成测试尚未执行。CI 工作流已配置测试和镜像构建，但尚未在远端运行。Compose 校验和 YAML 解析不能代替 Kubernetes server dry-run。
 
-没有调用真实付费模型；仅验证模型请求格式、响应 schema、无 SQL 输出、失败不回退编造结果、手动输入规则解析。模型准确率、费用预算与 300+ 独立验收集未完成。
+已完成一次真实模型解析与 MySQL 查询链路检查；模型请求格式、响应 schema、无 SQL 输出、失败不回退编造结果、手动输入规则解析另由 mock 契约测试验证。单次成功不能代表模型准确率；费用预算与 300+ 独立验收集未完成。
 
 未在云账号部署，TLS/Ingress、数据库私网权限、多副本滚动发布、50 并发压测、备份恢复、P95/99.9% 未验收。代理下登录 IP 限速需完善；长任务主动取消、节点 checkpoint、完整恢复、归因及报告属于 M2/M3。详见 [云部署边界](deployment.md)。
 
