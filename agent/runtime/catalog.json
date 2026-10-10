@@ -1,0 +1,129 @@
+{
+  "version": 1,
+  "dataset": {
+    "view": "metric_orders",
+    "grain": "order",
+    "time_field": "purchased_at"
+  },
+  "metrics": {
+    "gmv": {
+      "name": "GMV",
+      "unit": "BRL",
+      "formula": "CASE WHEN SUM(CASE WHEN order_status NOT IN ('canceled', 'unavailable') AND item_amount IS NULL THEN 1 ELSE 0 END) > 0 THEN NULL ELSE SUM(CASE WHEN order_status NOT IN ('canceled', 'unavailable') THEN item_amount END) END",
+      "sample": "SUM(CASE WHEN order_status NOT IN ('canceled', 'unavailable') AND item_amount IS NOT NULL THEN 1 ELSE 0 END)",
+      "definition": "有效订单商品金额，不含运费；缺少有效订单金额时不输出总额",
+      "version": "1"
+    },
+    "orders": {
+      "name": "有效订单量",
+      "unit": "单",
+      "formula": "SUM(CASE WHEN order_status NOT IN ('canceled', 'unavailable') THEN 1 ELSE 0 END)",
+      "sample": "SUM(CASE WHEN order_status NOT IN ('canceled', 'unavailable') THEN 1 ELSE 0 END)",
+      "definition": "排除 canceled/unavailable，每单一行后计数",
+      "version": "1"
+    },
+    "aov": {
+      "name": "客单价",
+      "unit": "BRL/单",
+      "formula": "CASE WHEN SUM(CASE WHEN order_status NOT IN ('canceled', 'unavailable') AND item_amount IS NULL THEN 1 ELSE 0 END) > 0 THEN NULL ELSE SUM(CASE WHEN order_status NOT IN ('canceled', 'unavailable') THEN item_amount END) / NULLIF(SUM(CASE WHEN order_status NOT IN ('canceled', 'unavailable') THEN 1 ELSE 0 END), 0) END",
+      "sample": "SUM(CASE WHEN order_status NOT IN ('canceled', 'unavailable') THEN 1 ELSE 0 END)",
+      "definition": "GMV / 同口径有效订单量",
+      "version": "1"
+    },
+    "cancellation_rate": {
+      "name": "取消率",
+      "unit": "%",
+      "formula": "100.0 * SUM(CASE WHEN order_status = 'canceled' THEN 1 ELSE 0 END) / NULLIF(COUNT(*), 0)",
+      "sample": "COUNT(*)",
+      "definition": "已取消订单 / 全部创建订单；不可履约订单单列",
+      "version": "1"
+    },
+    "delivery_days": {
+      "name": "平均交付时长",
+      "unit": "天",
+      "formula": "AVG(delivery_days)",
+      "sample": "COUNT(delivery_days)",
+      "definition": "已交付且时间有效订单，创建至实际交付的平均天数",
+      "version": "1"
+    },
+    "review_score": {
+      "name": "平均评分",
+      "unit": "分",
+      "formula": "AVG(review_score)",
+      "sample": "COUNT(review_score)",
+      "definition": "每个订单最新一条有效评价的平均分；无评价不计入分母",
+      "version": "1"
+    }
+  },
+  "dimensions": {
+    "state": {
+      "name": "巴西州",
+      "expression": "customer_state"
+    },
+    "day": {
+      "name": "下单日期",
+      "expression": "DATE(purchased_at)"
+    },
+    "month": {
+      "name": "下单月份",
+      "expression": "DATE_FORMAT(purchased_at, '%Y-%m')"
+    }
+  },
+  "filters": {
+    "state": {
+      "name": "巴西州",
+      "column": "customer_state",
+      "type": "enum",
+      "values": [
+        "AC",
+        "AL",
+        "AP",
+        "AM",
+        "BA",
+        "CE",
+        "DF",
+        "ES",
+        "GO",
+        "MA",
+        "MT",
+        "MS",
+        "MG",
+        "PA",
+        "PB",
+        "PR",
+        "PE",
+        "PI",
+        "RJ",
+        "RN",
+        "RS",
+        "RO",
+        "RR",
+        "SC",
+        "SP",
+        "SE",
+        "TO"
+      ]
+    },
+    "status": {
+      "name": "订单状态",
+      "column": "order_status",
+      "type": "enum",
+      "values": [
+        "created",
+        "approved",
+        "invoiced",
+        "processing",
+        "shipped",
+        "delivered",
+        "unavailable",
+        "canceled"
+      ]
+    },
+    "amount": {
+      "name": "订单商品金额（不含运费）",
+      "column": "item_amount",
+      "type": "decimal",
+      "values": []
+    }
+  }
+}

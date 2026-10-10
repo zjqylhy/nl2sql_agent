@@ -12,8 +12,10 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from .intent import Clarification, Intent, RuleMiss, question_constraints, rules_intent, period_bounds
-from .metrics import METRICS, compile_query
 from .security import UnsafeSQL, validate_sql
+from .catalog import catalog
+from .plan import QueryPlan, from_intent, compile_plan, normalize_result
+from .plan_parser import requires_plan, plan_constraints
 
 
 class QueryInput(BaseModel):
@@ -116,23 +118,79 @@ def parse_intent(request: QueryRequest, anchor: date) -> tuple[Intent, dict]:
         raise HTTPException(503, "模型解析失败，请使用明确的指标和时间重试") from exc
 
 
+def parse_query_plan(request: QueryRequest, anchor: date) -> tuple[QueryPlan, dict]:
+    overrides = request.input.model_dump(exclude={"question"}, exclude_defaults=True)
+    if not requires_plan(request.input.question, overrides):
+        intent, usage = parse_intent(request, anchor)
+        return from_intent(intent, anchor), usage
+    constraints = plan_constraints(request.input.question, overrides, anchor)
+    if not request.allowed_metrics or any(m not in request.allowed_metrics for m in constraints.metrics):
+        raise HTTPException(403, "没有全部所请求指标的权限")
+    if constraints.time_range.end_exclusive > anchor + timedelta(days=1):
+        raise HTTPException(422, "时间范围超出已配置分析基准，请缩小范围")
+    try:
+        return constraints.rules_plan(), {"parser": "rules", "tokens": 0}
+    except RuleMiss:
+        if not os.getenv("LLM_API_KEY"):
+            raise
+    base, model = os.getenv("LLM_BASE_URL", "").rstrip("/"), os.getenv("LLM_MODEL", "")
+    if not base.startswith("https://") or not model:
+        raise HTTPException(503, "模型配置不完整")
+    c = catalog()
+    values = constraints.prompt_values()
+    requires_state, complete = values.pop("requires_state"), values.pop("filters_complete")
+    prompt = "你是 Olist 查询计划解析器。仅输出 JSON，禁止 SQL、表达式、租户或数据源。无法完整表示问题时仅返回 {\"clarification\":\"简洁澄清问题\"}。成功响应必须符合以下 schema，禁止额外字段：" + json.dumps(QueryPlan.model_json_schema(), ensure_ascii=False)
+    prompt += "仅允许指标 " + json.dumps(request.allowed_metrics) + "；维度 " + json.dumps(list(c.dimensions)) + "；筛选字段及值 " + json.dumps({k:v.model_dump(exclude={"column"}) for k,v in c.filters.items()}, ensure_ascii=False)
+    prompt += "以下明确条件必须保留，仅补齐未识别项：" + json.dumps(values, ensure_ascii=False) + "。禁止猜测或遗漏条件。金额为订单商品金额，不含运费。日期左闭右开。"
+    prompt += "筛选已完整确定，不得新增筛选。" if complete else "可补齐问题中的州名，不能新增未提及条件。"
+    if requires_state:
+        prompt += "必须保留州筛选，州名无法确定则澄清。"
+    usage = {"parser": "llm", "model": model, "tokens": None}
+    try:
+        with httpx.Client(timeout=20, follow_redirects=False) as client:
+            response = client.post(base + "/chat/completions", headers={"Authorization": "Bearer " + os.environ["LLM_API_KEY"]}, json={"model": model, "messages": [{"role": "system", "content": prompt}, {"role": "user", "content": request.input.question}], "response_format": {"type": "json_object"}, "max_tokens": 1500, "temperature": 0})
+            response.raise_for_status()
+            data = response.json()
+        usage["tokens"] = (data.get("usage") or {}).get("total_tokens")
+        choice = data["choices"][0]
+        if choice.get("finish_reason") == "length":
+            raise ValueError("truncated plan")
+        content = json.loads(choice["message"]["content"])
+        if isinstance(content, dict) and set(content) == {"clarification"} and isinstance(content["clarification"], str) and content["clarification"].strip():
+            raise Clarification(content["clarification"][:200])
+        plan = QueryPlan.model_validate(content)
+        constraints.validate(plan)
+        plan.check_anchor(anchor)
+        return plan, usage
+    except Clarification as exc:
+        exc.usage = usage
+        raise
+    except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError, AttributeError) as exc:
+        raise HTTPException(503, "模型解析失败，请使用明确的指标和时间重试") from exc
+
+
+class ResultTooLarge(ValueError):
+    pass
+
+
 def connect(source: Datasource):
     return pymysql.connect(host=source.host, port=source.port, user=source.user, password=source.password, database=source.database, charset="utf8mb4", connect_timeout=3, read_timeout=12, write_timeout=3, cursorclass=pymysql.cursors.DictCursor, autocommit=True, ssl_ca=source.ssl_ca, ssl_verify_cert=bool(source.ssl_ca), ssl_verify_identity=bool(source.ssl_ca))
 
 
 def execute(source: Datasource, sql: str, params: list) -> list[dict]:
-    validate_sql(sql, params)
+    validate_sql(sql, params, overflow_probe=sql.endswith(" LIMIT 1001"))
     connection = connect(source)
     try:
         with connection.cursor() as cursor:
             # 数据库账号仅获授权视图 SELECT；服务同时限制执行时间与返回规模。
-            executable = sql.replace("SELECT ", "SELECT /*+ MAX_EXECUTION_TIME(10000) */ ", 1).replace("?", "%s")
+            # PyMySQL 的参数绑定使用百分号格式化，日期格式中的 % 必须先转义。
+            executable = sql.replace("%", "%%").replace("SELECT ", "SELECT /*+ MAX_EXECUTION_TIME(10000) */ ", 1).replace("?", "%s")
             cursor.execute(executable, params)
             rows = cursor.fetchmany(1001)
             if len(rows) > 1000:
-                raise UnsafeSQL("返回结果超限")
+                raise ResultTooLarge("结果超过 1000 组，请缩小日期范围或明确 Top N")
         counts = {"sample_size", "total_orders", "excluded_orders", "unavailable_orders"}
-        return [{key: int(value or 0) if key in counts else str(value) if isinstance(value, Decimal) else value for key, value in row.items()} for row in rows]
+        return [{key: int(value or 0) if key in counts or key.endswith("_sample") else str(value) if isinstance(value, Decimal) else str(value) if isinstance(value, date) else value for key, value in row.items()} for row in rows]
     finally:
         connection.close()
 
@@ -143,7 +201,7 @@ app = FastAPI(title="Olist 受限分析执行服务", docs_url=None, redoc_url=N
 @app.get("/healthz")
 def health():
     try:
-        configured = bool(sources()) and len(os.getenv("SERVICE_KEY", "")) >= 32
+        configured = bool(catalog()) and bool(sources()) and len(os.getenv("SERVICE_KEY", "")) >= 32
     except (ValidationError, ValueError):
         configured = False
     if not configured:
@@ -160,23 +218,22 @@ def query(request: QueryRequest):
     if source is None:
         raise HTTPException(403, "租户或角色尚未授权数据源")
     try:
-        intent, usage = parse_intent(request, source.analysis_date)
+        plan, usage = parse_query_plan(request, source.analysis_date)
     except (Clarification, ValidationError) as exc:
         message = str(exc) if isinstance(exc, Clarification) else "指标、时间或地区格式不明确，请确认后重试。"
         result = {"status": "needs_clarification", "message": message}
         if isinstance(exc, Clarification) and exc.usage is not None:
             result["usage"] = exc.usage
         return result
-    if intent.metric not in request.allowed_metrics:
-        raise HTTPException(403, "没有该指标权限")
-    start, end = checked_window(intent, source.analysis_date)
-    sql = compile_query(intent.metric, intent.group_by == "state", len(intent.states))
-    params = [str(start), str(end), *intent.states]
+    if any(m not in request.allowed_metrics for m in plan.metrics):
+        raise HTTPException(403, "没有全部所请求指标的权限")
+    sql, params = compile_plan(plan)
     try:
         rows = execute(source, sql, params)
+    except ResultTooLarge as exc:
+        raise HTTPException(422, str(exc)) from exc
     except UnsafeSQL as exc:
         raise HTTPException(403, "查询未通过安全校验") from exc
     except pymysql.MySQLError as exc:
         raise HTTPException(503, "分析数据暂时不可用或查询超时，请联系数据管理员") from exc
-    metric = METRICS[intent.metric]
-    return {"status": "completed", "metric": intent.metric, "metric_name": metric.name, "metric_version": "1", "definition": metric.definition, "unit": metric.unit, "analysis_date": str(source.analysis_date), "period": {"start": str(start), "end_exclusive": str(end)}, "group_by": intent.group_by, "states": intent.states, "rows": rows, "sql": sql, "parameters": params, "usage": usage, "chart_type": "bar" if intent.group_by else "number", "message": "无有效样本，未将无数据解释为零。" if not rows or all(row.get("value") is None for row in rows) else "结果由指标口径 v1 确定性计算，币种为 BRL。"}
+    return normalize_result(plan, rows, source.analysis_date, usage, sql, params)

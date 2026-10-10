@@ -72,7 +72,7 @@ def test_model_intent_contract(client, monkeypatch):
     executions = []
     def execute(source, sql, params):
         executions.append(params)
-        return [{"label": "SP", "value": "123.45", "sample_size": 1}]
+        return [{"d_state": "SP", "m0_value": "123.45", "m0_sample": 1, "total_orders": 1}]
     monkeypatch.setattr(runtime, "execute", execute)
     response = client.post("/internal/query", headers={"X-Service-Key": "s" * 40}, json=request(question="本月圣保罗州销售额，按州统计"))
     assert response.status_code == 200 and response.json()["usage"]["parser"] == "llm"
@@ -135,9 +135,9 @@ def test_rule_miss_without_model_needs_clarification(client, monkeypatch):
 
 
 @pytest.mark.parametrize("question", [
-    "GMV", "本月", "本月 GMV 和客单价", "本月上月 GMV", "本月 GMV 只看", "本月 GMV 只看 ZZ 州",
+    "GMV", "本月", "本月上月 GMV", "本月 GMV 只看", "本月 GMV 只看 ZZ 州",
     "本月 GMV 按渠道", "本月 GMV 按支付方式和州统计", "本月 GMV 按未知分类", "本月 GMV 只看金额超过 100 的订单",
-    "本月 GMV 不含 SP 州", "2018-02-30 至 2018-03-01 GMV", "2018-08-31 至 2018-08-01 GMV",
+    "2018-02-30 至 2018-03-01 GMV", "2018-08-31 至 2018-08-01 GMV",
 ])
 def test_ambiguous_or_unsupported_queries_skip_model_and_database(client, monkeypatch, question):
     calls = mock_model(monkeypatch, {})

@@ -196,7 +196,7 @@ func validateInput(in store.Input) bool {
 	if in.Metric != "" && !slices.Contains(store.Metrics, in.Metric) {
 		return false
 	}
-	if in.GroupBy != "" && in.GroupBy != "state" {
+	if in.GroupBy != "" && !slices.Contains([]string{"state", "day", "month"}, in.GroupBy) {
 		return false
 	}
 	return true
@@ -228,16 +228,42 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request) {
 }
 
 func allowed(u store.User, t store.Task) bool {
-	metric := t.Input.Metric
+	metrics := []string{}
+	if t.Input.Metric != "" {
+		metrics = append(metrics, t.Input.Metric)
+	}
 	if len(t.Result) > 0 {
 		var result struct {
-			Metric string `json:"metric"`
+			Metric        string `json:"metric"`
+			ResultVersion int    `json:"result_version"`
+			Metrics       []struct {
+				ID string `json:"id"`
+			} `json:"metrics"`
+			Plan struct {
+				Metrics []string `json:"metrics"`
+			} `json:"plan"`
 		}
-		if json.Unmarshal(t.Result, &result) == nil && result.Metric != "" {
-			metric = result.Metric
+		if json.Unmarshal(t.Result, &result) != nil {
+			return false
+		}
+		if result.Metric != "" {
+			metrics = append(metrics, result.Metric)
+		}
+		// 新结果检查元信息与计划的完整指标集合，兼容旧单指标历史。
+		if result.ResultVersion == 2 && (len(result.Metrics) == 0 || len(result.Plan.Metrics) == 0) {
+			return false
+		}
+		for _, item := range result.Metrics {
+			metrics = append(metrics, item.ID)
+		}
+		metrics = append(metrics, result.Plan.Metrics...)
+	}
+	for _, metric := range metrics {
+		if !slices.Contains(store.Metrics, metric) || !slices.Contains(u.AllowedMetrics, metric) {
+			return false
 		}
 	}
-	return metric == "" || slices.Contains(u.AllowedMetrics, metric)
+	return true
 }
 func (s *Server) fetch(w http.ResponseWriter, r *http.Request) (store.Task, bool) {
 	t, err := s.DB.Task(r.Context(), user(r), r.PathValue("id"))

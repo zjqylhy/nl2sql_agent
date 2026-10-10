@@ -60,3 +60,21 @@ func TestRequestBodyLimits(t *testing.T) {
 		}
 	}
 }
+
+func TestAllMetricsRequiredForSemanticHistoricalResult(t *testing.T) {
+	u := store.User{AllowedMetrics: []string{"gmv", "orders"}}
+	for _, body := range []string{
+		`{"result_version":2,"metrics":[{"id":"gmv"},{"id":"review_score"}],"plan":{"metrics":["gmv","review_score"]}}`,
+		`{"result_version":2,"metrics":[{"id":"gmv"}],"plan":{"metrics":["gmv","review_score"]}}`,
+		`{"result_version":2,"metrics":[],"plan":{"metrics":[]}}`,
+		`{"result_version":2,"metrics":[{"id":"password"}],"plan":{"metrics":["gmv"]}}`,
+		`{"metrics":`,
+	} {
+		if allowed(u, store.Task{Result: json.RawMessage(body)}) {
+			t.Fatalf("exposed invalid/revoked result: %s", body)
+		}
+	}
+	if !allowed(u, store.Task{Result: json.RawMessage(`{"result_version":2,"metrics":[{"id":"gmv"},{"id":"orders"}],"plan":{"metrics":["gmv","orders"]}}`)}) {
+		t.Fatal("hid authorized multi-metric result")
+	}
+}

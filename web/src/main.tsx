@@ -1,13 +1,14 @@
 import React,{lazy,Suspense,useEffect,useState} from 'react'
 import {createRoot} from 'react-dom/client'
 import './style.css'
+import QueryResult,{type SemanticResult} from './QueryResult'
 const Chart=lazy(()=>import('./Chart'))
 
 type User={username:string;tenant_id:string;role:string;allowed_metrics:string[]}
 type Metric={id:string;name:string;version:string}
 type Row={label:string;value:string|number|null;sample_size:number;total_orders:number;excluded_orders:number;unavailable_orders:number}
 type Result={metric:string;metric_name:string;definition:string;unit:string;analysis_date:string;period:{start:string;end_exclusive:string};rows:Row[];sql:string;parameters:string[];usage:{parser:string;tokens:number|null};message:string}
-type Task={id:string;status:string;input:{question:string};result:Result|{message:string}|null;error?:string;created_at:string}
+type Task={id:string;status:string;input:{question:string};result:Result|SemanticResult|{message:string}|null;error?:string;created_at:string}
 const statusNames:Record<string,string>={pending:'排队中',querying:'正在取数',completed:'已完成',needs_clarification:'需要澄清',failed:'执行失败',canceled:'已停止'}
 
 async function api<T>(path:string,body?:unknown,method?:string):Promise<T>{
@@ -42,6 +43,7 @@ function App(){
   async function stop(){if(!task)return;try{await api('/tasks/'+task.id+'/stop',{});setTask(await api<Task>('/tasks/'+task.id));await refresh()}catch(e){setError((e as Error).message)}}
   async function logout(){try{await api('/logout',{});setUser(null);setTasks([]);setTask(null)}catch(e){setError((e as Error).message)}}
   const result=task?.result&&'metric'in task.result?task.result:null
+  const semantic=task?.result&&'result_version'in task.result&&task.result.result_version===2?task.result:null
   if(loading)return <div className="loading">正在连接工作台…</div>
   if(!user)return <main className="login-page"><section className="login-intro"><div className="brand-mark">O</div><p className="eyebrow">OLIST · BUSINESS ANALYTICS</p><h1>让数据回答<br/>经营问题。</h1><p>在统一口径下查询指标，每一次结果都有数据依据。</p><div className="intro-note">巴西电商历史数据 · 受限只读查询</div></section><form className="login-form" onSubmit={login}><h2>登录工作台</h2><p className="muted">使用管理员分配的租户与账号</p><label>租户<input value={tenant} onChange={e=>setTenant(e.target.value)} required autoComplete="organization" placeholder="租户标识"/></label><label>账号<input value={username} onChange={e=>setUsername(e.target.value)} required autoComplete="username" placeholder="你的账号"/></label><label>密码<input type="password" value={password} onChange={e=>setPassword(e.target.value)} required autoComplete="current-password"/></label>{error&&<p role="alert" className="error">{error}</p>}<button className="primary" disabled={busy}>{busy?'正在登录…':'进入工作台'}</button></form></main>
   return <div className="app-shell">
@@ -50,12 +52,13 @@ function App(){
       {error&&<div role="alert" className="error banner">{error}<button onClick={()=>setError('')}>关闭</button></div>}
       {showUsers?<Users onError={setError}/>:<>
       <section className="conversation">
-        {!task?<div className="welcome"><div className="welcome-icon">↗</div><h2>你想了解哪项经营指标？</h2><p>用自然语言提问，或选择指标和时间。结果按已发布口径计算。</p><div className="examples">{['本月 GMV 按州统计','上周有效订单量是多少？','本月平均评分按地区统计'].map(q=><button key={q} onClick={()=>{setQuestion(q);setMetric('');setPeriod('');setGroup('')}}>{q} <span>↗</span></button>)}</div><div className="scope-note"><strong>当前可查询</strong><span>{metrics.map(m=>m.name).join(' · ')||'暂无获授权指标'}</span><small>相对日期以结果中的分析基准日期为准。归因与报告能力将在后续里程碑交付。</small></div></div>:<>
+        {!task?<div className="welcome"><div className="welcome-icon">↗</div><h2>你想了解哪项经营指标？</h2><p>用自然语言提问，或选择指标和时间。结果按已发布口径计算。</p><div className="examples">{['本月 GMV 和有效订单量按州统计','最近 6 个月 GMV 和客单价按月统计','本月 GMV 按州排名，取前 5 名'].map(q=><button key={q} onClick={()=>{setQuestion(q);setMetric('');setPeriod('');setGroup('')}}>{q} <span>↗</span></button>)}</div><div className="scope-note"><strong>当前可查询</strong><span>{metrics.map(m=>m.name).join(' · ')||'暂无获授权指标'}</span><small>相对日期以结果中的分析基准日期为准。归因与报告能力将在后续里程碑交付。</small></div></div>:<>
           <div className="question-bubble">{task.input.question}</div><div className="task-progress"><i className={'dot '+task.status}/><strong>{statusNames[task.status]}</strong><span>任务 {task.id.slice(0,8)}</span>{['pending','querying'].includes(task.status)&&<button onClick={stop}>停止任务</button>}</div>
           {['pending','querying'].includes(task.status)&&<div className="skeleton" aria-label="正在处理任务"><div/><div/><div/></div>}
           {task.status==='failed'&&<div className="notice error">{task.error||'执行失败，请检查数据源或稍后重试。'}<button onClick={()=>setQuestion(task.input.question)}>重新编辑</button></div>}
           {task.status==='needs_clarification'&&<div className="notice"><strong>需要补充信息</strong><p>{task.result&&'message'in task.result?task.result.message:''}</p><button onClick={()=>setQuestion(task.input.question)}>在下方补充指标与时间</button></div>}
           {task.status==='canceled'&&<div className="notice">任务已停止。已完成的结果仍保留在任务记录中。</div>}
+          {semantic&&<QueryResult result={semantic}/>}
           {result&&<article className="answer"><div className="answer-heading"><h2>{result.metric_name}</h2><span className="badge">口径 v1 · {result.usage.parser==='llm'?'模型解析':'规则解析'}</span></div><p className="muted">{result.period.start} 至 {result.period.end_exclusive}（不含结束日） · 分析基准 {result.analysis_date}</p>
             {result.rows.length===1&&result.rows[0].label==='整体'?<div className="metric-value">{result.rows[0].value===null?'无数据':Number(result.rows[0].value).toLocaleString('zh-CN',{maximumFractionDigits:2})}<span>{result.unit}</span></div>:result.rows.length>0?<Suspense fallback={<p className="muted">正在加载图表…</p>}><Chart rows={result.rows} unit={result.unit}/></Suspense>:<div className="notice">该时间区间或授权范围内没有数据。</div>}
             <p>{result.message}</p><div className="definition">{result.definition}</div>
@@ -64,7 +67,7 @@ function App(){
           </article>}
         </>}
       </section>
-      <form className="composer" onSubmit={submit}><div className="controls"><label>指标<select value={metric} onChange={e=>setMetric(e.target.value)}><option value="">从问题识别</option>{metrics.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></label><label>时间<select value={period} onChange={e=>setPeriod(e.target.value)}><option value="">从问题识别</option>{[['today','今天'],['yesterday','昨日'],['this_week','本周'],['last_week','上周'],['this_month','本月'],['last_month','上月'],['custom','指定日期']].map(([v,n])=><option key={v} value={v}>{n}</option>)}</select></label><label>维度<select value={group} onChange={e=>setGroup(e.target.value)}><option value="">从问题识别 / 整体</option><option value="state">巴西州</option></select></label>{period==='custom'&&<><label>开始<input type="date" value={start} onChange={e=>setStart(e.target.value)} required/></label><label>结束（不含）<input type="date" value={end} onChange={e=>setEnd(e.target.value)} required/></label></>}</div><div className="input-row"><textarea value={question} onChange={e=>setQuestion(e.target.value)} placeholder="例如：本月 GMV 按州统计" maxLength={2000} rows={2} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();void submit()}}}/><button className="primary" disabled={busy||!question.trim()||metrics.length===0}>{busy?'受理中…':'发送 ↗'}</button></div><small>Enter 发送 · Shift + Enter 换行 · 金额单位 BRL，GMV 不含运费</small></form>
+      <form className="composer" onSubmit={submit}><div className="controls"><label>指标<select value={metric} onChange={e=>setMetric(e.target.value)}><option value="">从问题识别</option>{metrics.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></label><label>时间<select value={period} onChange={e=>setPeriod(e.target.value)}><option value="">从问题识别</option>{[['today','今天'],['yesterday','昨日'],['this_week','本周'],['last_week','上周'],['this_month','本月'],['last_month','上月'],['custom','指定日期']].map(([v,n])=><option key={v} value={v}>{n}</option>)}</select></label><label>维度<select value={group} onChange={e=>setGroup(e.target.value)}><option value="">从问题识别 / 整体</option><option value="state">巴西州</option><option value="day">下单日期</option><option value="month">下单月份</option></select></label>{period==='custom'&&<><label>开始<input type="date" value={start} onChange={e=>setStart(e.target.value)} required/></label><label>结束（不含）<input type="date" value={end} onChange={e=>setEnd(e.target.value)} required/></label></>}</div><div className="input-row"><textarea value={question} onChange={e=>setQuestion(e.target.value)} placeholder="例如：本月 GMV 按州统计" maxLength={2000} rows={2} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();void submit()}}}/><button className="primary" disabled={busy||!question.trim()||metrics.length===0}>{busy?'受理中…':'发送 ↗'}</button></div><small>Enter 发送 · Shift + Enter 换行 · 金额单位 BRL，GMV 不含运费</small></form>
       </>}
     </main>
   </div>

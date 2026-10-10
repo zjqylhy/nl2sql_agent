@@ -70,3 +70,22 @@ def test_mysql_readonly_user_cannot_read_base_or_write(mysql_source):
                 cursor.execute("DELETE FROM metric_orders")
     finally:
         connection.close()
+
+
+def test_mysql_semantic_plan_preserves_grain_and_recalculates_ratios(mysql_source):
+    from runtime.plan_parser import plan_constraints
+    from runtime.plan import compile_plan, normalize_result
+    plan = plan_constraints("本月 GMV 和客单价和平均评分按月和州统计", {}, mysql_source.analysis_date).rules_plan()
+    sql, params = compile_plan(plan)
+    raw = execute(mysql_source, sql, params)
+    result = normalize_result(plan, raw, mysql_source.analysis_date, {"parser":"rules","tokens":0}, sql, params)
+    assert len(result["rows"]) == 1
+    row = result["rows"][0]
+    assert row["dimensions"] == {"month":"2018-08", "state":"SP"}
+    assert float(row["values"]["gmv"]["value"]) == 150
+    assert float(row["values"]["aov"]["value"]) == 75
+    assert row["values"]["review_score"]["sample_size"] == 1
+    assert row["values"]["aov"]["sample_size"] == 2
+    plan = plan_constraints("本月商品金额大于100的订单量", {}, mysql_source.analysis_date).rules_plan()
+    sql, params = compile_plan(plan)
+    assert execute(mysql_source,sql,params)[0]["m0_value"] == "1"

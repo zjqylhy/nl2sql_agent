@@ -77,7 +77,7 @@ ALIASES = {
     "orders": r"订单量|订单数|多少\s*(?:笔|个)?\s*订单",
     "aov": r"客单价",
     "cancellation_rate": r"取消率",
-    "delivery_days": r"交付时长|配送时长|交付天数",
+    "delivery_days": r"(?:平均)?(?:交付时长|配送时长|交付天数)",
     "review_score": r"平均评分|评价均分|平均评价",
 }
 PERIODS = {"today": "今天|今日", "yesterday": "昨天|昨日", "this_week": "本周|这周", "last_week": "上周", "this_month": "本月|这个月", "last_month": "上月|上个月"}

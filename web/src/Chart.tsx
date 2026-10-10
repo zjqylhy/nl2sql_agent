@@ -1,20 +1,23 @@
 import {useEffect,useRef} from 'react'
 import * as echarts from 'echarts/core'
-import {BarChart} from 'echarts/charts'
-import {GridComponent,TooltipComponent} from 'echarts/components'
+import {BarChart,LineChart} from 'echarts/charts'
+import {GridComponent,TooltipComponent,LegendComponent} from 'echarts/components'
 import {CanvasRenderer} from 'echarts/renderers'
 
-echarts.use([BarChart,GridComponent,TooltipComponent,CanvasRenderer])
+echarts.use([BarChart,LineChart,GridComponent,TooltipComponent,LegendComponent,CanvasRenderer])
 
 type Row={label:string;value:string|number|null}
-export default function Chart({rows,unit}:{rows:Row[];unit:string}){
+export default function Chart({rows=[],unit,kind='bar',series}:{rows?:Row[];unit:string;kind?:'bar'|'line';series?:{name:string;rows:Row[]}[]}){
   const ref=useRef<HTMLDivElement>(null)
   useEffect(()=>{
     if(!ref.current)return
     const chart=echarts.init(ref.current)
-    chart.setOption({grid:{left:65,right:20,top:25,bottom:35},tooltip:{trigger:'axis'},xAxis:{type:'category',data:rows.map(r=>r.label),axisLine:{lineStyle:{color:'#c7d2df'}}},yAxis:{type:'value',name:unit,splitLine:{lineStyle:{color:'#edf1f5'}}},series:[{type:'bar',data:rows.map(r=>r.value===null?null:Number(r.value)),itemStyle:{color:'#157f78',borderRadius:[4,4,0,0]},barMaxWidth:40}]})
+    const data=series??[{name:unit,rows}]
+    const labels=[...new Set(data.flatMap(s=>s.rows.map(r=>r.label)))]
+    if(kind==='line')labels.sort()
+    chart.setOption({grid:{left:65,right:20,top:data.length>1?65:45,bottom:45},tooltip:{trigger:'axis'},legend:{show:data.length>1,type:'scroll',top:8,left:65,right:20},xAxis:{type:'category',data:labels,axisLine:{lineStyle:{color:'#c7d2df'}}},yAxis:{type:'value',name:unit,splitLine:{lineStyle:{color:'#edf1f5'}}},series:data.map(s=>{const values=new Map(s.rows.map(r=>[r.label,r.value]));return {name:s.name,type:kind,connectNulls:false,data:labels.map(label=>{const value=values.get(label);return value===null||value===undefined?null:Number(value)}),barMaxWidth:40}})})
     const observer=new ResizeObserver(()=>chart.resize());observer.observe(ref.current)
     return()=>{observer.disconnect();chart.dispose()}
-  },[rows,unit])
-  return <div ref={ref} className="chart" role="img" aria-label="按巴西州分组的指标柱状图"/>
+  },[rows,unit,kind,series])
+  return <div ref={ref} className="chart" role="img" aria-label={kind==='line'?'按时间分组的指标趋势图':'分组指标柱状图'}/>
 }

@@ -80,7 +80,8 @@ def run(args):
             value = task(operator, "查询本月指标", metric=metric, period="this_month")
             assert value["status"] == "completed", value
             result = value["result"]
-            actual = Decimal(str(result["rows"][0]["value"]))
+            row = result["rows"][0]
+            actual = Decimal(str(row["values"][metric]["value"] if result.get("result_version") == 2 else row["value"]))
             # MySQL 整数 AVG 默认保留四位小数；总额与计数要求精确一致。
             assert abs(actual - expected[metric]) <= TOLERANCE[metric], (metric, actual, expected[metric])
             assert result["period"] == {"start": "2018-08-01", "end_exclusive": "2018-09-01"}
@@ -102,7 +103,8 @@ def run(args):
         unknown_filter = task(operator, "本月GMV只看ZZ州")
         assert unknown_filter["status"] == "needs_clarification"
         empty = task(operator, "指定时间GMV", metric="gmv", period="custom", start="2015-01-01", end="2015-02-01")
-        assert empty["status"] == "completed" and empty["result"]["rows"][0]["value"] is None
+        row = empty["result"]["rows"][0]
+        assert empty["status"] == "completed" and (row["values"]["gmv"]["value"] if empty["result"].get("result_version") == 2 else row["value"]) is None
         response = admin.patch("/api/users/" + person["id"], json={"enabled": True, "allowed_metrics": [m for m in METRICS if m != "gmv"]})
         response.raise_for_status()
         assert operator.get("/api/tasks/" + historical).status_code == 404

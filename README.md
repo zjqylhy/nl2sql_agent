@@ -2,7 +2,7 @@
 
 已实现 M1：Go API、Python 受限查询服务、React 工作台，支持账号/租户、六项指标、历史任务、持久化 SSE、权限撤销、任务停止和受控 SQL。需求与分期见 [需求规格](docs/spec.md)，结构见 [技术方案](docs/architecture.md)。
 
-规则优先解析常见问题，完整命中时不调用模型、Token 为 0；支持范围内的陌生表达在配置模型后由 LLM 兜底，只解析结构化意图，指标 SQL 仍由程序编译。未配置模型、条件缺失或冲突时要求澄清。归因、多轮、LangGraph/Celery、报告及完整线上运营验收属于 M2/M3。
+规则优先解析常见问题，完整命中时不调用模型、Token 为 0；支持范围内的陌生表达在配置模型后由 LLM 兜底。两条路径生成统一 QueryPlan，由版本化语义目录编译参数化 SQL。已支持一次 1–3 个指标、州/日/月分组、筛选、排序、Top N 和月趋势，详见 [语义查询规格](docs/semantic-query-design.md)。未配置模型、条件缺失或冲突时要求澄清。归因、多轮、LangGraph/Celery、报告及完整线上运营验收属于 M2/M3。
 
 ## Windows 本地启动
 
@@ -67,7 +67,7 @@ $bootstrapPassword = $null
 
 ### 规则解析与模型兜底
 
-“本月 GMV 按州统计”或“本月 GMV，只看 SP 州”等完整规则表达，即使配置了模型也会走规则，结果显示“规则解析”、Token 为 0。“本月 GMV，只看圣保罗州”等陌生表达可由模型兜底，结果显示“模型解析”及实际 Token。缺少时间、多个指标冲突、非法州代码、越权或超出 M1 范围时直接澄清或拒绝。
+“本月 GMV 和有效订单量按州统计”“最近 6 个月 GMV 和客单价按月统计”“本月商品金额大于 100 的订单量”“本月 GMV 按州排名，取前 5 名”等完整规则表达，即使配置了模型也走规则，Token 为 0。“本月 GMV 和订单量，只看圣保罗州”等陌生表达可由模型兜底。六指标最多组合三个，金额筛选不含运费；不支持品类、跨表关联、同比/环比和自由 SQL。缺少时间、手动指标冲突、非法州代码或越权时直接澄清或拒绝。
 
 在 `.env` 配置 `LLM_API_KEY`、HTTPS `LLM_BASE_URL` 与提供商支持的 `LLM_MODEL`，再重建 agent 容器使配置生效。项目读取 `LLM_API_KEY`；Windows 用户环境里的 `DEEPSEEK_API_KEY` 或 `QWEN_API_KEY` 需显式传给该变量。手动选择的参数参与规则解析，并约束模型结果；仅部分表达未识别时仍可使用模型兜底。模型失败或无效输出不会回退执行未完整识别的 SQL。
 
@@ -106,5 +106,7 @@ npm run dev
 ```
 
 未配置数据库时脚本会明确跳过数据库集成测试。真实 Olist HTTP 验收见 `scripts/smoke.py --help`：要求基准 2018-08-31、第二租户只读 SP 视图，以及专用测试账号；密码由 `SMOKE_PASSWORD` 环境变量传入。脚本会临时修改测试运营账号权限并恢复。
+
+组合查询的独立 CSV 核对：在项目根目录执行 `.\.venv\Scripts\python.exe scripts/verify_semantic.py`，要求本地 Compose、`data/olist` 原始 CSV、alpha/admin 全范围授权视图及基准 2018-08-31。默认八条规则问题不调用模型；追加 `--with-model` 会增加一次真实模型调用并记录 Token。核对指标值、样本、NULL、筛选、分组及 Top N；不修改账号权限。
 
 [云部署步骤](docs/deployment.md)提供云主机 Compose 和 Kubernetes 两条路径，同一套镜像连接云托管 PostgreSQL/MySQL。[验证记录](docs/validation.md)列出已验证内容及未验证边界。
