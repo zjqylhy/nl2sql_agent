@@ -4,7 +4,7 @@
 
 ## 环境与数据
 
-Windows；Go 1.27.1、Python 3.12、Node.js 24。临时 PostgreSQL 18.4 与 MySQL 8.4.11 只监听本机，不安装系统数据库服务。目标 Compose/CI 使用 PostgreSQL 17，尚未在该目标容器环境执行。
+Windows；Go 1.27.1、Python 3.12、Node.js 24。功能验收使用临时 PostgreSQL 18.4 与 MySQL 8.4.11，只监听本机，不安装系统数据库服务。随后在 Docker Linux 引擎 29.8.2 上验证本地 Compose 启动，数据库镜像为 PostgreSQL 17 与 MySQL 8.4。
 
 从官方 Olist 下载并真实导入 99,441 笔订单。两个独立租户 schema；alpha 全范围，beta 的查询视图仅允许 SP 州。真实 CSV/数据库文件、密码和测试运行配置均在 Git 忽略目录。
 
@@ -24,6 +24,7 @@ Windows；Go 1.27.1、Python 3.12、Node.js 24。临时 PostgreSQL 18.4 与 MySQ
 | 数据语义 | 金额避免联表倍增、评价稳定去重、有效时间、歧义澄清、无数据与真实零区分 |
 | 迁移 | 重复执行幂等；改写已应用 SQL 校验值时拒绝迁移 |
 | 部署模板 | 官方 Docker Compose 5.6.0 校验本地及云配置；Kubernetes 9 个资源 YAML 解析通过 |
+| 本地容器部署 | API/迁移/agent/web 镜像完整构建通过；两个数据库 healthy，迁移 Exited (0)，应用服务运行；:8088 页面与 /healthz 返回 200 |
 | 浏览器 | 本地登录、问数、历史回查、真实州分组图表显示通过 |
 
 验收脚本 `scripts/verify.ps1` 已实际执行通过。Windows 验证前应停止 Vite，避免 npm ci 遇到 esbuild 文件锁。
@@ -47,7 +48,7 @@ Windows；Go 1.27.1、Python 3.12、Node.js 24。临时 PostgreSQL 18.4 与 MySQ
 
 ## 未验证与后续
 
-本机无 Docker 引擎，未构建/启动 Linux 镜像；CI 工作流已配置测试和镜像构建，但尚未在远端运行。Compose 校验和 YAML 解析不能代替容器运行或 Kubernetes server dry-run。
+本地 Linux 镜像构建与 Compose 启动已验证；容器环境的数据导入、登录问数和完整集成测试尚未执行。CI 工作流已配置测试和镜像构建，但尚未在远端运行。Compose 校验和 YAML 解析不能代替 Kubernetes server dry-run。
 
 没有调用真实付费模型；仅验证模型请求格式、响应 schema、无 SQL 输出、失败不回退编造结果、手动输入规则解析。模型准确率、费用预算与 300+ 独立验收集未完成。
 
