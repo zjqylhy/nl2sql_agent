@@ -26,6 +26,8 @@ Windows；Go 1.27.1、Python 3.12、Node.js 24。功能验收使用临时 Postgr
 | 部署模板 | 官方 Docker Compose 5.6.0 校验本地及云配置；Kubernetes 9 个资源 YAML 解析通过 |
 | 本地容器部署 | API/迁移/agent/web 镜像完整构建通过；两个数据库 healthy，迁移 Exited (0)，应用服务运行；:8088 页面与 /healthz 返回 200 |
 | 真实模型调用 | 将 Windows 用户 DEEPSEEK_API_KEY 接入本地 LLM_API_KEY 并重建 agent；单次“本月 GMV 按州统计”内部请求返回 200/completed，parser=llm、deepseek-flash、338 Token、26 行结果 |
+| 规则优先变更 | Windows 111 passed/2 个 MySQL 集成用例未配置时跳过；Linux 容器含真实 MySQL 共 113 passed。覆盖规则零模型调用、受限兜底、缺失/冲突/越权/超范围、手动约束、未知筛选、模型失败及澄清用量 |
+| 两条真实解析路径 | 新版 agent、模型密钥已配置：本月 GMV 按州统计走 rules/0 Token、26 行/合计 848860.10 BRL；本月 GMV 只看圣保罗州（手动指标 gmv）走 llm/522 Token、1 行/394403.11 BRL。各州与圣保罗金额均独立核对原始 CSV；公网入口 /healthz 返回 200 |
 | 浏览器 | 本地登录、问数、历史回查、真实州分组图表显示通过 |
 
 验收脚本 `scripts/verify.ps1` 已实际执行通过。Windows 验证前应停止 Vite，避免 npm ci 遇到 esbuild 文件锁。
@@ -49,9 +51,9 @@ Windows；Go 1.27.1、Python 3.12、Node.js 24。功能验收使用临时 Postgr
 
 ## 未验证与后续
 
-本地 Linux 镜像构建与 Compose 启动已验证；容器数据库已核对导入 99,441 笔订单，并完成单次真实模型查询，完整容器集成测试尚未执行。CI 工作流已配置测试和镜像构建，但尚未在远端运行。Compose 校验和 YAML 解析不能代替 Kubernetes server dry-run。
+本地 Linux 镜像构建与 Compose 启动已验证；容器数据库已核对导入 99,441 笔订单，Python/MySQL 容器回归及规则/模型两条真实查询已验证。Go/PostgreSQL 全套容器集成回归未执行。CI 工作流已配置测试和镜像构建，但尚未在远端运行。Compose 校验和 YAML 解析不能代替 Kubernetes server dry-run。
 
-已完成一次真实模型解析与 MySQL 查询链路检查；模型请求格式、响应 schema、无 SQL 输出、失败不回退编造结果、手动输入规则解析另由 mock 契约测试验证。单次成功不能代表模型准确率；费用预算与 300+ 独立验收集未完成。
+已完成真实模型解析与 MySQL 查询链路检查，并验证规则优先后的模型兜底；模型请求格式、响应 schema、无 SQL 输出、失败不回退编造结果及手动约束另由 mock 契约测试验证。少量成功查询不能代表模型准确率；费用预算与 300+ 独立验收集未完成。
 
 未在云账号部署，TLS/Ingress、数据库私网权限、多副本滚动发布、50 并发压测、备份恢复、P95/99.9% 未验收。代理下登录 IP 限速需完善；长任务主动取消、节点 checkpoint、完整恢复、归因及报告属于 M2/M3。详见 [云部署边界](deployment.md)。
 

@@ -11,7 +11,7 @@ import pymysql
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
-from .intent import Clarification, Intent, rules_intent, period_bounds
+from .intent import Clarification, Intent, RuleMiss, question_constraints, rules_intent, period_bounds
 from .metrics import METRICS, compile_query
 from .security import UnsafeSQL, validate_sql
 
@@ -59,29 +59,60 @@ def authenticated(x_service_key: str = Header(default="")):
         raise HTTPException(401, "内部服务鉴权失败")
 
 
-def parse_intent(request: QueryRequest) -> tuple[Intent, dict]:
+def checked_window(intent: Intent, anchor: date) -> tuple[date, date]:
+    start, end = period_bounds(intent, anchor)
+    if (end - start).days > 3660 or end > anchor + timedelta(days=1):
+        raise HTTPException(422, "时间范围超出已配置分析基准，请缩小范围")
+    return start, end
+
+
+def parse_intent(request: QueryRequest, anchor: date) -> tuple[Intent, dict]:
     overrides = request.input.model_dump(exclude={"question"}, exclude_defaults=True)
-    # 显式输入仍经过同一校验，模型故障不改变业务口径。
-    if not os.getenv("LLM_API_KEY") or overrides:
-        return rules_intent(request.input.question, overrides), {"parser": "rules", "tokens": 0}
+    constraints = question_constraints(request.input.question, overrides)
+    if not request.allowed_metrics or (constraints.metric and constraints.metric not in request.allowed_metrics):
+        raise HTTPException(403, "没有该指标权限")
+    if constraints.period:
+        # 时间约束可独立检查；占位指标仅用于复用日期模型，不参与查询或权限判断。
+        checked_window(Intent(metric="gmv", period=constraints.period, start=constraints.start, end=constraints.end), anchor)
+    try:
+        intent = rules_intent(request.input.question, overrides, constraints)
+        return intent, {"parser": "rules", "tokens": 0}
+    except RuleMiss:
+        if not os.getenv("LLM_API_KEY"):
+            raise
     base = os.getenv("LLM_BASE_URL", "").rstrip("/")
     model = os.getenv("LLM_MODEL", "")
     if not base.startswith("https://") or not model:
         raise HTTPException(503, "模型配置不完整")
     prompt = "你是 Olist 电商单指标查询意图解析器。只输出 JSON，不生成 SQL。metric 必须是 " + ",".join(request.allowed_metrics) + "; period 为 today/yesterday/this_week/last_week/this_month/last_month/custom；group_by 只允许空字符串或 state（巴西州）；states 为巴西州代码数组；custom 的 start/end 为 YYYY-MM-DD 左闭右开区间，其余 start/end 为 null。不要猜测缺失时间，不支持归因/对比/报告/渠道/品类。无法明确解析时返回 {\"clarification\":\"简洁澄清问题\"}。"
+    prompt += "成功时仅返回 metric、period、group_by、start、end、states 六个字段，禁止增加其他字段。分析基准日期为 " + str(anchor) + "。以下已确定条件必须保留：" + json.dumps(constraints.prompt_values(), ensure_ascii=False) + "。只补齐未识别字段，不得忽略任何筛选、分组或否定表达；条件无法用允许的字段表达时必须澄清。"
+    if constraints.states_complete:
+        prompt += "州筛选已经完整确定，states 必须与约束数组完全一致，不得新增州。"
+    else:
+        prompt += "请解析问题中的州名并补齐 states，同时保留约束中已有的州代码。"
+    if constraints.requires_filter:
+        prompt += "问题有明确的州筛选要求，states 不得为空；无法识别州名时返回澄清。"
+    model_usage = {"parser": "llm", "model": model, "tokens": None}
     try:
         with httpx.Client(timeout=20, follow_redirects=False) as client:
             response = client.post(base + "/chat/completions", headers={"Authorization": "Bearer " + os.environ["LLM_API_KEY"]}, json={"model": model, "messages": [{"role": "system", "content": prompt}, {"role": "user", "content": request.input.question}], "response_format": {"type": "json_object"}, "max_tokens": 800, "temperature": 0})
             response.raise_for_status()
             data = response.json()
+        usage = data.get("usage") or {}
+        model_usage["tokens"] = usage.get("total_tokens")
         content = json.loads(data["choices"][0]["message"]["content"])
         if "clarification" in content:
-            raise Clarification(str(content["clarification"])[:200])
+            if set(content) != {"clarification"} or not isinstance(content["clarification"], str) or not content["clarification"].strip():
+                raise ValueError("invalid clarification")
+            raise Clarification(content["clarification"][:200])
         intent = Intent.model_validate(content)
-        return intent, {"parser": "llm", "model": model, "tokens": data.get("usage", {}).get("total_tokens")}
-    except Clarification:
+        constraints.validate(intent)
+        return intent, model_usage
+    except Clarification as exc:
+        # 兜底后要求澄清同样消耗模型 Token，不能漏记这条路径的用量。
+        exc.usage = model_usage
         raise
-    except (httpx.HTTPError, ValueError, KeyError, IndexError) as exc:
+    except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError, AttributeError) as exc:
         raise HTTPException(503, "模型解析失败，请使用明确的指标和时间重试") from exc
 
 
@@ -123,21 +154,22 @@ def health():
 @app.post("/internal/query", dependencies=[Depends(authenticated)])
 def query(request: QueryRequest):
     try:
-        intent, usage = parse_intent(request)
-    except (Clarification, ValidationError) as exc:
-        message = str(exc) if isinstance(exc, Clarification) else "指标、时间或地区格式不明确，请确认后重试。"
-        return {"status": "needs_clarification", "message": message}
-    if intent.metric not in request.allowed_metrics:
-        raise HTTPException(403, "没有该指标权限")
-    try:
         source = sources().get(request.tenant_id + ":" + request.role)
     except (ValueError, ValidationError) as exc:
         raise HTTPException(503, "数据源配置无效") from exc
     if source is None:
         raise HTTPException(403, "租户或角色尚未授权数据源")
-    start, end = period_bounds(intent, source.analysis_date)
-    if (end - start).days > 3660 or end > source.analysis_date + timedelta(days=1):
-        raise HTTPException(422, "时间范围超出已配置分析基准，请缩小范围")
+    try:
+        intent, usage = parse_intent(request, source.analysis_date)
+    except (Clarification, ValidationError) as exc:
+        message = str(exc) if isinstance(exc, Clarification) else "指标、时间或地区格式不明确，请确认后重试。"
+        result = {"status": "needs_clarification", "message": message}
+        if isinstance(exc, Clarification) and exc.usage is not None:
+            result["usage"] = exc.usage
+        return result
+    if intent.metric not in request.allowed_metrics:
+        raise HTTPException(403, "没有该指标权限")
+    start, end = checked_window(intent, source.analysis_date)
     sql = compile_query(intent.metric, intent.group_by == "state", len(intent.states))
     params = [str(start), str(end), *intent.states]
     try:
