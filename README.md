@@ -110,3 +110,5 @@ npm run dev
 组合查询的独立 CSV 核对：在项目根目录执行 `.\.venv\Scripts\python.exe scripts/verify_semantic.py`，要求本地 Compose、`data/olist` 原始 CSV、alpha/admin 全范围授权视图及基准 2018-08-31。默认八条规则问题不调用模型；追加 `--with-model` 会增加一次真实模型调用并记录 Token。核对指标值、样本、NULL、筛选、分组及 Top N；不修改账号权限。
 
 [云部署步骤](docs/deployment.md)提供云主机 Compose 和 Kubernetes 两条路径，同一套镜像连接云托管 PostgreSQL/MySQL。[验证记录](docs/validation.md)列出已验证内容及未验证边界。
+
+下一阶段的[问数质量与线上运行方案](docs/quality-operations-design.md)细化独立评测、逐次执行记录、租户统计及云主机 Compose 验收；需求和技术方案待人工确认，尚未实现。
