@@ -1,5 +1,7 @@
 # 本地与云部署
 
+2026-10-10：用户明确云端目标为阿里云 ECS + Docker Compose。后续实现须遵循 [阿里云部署要求](aliyun-deployment-design.md)；下文通用云模板仍需补齐对应配置，尚未在阿里云验收。Kubernetes 保留为后续参考，当前交付优先 ECS 路径。
+
 ## 本地部署（Windows）
 
 项目目录：`C:\Users\LHY95\Documents\Codex\nl2sql_agent`。本地容器部署入口为 http://localhost:8088；需要 Docker Desktop 的 Linux containers 模式。

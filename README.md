@@ -112,3 +112,5 @@ npm run dev
 [云部署步骤](docs/deployment.md)提供云主机 Compose 和 Kubernetes 两条路径，同一套镜像连接云托管 PostgreSQL/MySQL。[验证记录](docs/validation.md)列出已验证内容及未验证边界。
 
 下一阶段的[问数质量与线上运行方案](docs/quality-operations-design.md)细化独立评测、逐次执行记录、租户统计及云主机 Compose 验收；需求和技术方案待人工确认，尚未实现。
+
+云端目标已明确为阿里云 ECS + Docker Compose，后续适配以[阿里云部署要求](docs/aliyun-deployment-design.md)为准，覆盖 RDS、ACR、HTTPS、安全组、日志和恢复验收。
