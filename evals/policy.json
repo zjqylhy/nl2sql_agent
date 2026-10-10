@@ -1,0 +1,5 @@
+{
+  "policy_version": 1,
+  "minimum_accuracy": 0.85,
+  "maximum_accuracy_drop": 0.02
+}

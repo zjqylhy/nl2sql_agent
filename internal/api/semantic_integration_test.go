@@ -92,4 +92,21 @@ func TestSemanticRevocationAcrossHistoryAndEvents(t *testing.T) {
 	if w := call("GET", "/api/tasks"); w.Code != 200 || strings.TrimSpace(w.Body.String()) != "[]" {
 		t.Fatalf("revoked list: %d %s", w.Code, w.Body.String())
 	}
+	// 已入队但执行前被撤权：平台明确没有调用 agent，不能记成未知模型用量。
+	if _, err = db.CreateTask(ctx, u, store.Input{Question: "本月平均评分", Metric: "review_score"}); err != nil {
+		t.Fatal(err)
+	}
+	denied, err := db.Claim(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	New(db, Config{Origin: "http://app.example"}).execute(ctx, denied)
+	var calls, tokens int
+	var code string
+	if err = db.Pool.QueryRow(ctx, `SELECT (telemetry->>'model_calls')::int,(telemetry->>'total_tokens')::int,error_code FROM task_attempts WHERE task_id=$1`, denied.ID).Scan(&calls, &tokens, &code); err != nil {
+		t.Fatal(err)
+	}
+	if calls != 0 || tokens != 0 || code != "permission" {
+		t.Fatal("pre-call denial usage incorrect", calls, tokens, code)
+	}
 }

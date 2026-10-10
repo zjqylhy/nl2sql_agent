@@ -20,6 +20,32 @@ def request(tenant="alpha", metrics=None, question="本月 GMV"):
     return {"tenant_id": tenant, "role": "ops", "allowed_metrics": metrics if metrics is not None else ["gmv"], "input": {"question": question}}
 
 
+def test_error_telemetry_keeps_execution_and_unknown_usage(client, monkeypatch):
+    import pymysql
+    body = request()
+    body["execution"] = {"task_id": "a" * 48, "execution_version": 3}
+    def fail_sql(*args):
+        raise pymysql.OperationalError(3024, "sensitive database content")
+    monkeypatch.setattr(runtime, "execute", fail_sql)
+    response = client.post("/internal/query", headers={"X-Service-Key": "s" * 40}, json=body)
+    trace = response.json()["telemetry"]
+    assert response.status_code == 503 and trace["error_code"] == "sql_timeout"
+    assert trace["execution_version"] == 3 and trace["model_calls"] == 0
+    assert "sensitive database content" not in response.text
+    monkeypatch.setenv("LLM_API_KEY", "test-secret")
+    monkeypatch.setenv("LLM_BASE_URL", "https://provider.example")
+    monkeypatch.setenv("LLM_MODEL", "model")
+    original = httpx.Client
+    def timeout(req): raise httpx.ReadTimeout("sensitive provider content", request=req)
+    monkeypatch.setattr(runtime.httpx, "Client", lambda **opts: original(transport=httpx.MockTransport(timeout), **opts))
+    body["input"]["question"] = "本月 GMV，只看圣保罗州"
+    response = client.post("/internal/query", headers={"X-Service-Key": "s" * 40}, json=body)
+    trace = response.json()["telemetry"]
+    assert trace["error_code"] == "model_timeout" and trace["model_calls"] == 1
+    assert trace["total_tokens"] is None
+    assert "sensitive provider content" not in response.text
+
+
 def test_internal_endpoint_requires_auth(client):
     assert client.post("/internal/query", json=request()).status_code == 401
 

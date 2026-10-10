@@ -8,8 +8,8 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
-	"net"
 	"net/http"
+	"net/netip"
 	"net/url"
 	"slices"
 	"strconv"
@@ -24,6 +24,7 @@ import (
 type Config struct {
 	Origin, AgentURL, ServiceKey string
 	SecureCookie                 bool
+	TrustedProxies               []netip.Prefix
 }
 type Server struct {
 	DB      *store.Store
@@ -49,6 +50,7 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("POST /api/logout", s.auth(http.HandlerFunc(s.logout)))
 	mux.Handle("GET /api/me", s.auth(http.HandlerFunc(s.me)))
 	mux.Handle("GET /api/metrics", s.auth(http.HandlerFunc(s.metrics)))
+	mux.Handle("GET /api/operations/summary", s.auth(http.HandlerFunc(s.operations)))
 	mux.Handle("POST /api/tasks", s.auth(http.HandlerFunc(s.create)))
 	mux.Handle("GET /api/tasks", s.auth(http.HandlerFunc(s.list)))
 	mux.Handle("GET /api/tasks/{id}", s.auth(http.HandlerFunc(s.detail)))
@@ -136,7 +138,7 @@ func (s *Server) health(w http.ResponseWriter, r *http.Request) {
 	write(w, 200, map[string]string{"status": "ok", "milestone": "M1"})
 }
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
-	ip, _, _ := net.SplitHostPort(r.RemoteAddr)
+	ip := s.clientIP(r)
 	if !s.limiter.Allow(ip) {
 		fail(w, 429, "登录尝试过多，请稍后重试")
 		return

@@ -63,7 +63,7 @@ RDS 备份策略及保留期由实际实例配置，恢复到独立测试实例�
 | CI/发布 | linux/amd64 镜像验证、ACR 地址参数化、digest 发布、迁移与回滚步骤；实际推送另需授权 |
 | 运维手册 | RAM/安全组/白名单、初始化、证书、SLS、备份恢复、目标环境压测及成本记录 |
 
-现有 `deploy/compose.cloud.yaml` 是通用模板：目前仅挂载 MySQL CA，尚未提供 PostgreSQL CA 挂载、TLS 入口、云日志和可信代理的完整实现。后续应补齐并验证；文档更新不等于模板已适配完成。
+`deploy/compose.cloud.yaml` 已补齐 PostgreSQL/MySQL CA、日志轮换、服务探针与资源限制；`deploy/nginx.ecs.conf` 提供宿主 TLS/SSE 入口，API 增加可信代理校验。Compose 与 Nginx 配置已做本地校验；SLS 集中采集、真实 RDS 证书/私网、宿主网关地址及公网 TLS 仍需在目标环境验收。
 
 ## 云端验收
 

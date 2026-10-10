@@ -1,6 +1,6 @@
 # 本地与云部署
 
-2026-10-10：用户明确云端目标为阿里云 ECS + Docker Compose。后续实现须遵循 [阿里云部署要求](aliyun-deployment-design.md)；下文通用云模板仍需补齐对应配置，尚未在阿里云验收。Kubernetes 保留为后续参考，当前交付优先 ECS 路径。
+2026-10-10：用户明确云端目标为阿里云 ECS + Docker Compose。后续实现须遵循 [阿里云部署要求](aliyun-deployment-design.md)；云模板已补齐双数据库 CA、宿主 TLS 入口、探针、资源限制、日志轮换和可信代理配置，尚未在阿里云验收。Kubernetes 保留为后续参考，当前交付优先 ECS 路径。
 
 ## 本地部署（Windows）
 
@@ -71,7 +71,7 @@ docker build -f deploy/Dockerfile.web -t REGISTRY/olist-web:VERSION .
 # 登录自己的仓库后推送以上版本。
 ```
 
-3. 复制 `deploy/cloud.env.example` 到受控 `.env.cloud`，替换占位值。PostgreSQL 使用 `sslmode=verify-full`；私有 CA 用 `sslrootcert` 指定并另挂载至 API/迁移容器。模型与数据库 DNS 必须可解析。
+3. 复制 `deploy/cloud.env.example` 到受控 `.env.cloud`，替换占位值。PostgreSQL 使用 `sslmode=verify-full`；`POSTGRES_CA_FILE` 指定宿主 CA 文件，模板自动挂载至 API/迁移容器；DSN 的 `sslrootcert` 为 `/run/secrets/postgres-ca.pem`。模型与数据库 DNS 必须可解析。
 4. MySQL 映射配置 `ssl_ca: "/run/secrets/mysql-ca.pem"`；`MYSQL_CA_FILE` 填宿主机数据库厂商 CA 的绝对路径。程序验证证书及主机名，不能随意把 DNS 替换成 IP。
 5. 在私网运维环境安装锁定依赖，按 README 导入真实数据，建立受控角色映射。初始化管理账号不注入长驻 API/agent。
 6. 校验并启动，不打印解析后的密码。
@@ -85,18 +85,34 @@ docker compose --env-file .env.cloud -f deploy/compose.cloud.yaml up -d
 
 7. 私网一次性执行 `api -command bootstrap`，stdin 提供管理员密码。可由专门初始化身份执行，不需要把 DDL 权限赋给运行账号。
 8. TLS 代理将同域名 `/` 和 `/api/*` 转发到 web:8080。`PUBLIC_ORIGIN` 必须是最终 HTTPS origin（无路径/尾斜杠）。跨机器负载均衡时 `BIND_HOST` 设私网地址，安全组只允许负载均衡来源；本机 TLS 代理保持 127.0.0.1。
-9. SSE 上游禁用缓冲，空闲超时大于心跳 10 秒（建议至少 65 秒）；入口配置登录限速、请求体限制、HSTS。M1 登录限速按直接连接 IP；统一代理下账号共享额度，上线前需按可信代理规则完善真实 IP 限速，不能信任任意 X-Forwarded-For。
+9. SSE 上游禁用缓冲，空闲超时大于心跳 10 秒（建议至少 65 秒）；入口配置登录限速、请求体限制、HSTS。API 仅信任 `TRUSTED_PROXY_CIDRS` 中的精确代理地址，从右向左回溯 X-Forwarded-For；宿主 Nginx 覆盖公网传入的代理链。云模板默认只信任 web 地址与宿主网关；变更 Docker 网段/转发拓扑时同步调整，并现场核对真实 IP。未设置时仍按直接连接 IP 限速。
 
 PostgreSQL 最小运行授权示例（由管理员执行，替换实际 schema/身份）：
 
 ```sql
 GRANT CONNECT ON DATABASE platform TO platform_runtime;
 GRANT USAGE ON SCHEMA public TO platform_runtime;
-GRANT SELECT, INSERT, UPDATE, DELETE ON tenants, users, sessions, tasks, task_events, task_outbox TO platform_runtime;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tenants, users, sessions, tasks, task_events, task_outbox, task_attempts TO platform_runtime;
 -- 无 schema_migrations 权限，无 DDL；检查默认 PUBLIC schema 权限。
 ```
 
 容器以非 root、只读根文件系统运行，临时文件在 tmpfs。日志不记录请求体、Cookie、密钥或 DSN。
+
+ECS 宿主入口配置见 `deploy/nginx.ecs.conf`，在 Nginx 的 `http {}` 内加载，替换域名与证书路径。证书文件由宿主续期；先 `nginx -t` 再 reload。默认只发布 80/443，8088 保持回环地址，安全组不开放数据库/API/agent。云模板默认 API/agent 各 512 MiB、web 128 MiB 与对应 CPU 上限，仅为起始配置，需结合 ECS/RDS 资源压测调整。Docker 日志每服务 3×10 MiB 轮换；SLS 采集需在实际云环境接入。
+
+### 执行统计与清理
+
+管理员登录后可同源读取 `/api/operations/summary?days=7`（支持 1/7/30 天），普通角色返回 403。统计按会话租户汇总，分别列任务和每次 attempt、重试、错误、已知 Token/未知用量、各耗时 P50/P95 与样本数；不提供问题/SQL 明细。
+
+```bash
+# 默认只删除结束超过 30 天的 attempt，每次至多 1000 条；不删除任务或事件。
+docker compose --env-file .env.cloud -f deploy/compose.cloud.yaml \
+  run --rm --no-deps api -command prune-attempts
+```
+
+运维定期显式执行清理，按返回 deleted 数判断是否还需分批执行。版本 002 新增表需在新版 API 启动前迁移，并将 `task_attempts` 授权给运行账号；云 Compose 已按迁移成功 → agent 健康 → API 健康 → web 的依赖启动。重启不会自动降级数据库迁移。
+
+Agent 发布准入与本地评测命令见 [评测与变更准入](agent-quality-gate.md)。代码评测报告不等于发布镜像或阿里云实测证明。
 
 ## Kubernetes
 

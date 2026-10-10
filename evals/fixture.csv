@@ -1,0 +1,17 @@
+purchased_at,state,status,amount,delivery,review
+2018-06-01 00:00:00,SP,delivered,100,2,5
+2018-06-12 00:00:00,RJ,canceled,300,,1
+2018-06-20 00:00:00,MG,shipped,80,,
+2018-07-01 00:00:00,SP,delivered,50,5,3
+2018-07-05 00:00:00,RJ,delivered,200,3,4
+2018-07-08 00:00:00,MG,unavailable,,,
+2018-07-12 00:00:00,SP,shipped,,,
+2018-07-15 00:00:00,RJ,canceled,90,,2
+2018-08-01 00:00:00,SP,delivered,150,5,4
+2018-08-02 00:00:00,RJ,shipped,50,,2
+2018-08-03 00:00:00,SP,canceled,900,,
+2018-08-04 00:00:00,RJ,unavailable,,,
+2018-08-05 00:00:00,SP,delivered,0,1,
+2018-08-06 00:00:00,MG,delivered,120,4,5
+2018-08-31 23:59:59,MG,shipped,10,,
+2018-09-01 00:00:00,SP,delivered,999,7,1

@@ -264,6 +264,9 @@ func (s *Store) Stop(ctx context.Context, u User, id string) error {
 		return err
 	}
 	if tag.RowsAffected() > 0 {
+		if _, err = tx.Exec(ctx, `UPDATE task_attempts SET state='canceled',ended_at=NOW(),error_code='canceled' WHERE task_id=$1 AND state='running'`, t.ID); err != nil {
+			return err
+		}
 		if err = event(ctx, tx, id, "canceled", map[string]string{"message": "任务已停止"}); err != nil {
 			return err
 		}
@@ -292,7 +295,10 @@ func (s *Store) Claim(ctx context.Context) (Task, error) {
 		return Task{}, err
 	}
 	if t.Attempts >= 3 || (t.StartedAt != nil && time.Since(*t.StartedAt) > 5*time.Minute) {
-		if _, err = tx.Exec(ctx, `UPDATE tasks SET status='failed',error='执行预算已耗尽',lease_until=NULL WHERE id=$1`, t.ID); err != nil {
+		if _, err = tx.Exec(ctx, `UPDATE tasks SET status='failed',error='执行预算已耗尽',lease_until=NULL,updated_at=NOW() WHERE id=$1`, t.ID); err != nil {
+			return Task{}, err
+		}
+		if _, err = tx.Exec(ctx, `UPDATE task_attempts SET state='lease_expired',ended_at=NOW(),error_code='lease_expired' WHERE task_id=$1 AND state='running'`, t.ID); err != nil {
 			return Task{}, err
 		}
 		if err = event(ctx, tx, t.ID, "error", map[string]string{"message": "执行预算已耗尽"}); err != nil {
@@ -306,9 +312,16 @@ func (s *Store) Claim(ctx context.Context) (Task, error) {
 		}
 		return Task{}, ErrMissing
 	}
+	// 封存旧租约并在同一事务创建执行记录，遥测不能改变任务版本隔离。
+	if _, err = tx.Exec(ctx, `UPDATE task_attempts SET state='lease_expired',ended_at=NOW(),error_code='lease_expired' WHERE task_id=$1 AND state='running'`, t.ID); err != nil {
+		return Task{}, err
+	}
 	t.Version++
 	t.Attempts++
 	t.Status = "querying"
+	if _, err = tx.Exec(ctx, `INSERT INTO task_attempts(tenant_id,task_id,execution_version,queue_ms) SELECT tenant_id,id,$2,GREATEST(0,EXTRACT(EPOCH FROM (NOW()-updated_at))*1000) FROM tasks WHERE id=$1`, t.ID, t.Version); err != nil {
+		return Task{}, err
+	}
 	if _, err = tx.Exec(ctx, `UPDATE tasks SET status='querying',attempts=$2,execution_version=$3,started_at=COALESCE(started_at,NOW()),lease_until=NOW()+INTERVAL '60 seconds',updated_at=NOW() WHERE id=$1`, t.ID, t.Attempts, t.Version); err != nil {
 		return Task{}, err
 	}
@@ -334,6 +347,9 @@ func (s *Store) Retry(ctx context.Context, t Task, message string) error {
 	if tag.RowsAffected() == 0 {
 		return nil
 	}
+	if _, err = tx.Exec(ctx, `UPDATE task_attempts SET state='retry',ended_at=NOW() WHERE task_id=$1 AND execution_version=$2 AND state='running'`, t.ID, t.Version); err != nil {
+		return err
+	}
 	if err = event(ctx, tx, t.ID, "retry", map[string]any{"message": message, "retry_count": t.Attempts}); err != nil {
 		return err
 	}
@@ -352,6 +368,9 @@ func (s *Store) Finish(ctx context.Context, t Task, status string, result json.R
 	}
 	if tag.RowsAffected() == 0 {
 		return nil
+	}
+	if _, err = tx.Exec(ctx, `UPDATE task_attempts SET state=$3,ended_at=NOW() WHERE task_id=$1 AND execution_version=$2 AND state='running'`, t.ID, t.Version, status); err != nil {
+		return err
 	}
 	kind := "done"
 	if status == "failed" {

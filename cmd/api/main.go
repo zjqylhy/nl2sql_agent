@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/netip"
 	"os"
 	"os/signal"
 	"regexp"
@@ -19,13 +20,26 @@ import (
 )
 
 func run() error {
-	command := flag.String("command", "serve", "serve / migrate / bootstrap")
+	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+	command := flag.String("command", "serve", "serve / migrate / bootstrap / health / prune-attempts")
 	tenant := flag.String("tenant", "", "tenant slug")
 	username := flag.String("user", "", "username")
 	role := flag.String("role", "admin", "admin / data / ops")
 	flag.Parse()
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
+	if *command == "health" {
+		client := http.Client{Timeout: 2 * time.Second}
+		response, err := client.Get("http://127.0.0.1:8080/healthz")
+		if err != nil {
+			return fmt.Errorf("health check failed")
+		}
+		defer response.Body.Close()
+		if response.StatusCode != 200 {
+			return fmt.Errorf("health check failed")
+		}
+		return nil
+	}
 	if os.Getenv("DATABASE_URL") == "" {
 		return fmt.Errorf("DATABASE_URL is required")
 	}
@@ -35,6 +49,13 @@ func run() error {
 	}
 	defer db.Pool.Close()
 	switch *command {
+	case "prune-attempts":
+		n, err := db.PruneAttempts(ctx)
+		if err != nil {
+			return fmt.Errorf("attempt cleanup failed")
+		}
+		slog.Info("attempt cleanup finished", "deleted", n)
+		return nil
 	case "migrate":
 		return db.Migrate(ctx)
 	case "bootstrap":
@@ -72,7 +93,17 @@ func run() error {
 	if secure && !strings.HasPrefix(origin, "https://") {
 		return fmt.Errorf("secure cookie requires an HTTPS public origin")
 	}
-	app := api.New(db, api.Config{Origin: origin, AgentURL: agentURL, ServiceKey: key, SecureCookie: secure})
+	var proxies []netip.Prefix
+	if configured := os.Getenv("TRUSTED_PROXY_CIDRS"); configured != "" {
+		for _, value := range strings.Split(configured, ",") {
+			prefix, err := netip.ParsePrefix(strings.TrimSpace(value))
+			if err != nil || prefix.Bits() == 0 {
+				return fmt.Errorf("invalid trusted proxy CIDR")
+			}
+			proxies = append(proxies, prefix)
+		}
+	}
+	app := api.New(db, api.Config{Origin: origin, AgentURL: agentURL, ServiceKey: key, SecureCookie: secure, TrustedProxies: proxies})
 	address := os.Getenv("HTTP_ADDR")
 	if address == "" {
 		address = ":8080"

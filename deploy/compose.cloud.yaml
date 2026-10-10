@@ -1,11 +1,19 @@
-# 使用相同镜像连接云托管数据库，入口由云负载均衡器终止 TLS。
+# 阿里云 ECS：宿主 Nginx 终止 TLS，只把 127.0.0.1:8088 暴露给宿主。
 name: olist-agent-cloud
+x-logging: &logging
+  driver: json-file
+  options: {max-size: "10m", max-file: "3"}
 services:
   migrate:
     image: ${API_IMAGE:?set API_IMAGE}
     command: ["-command","migrate"]
     environment:
       DATABASE_URL: ${MIGRATION_DATABASE_URL:?set MIGRATION_DATABASE_URL}
+    volumes: ["${POSTGRES_CA_FILE:?set POSTGRES_CA_FILE}:/run/secrets/postgres-ca.pem:ro"]
+    networks: [backend]
+    logging: *logging
+    mem_limit: ${API_MEMORY_LIMIT:-512m}
+    cpus: ${API_CPUS:-1.0}
     read_only: true
     security_opt: ["no-new-privileges:true"]
   agent:
@@ -21,6 +29,15 @@ services:
     tmpfs: [/tmp]
     security_opt: ["no-new-privileges:true"]
     restart: unless-stopped
+    networks: [backend]
+    logging: *logging
+    mem_limit: ${AGENT_MEMORY_LIMIT:-512m}
+    cpus: ${AGENT_CPUS:-1.0}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz',timeout=2)"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
   api:
     image: ${API_IMAGE:?set API_IMAGE}
     environment:
@@ -29,17 +46,46 @@ services:
       COOKIE_SECURE: "true"
       SERVICE_KEY: ${SERVICE_KEY:?set SERVICE_KEY}
       AGENT_URL: http://agent:8000
+      TRUSTED_PROXY_CIDRS: ${TRUSTED_PROXY_CIDRS:?set exact proxy addresses}
+    volumes: ["${POSTGRES_CA_FILE:?set POSTGRES_CA_FILE}:/run/secrets/postgres-ca.pem:ro"]
     depends_on:
       migrate: {condition: service_completed_successfully}
-      agent: {condition: service_started}
+      agent: {condition: service_healthy}
     read_only: true
     security_opt: ["no-new-privileges:true"]
     restart: unless-stopped
+    networks: [backend]
+    logging: *logging
+    mem_limit: ${API_MEMORY_LIMIT:-512m}
+    cpus: ${API_CPUS:-1.0}
+    healthcheck:
+      test: ["CMD", "/app/api", "-command", "health"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
   web:
     image: ${WEB_IMAGE:?set WEB_IMAGE}
     ports: ["${BIND_HOST:-127.0.0.1}:${HTTP_PORT:-8088}:8080"]
-    depends_on: [api]
+    depends_on:
+      api: {condition: service_healthy}
     read_only: true
     tmpfs: [/tmp]
     security_opt: ["no-new-privileges:true"]
     restart: unless-stopped
+    networks:
+      backend:
+        ipv4_address: ${WEB_PRIVATE_IP:-172.30.0.10}
+    logging: *logging
+    mem_limit: ${WEB_MEMORY_LIMIT:-128m}
+    cpus: ${WEB_CPUS:-0.5}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+networks:
+  backend:
+    ipam:
+      config:
+        - subnet: ${COMPOSE_SUBNET:-172.30.0.0/24}
+          gateway: ${COMPOSE_GATEWAY:-172.30.0.1}
