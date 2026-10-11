@@ -126,3 +126,5 @@ Windows；Go 1.27.1、Python 3.12、Node.js 24。功能验收使用临时 Postgr
 | 云模板与入口 | Compose config、真实 Compose JSON preflight、工作流 YAML/Bash 语法、Nginx ECS TLS/SSE/HSTS 配置检查通过；TLS 使用临时自签证书，只验证配置 |
 
 诊断镜像、隔离夹具与报告在忽略目录 `.cache`，执行范围为 local_images，不能作为正式发布证明。测试栈已清理，既有本地应用未更新。镜像工作流、ACR digest 实测、三轮真实镜像模型验收、RDS 私网/证书、公网 HTTPS、SLS、固定资源压测和备份恢复尚未执行。Starlette TestClient 的既有弃用提示仍在。
+
+最终实现 commit 为 `09e552da954f6cfb72763a6a82e36b644ee4f9c9`。提交后重建三个 amd64 镜像并核对 revision 标签，最终独立镜像验收再次 45/45、SSE=true；报告为 `.cache/aliyun-local-images.json`，runtime 配置哈希 `04f015f71a1492d7033eead3d5d9d078fcd49accf68b200942bc4a1095061816`。镜像使用本地标签，报告保留 worktree/local_images 标识，不能替代 ACR digest 及正式 live 发布证明。

@@ -14,6 +14,8 @@ ECS 安装 Docker/Compose、Python 3、curl、flock 和 Nginx，启用 Docker/Ng
 
 PostgreSQL 分离迁移和运行身份：先 migrate，再按 deployment.md 授权运行账号，运行账号无 DDL。CA 只读挂载，DSN 使用 `sslmode=verify-full&sslrootcert=/run/secrets/postgres-ca.pem`。
 
+CA 是公开信任证书，宿主文件需允许容器 UID 65532（API）和 10001（agent）读取，可设置 0444 后只读挂载。HTTPS 私钥另行限制为 Nginx 运维身份可读，不能套用 CA 文件权限。
+
 MySQL 创建导入身份、空数据库和普通分析账号；导入身份有建表/建视图权限。提供 MYSQL_HOST/PORT、MYSQL_ADMIN_USER、MYSQL_SSL_CA 和管理密码，在一次性私网运维环境执行：
 
 ```bash
