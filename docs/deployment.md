@@ -123,7 +123,7 @@ Agent 发布准入与本地评测命令见 [评测与变更准入](agent-quality
 `deploy/kubernetes.yaml` 含 API/agent/web 双副本、ClusterIP、TLS Ingress、入站 NetworkPolicy、独立迁移 Job、资源限制和探针。它是待配置模板，不能直接宣称线上可用。
 
 1. 创建 `olist` namespace、`olist-config` ConfigMap：PUBLIC_ORIGIN、LLM_BASE_URL、LLM_MODEL。密码不放 ConfigMap。
-2. 创建 `olist-secrets`：DATABASE_URL、MIGRATION_DATABASE_URL、SERVICE_KEY、TENANT_DATASOURCES、可选 LLM_API_KEY；`mysql-ca` Secret 包含 `ca.pem`，映射使用 `/run/secrets/mysql/ca.pem`。配置静态加密、RBAC、轮换，实际 Secret YAML 不提交 Git。
+2. 创建 `olist-secrets`：DATABASE_URL、MIGRATION_DATABASE_URL、SERVICE_KEY、TENANT_DATASOURCES、可选 NL2SQL_AGENT_API_KEY（注入 Agent 的 LLM_API_KEY）；`mysql-ca` Secret 包含 `ca.pem`，映射使用 `/run/secrets/mysql/ca.pem`。配置静态加密、RBAC、轮换，实际 Secret YAML 不提交 Git。
 3. 替换镜像、域名、Ingress class；配置 ingress controller 与 `olist-web-tls` Secret。NetworkPolicy 要求支持它的 CNI；安全组限制数据库及出口。
 4. 单独执行 `platform-migrate` Job，等待成功再滚动 Deployment。整份 YAML 的资源顺序不能保证迁移完成。每次发布使用新 Job 名称。
 5. API 只获运行 DSN/服务密钥，agent 只获数据源/模型密钥，web 不接触数据库密钥。初始账号通过一次性 Job 创建。

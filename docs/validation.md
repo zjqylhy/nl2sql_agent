@@ -128,3 +128,23 @@ Windows；Go 1.27.1、Python 3.12、Node.js 24。功能验收使用临时 Postgr
 诊断镜像、隔离夹具与报告在忽略目录 `.cache`，执行范围为 local_images，不能作为正式发布证明。测试栈已清理，既有本地应用未更新。镜像工作流、ACR digest 实测、三轮真实镜像模型验收、RDS 私网/证书、公网 HTTPS、SLS、固定资源压测和备份恢复尚未执行。Starlette TestClient 的既有弃用提示仍在。
 
 最终实现 commit 为 `09e552da954f6cfb72763a6a82e36b644ee4f9c9`。提交后重建三个 amd64 镜像并核对 revision 标签，最终独立镜像验收再次 45/45、SSE=true；报告为 `.cache/aliyun-local-images.json`，runtime 配置哈希 `04f015f71a1492d7033eead3d5d9d078fcd49accf68b200942bc4a1095061816`。镜像使用本地标签，报告保留 worktree/local_images 标识，不能替代 ACR digest 及正式 live 发布证明。
+
+## 服务器模型网关接入
+
+2026-10-12：用户已确认 [需求与方案](model-gateway-spec.md)，本地应用已切换至 SSH 隧道中的服务器网关 `https://localhost:9443/v1`，模型 `chat`。代码及以下验证结果供人工验收。
+
+| 检查 | 实际结果 |
+| --- | --- |
+| 完整 Linux 回归 | 228 passed，使用隔离 MySQL 8.4 / PostgreSQL 17，覆盖模型解析、SQL 权限、数据库及发布状态检查；既有 TestClient 弃用提示仍在 |
+| 请求契约 | 单指标及组合计划均只发送 model/messages/max_tokens，Bearer Key 取自 Windows 用户变量 NL2SQL_AGENT_API_KEY；运行时沿用 LLM_API_KEY 映射，无厂商回退 |
+| TLS | 容器连接 host.docker.internal:9443，保留 localhost 的 Host/SNI/证书身份，公开 CA 只读挂载；真实 HTTPS 测试验证错误 CA、错误身份拒绝 |
+| 输出额度 | 网关拒绝 800 Token 的最小请求；实际单指标 256、组合计划 512 通过，默认额度可配置；截断仍拒绝执行 |
+| 实际规则查询 | 本月 GMV/订单量/客单价按州：完成、0 Token、0.329 秒 |
+| 实际单指标模型查询 | 本月 GMV，只看圣保罗州：完成、chat、报告总 Token 514、1.563 秒 |
+| 实际组合模型查询 | 本月 GMV 和订单量，只看里约热内卢州：完成、chat、报告总 Token 1339、2.312 秒 |
+| CSV 与 SSE | 三条结果全部与 99,441 条原始订单的独立 CSV 计算一致，三条 SSE Last-Event-ID 续传通过 |
+| 本地部署 | Agent 已重建并就绪，保留现有数据库；测试新建的临时账号已禁用、会话已清理；Key 和本地公开 CA 未进入 Git |
+
+实测快照见 [网关验证报告](benchmarks/gateway-2026-10-12.json)。总 Token 为输入与输出合计，不能与 max_tokens 输出额度直接比较。首次 800 Token 请求被网关拒绝、未执行 SQL，修正额度后重新验证通过。该结果覆盖本地应用通过 SSH 访问服务器网关的少量集成案例，不替代正式镜像三轮质量门禁或云端验收。
+
+成功实测运行时内容哈希为 `43103c001082b76b100579d91d6b2f9d5457db868b4cdb09d5cba933e67208c7`，按 `/app/runtime` 中按名称排序的 Python/JSON 文件名及内容计算。操作步骤见 [网关操作说明](model-gateway-operations.md)。

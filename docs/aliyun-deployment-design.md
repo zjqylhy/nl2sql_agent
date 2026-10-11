@@ -36,7 +36,7 @@ RDS 产品对 SSL 的系列、存储类型及地址保护存在限制，购买�
 
 首批可由运维将凭据放入 ECS 受限配置文件后注入对应容器，文件不入 Git，禁止打印完整 Compose 配置或环境。Compose 环境注入不能称为已接入 KMS；后续采用凭据管家时单独实现启动注入与轮换。应用访问云 API 时优先使用最小权限的 ECS RAM 角色和临时凭证，不在镜像内存放长期 AccessKey。[ECS RAM 角色凭证](https://help.aliyun.com/zh/cli/ecs-ram-role)
 
-部署到阿里云不强制更换模型供应商。现有兼容接口继续通过 LLM_BASE_URL、LLM_MODEL、LLM_API_KEY 配置；只有选用其他模型服务时才验证该提供商的 JSON、用量和超时契约。
+模型请求统一发送到网关，由网关选择上游供应商。云环境使用真实网关 HTTPS DNS 配置 LLM_BASE_URL、LLM_MODEL，将 NL2SQL_AGENT_API_KEY Secret 映射为运行时 LLM_API_KEY；验证网关的 JSON、用量和超时契约，不沿用 Windows localhost 隧道。操作步骤见 [网关说明](model-gateway-operations.md)。
 
 ## 镜像、日志与发布
 

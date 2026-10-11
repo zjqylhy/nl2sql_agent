@@ -13,7 +13,7 @@
 ## 两层 CI
 
 - `Agent quality / agent-quality`：每次 push/PR 在隔离 PostgreSQL/MySQL 上，经过登录、任务、worker、Python 与 SQL，跑开发分区 50 条确定性案例，比较 PR base 或 push 前一提交。无付费模型调用。
-- `Live agent acceptance / live-agent-quality`：手动启动，填写已发布基线完整 commit SHA。使用 `agent-evaluation` 环境的 `LLM_API_KEY` Secret 与 `LLM_BASE_URL`、`LLM_MODEL` Variables，验收分区两版本各跑 3 轮，每轮均须过门禁。每个版本每轮最多 45 个模型请求，总上限 270 次；正常情况下 15 次/轮，两版本共 90 次。没有凭据直接失败，禁止降级为离线通过。
+- `Live agent acceptance / live-agent-quality`：手动启动，填写已发布基线完整 commit SHA。使用 `agent-evaluation` 环境的 `NL2SQL_AGENT_API_KEY` 网关应用 Secret（评测进程映射为 LLM_API_KEY）与 `LLM_BASE_URL`、`LLM_MODEL` Variables，验收分区两版本各跑 3 轮，每轮均须过门禁。网关地址须从 runner 可达，不能使用 Windows SSH 隧道地址。每个版本每轮最多 45 个模型请求，总上限 270 次；正常情况下 15 次/轮，两版本共 90 次。没有凭据直接失败，禁止降级为离线通过。
 
 模型请求数由独立探针观察真实 HTTP 调用；不替换模型响应。SQL 调用、计划条件、排序、NULL、样本数和结果同时判定。两版本在同一个候选 Go 平台上运行，比较对象是 Python agent；Go/权限平台变更另外由真实数据库集成测试检查。因此不能把此报告称为完整发布镜像的端到端认证。
 

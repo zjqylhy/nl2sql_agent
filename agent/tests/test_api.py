@@ -103,8 +103,23 @@ def test_model_intent_contract(client, monkeypatch):
     response = client.post("/internal/query", headers={"X-Service-Key": "s" * 40}, json=request(question="本月圣保罗州销售额，按州统计"))
     assert response.status_code == 200 and response.json()["usage"]["parser"] == "llm"
     assert executions == [["2018-08-01", "2018-09-01", "SP"]]
-    assert calls[0]["response_format"] == {"type": "json_object"} and calls[0]["max_tokens"] == 800
+    assert set(calls[0]) == {"model", "messages", "max_tokens"} and calls[0]["max_tokens"] == 256
     assert "test-key-no-production" not in response.text
+
+
+@pytest.mark.parametrize("question", ["本月 GMV，只看圣保罗州", "本月 GMV 和订单量，只看圣保罗州"])
+def test_gateway_configuration_failure_is_safe_and_does_not_execute(client, monkeypatch, tmp_path, question):
+    monkeypatch.setenv("LLM_API_KEY", "fixture-gateway-key")
+    monkeypatch.setenv("LLM_BASE_URL", "https://localhost:9443/v1")
+    monkeypatch.setenv("LLM_MODEL", "chat")
+    monkeypatch.setenv("LLM_CA_FILE", str(tmp_path / "private-path.pem"))
+    monkeypatch.setattr(runtime, "execute", lambda *args: pytest.fail("invalid gateway config executed SQL"))
+    response = client.post("/internal/query", headers={"X-Service-Key": "s" * 40},
+        json=request(metrics=["gmv", "orders"], question=question))
+    assert response.status_code == 503
+    assert response.json()["telemetry"]["error_code"] == "model_config"
+    assert response.json()["telemetry"]["model_calls"] == 0
+    assert "fixture-gateway-key" not in response.text and "private-path" not in response.text
 
 
 @pytest.mark.parametrize("content,status", [

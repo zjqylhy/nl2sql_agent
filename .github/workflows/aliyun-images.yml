@@ -20,7 +20,7 @@ jobs:
       ACR_NAMESPACE: ${{ vars.ACR_NAMESPACE }}
       LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
       LLM_MODEL: ${{ vars.LLM_MODEL }}
-      LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+      LLM_API_KEY: ${{ secrets.NL2SQL_AGENT_API_KEY }}
       PYTHONDONTWRITEBYTECODE: "1"
       PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
     steps:

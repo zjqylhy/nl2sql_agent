@@ -38,7 +38,7 @@ GRANT SELECT ON olist_alpha.metric_orders TO 'alpha_ro'@'%';
 
 ## 镜像发布包
 
-GitHub Environment `aliyun-release` 配置 Variables：ACR_REGISTRY、ACR_NAMESPACE、LLM_BASE_URL、LLM_MODEL；Secrets：ACR_USERNAME、ACR_PASSWORD、LLM_API_KEY。配置 runner 的 ACR 网络访问及专用推送身份；ECS 使用只拉取权限，RAM 角色不代表自动完成 Docker 登录。
+GitHub Environment `aliyun-release` 配置 Variables：ACR_REGISTRY、ACR_NAMESPACE、LLM_BASE_URL、LLM_MODEL；Secrets：ACR_USERNAME、ACR_PASSWORD、NL2SQL_AGENT_API_KEY（网关应用 Key，评测进程映射为 LLM_API_KEY）。runner 与 ECS 使用各自可达的网关 HTTPS DNS，逻辑模型为 `chat`，不能使用 Windows 的 localhost SSH 隧道地址。配置 runner 的 ACR 网络访问及专用推送身份；ECS 使用只拉取权限，RAM 角色不代表自动完成 Docker 登录。
 
 授权真实推送和付费评测后，手动触发 `Aliyun candidate images and acceptance` 并指定基线完整 commit SHA。首次基线必须明确选择相同冻结题单的兼容版本，不表示已上线。流程构建/推送三个镜像、读取仓库 digest、运行三轮实际镜像验收，再输出 artifact，不通过 SSH 部署 ECS。
 

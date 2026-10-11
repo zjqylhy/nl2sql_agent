@@ -42,9 +42,11 @@ services:
     environment:
       SERVICE_KEY: ${SERVICE_KEY:?set SERVICE_KEY}
       TENANT_DATASOURCES: ${TENANT_DATASOURCES:-{}}
-      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_API_KEY: ${NL2SQL_AGENT_API_KEY:-}
       LLM_BASE_URL: ${LLM_BASE_URL:-}
       LLM_MODEL: ${LLM_MODEL:-}
+      LLM_INTENT_MAX_TOKENS: ${LLM_INTENT_MAX_TOKENS:-256}
+      LLM_PLAN_MAX_TOKENS: ${LLM_PLAN_MAX_TOKENS:-512}
     depends_on:
       mysql: {condition: service_healthy}
     networks: [backend]

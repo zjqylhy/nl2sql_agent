@@ -13,6 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from fastapi.responses import JSONResponse
 from . import telemetry
 from . import readiness
+from .model_transport import ModelTransport, ModelConfigurationError
 
 from .intent import Clarification, Intent, RuleMiss, question_constraints, rules_intent, period_bounds
 from .security import UnsafeSQL, validate_sql
@@ -94,11 +95,12 @@ def parse_intent(request: QueryRequest, anchor: date) -> tuple[Intent, dict]:
     except RuleMiss:
         if not os.getenv("LLM_API_KEY"):
             raise
-    base = os.getenv("LLM_BASE_URL", "").rstrip("/")
-    model = os.getenv("LLM_MODEL", "")
-    if not base.startswith("https://") or not model:
+    try:
+        transport = ModelTransport.from_env()
+    except ModelConfigurationError:
         telemetry.update(error_code="model_config")
         raise HTTPException(503, "模型配置不完整")
+    model = transport.model
     prompt = "你是 Olist 电商单指标查询意图解析器。只输出 JSON，不生成 SQL。metric 必须是 " + ",".join(request.allowed_metrics) + "; period 为 today/yesterday/this_week/last_week/this_month/last_month/custom；group_by 只允许空字符串或 state（巴西州）；states 为巴西州代码数组；custom 的 start/end 为 YYYY-MM-DD 左闭右开区间，其余 start/end 为 null。不要猜测缺失时间，不支持归因/对比/报告/渠道/品类。无法明确解析时返回 {\"clarification\":\"简洁澄清问题\"}。"
     prompt += "成功时仅返回 metric、period、group_by、start、end、states 六个字段，禁止增加其他字段。分析基准日期为 " + str(anchor) + "。以下已确定条件必须保留：" + json.dumps(constraints.prompt_values(), ensure_ascii=False) + "。只补齐未识别字段，不得忽略任何筛选、分组或否定表达；条件无法用允许的字段表达时必须澄清。"
     if constraints.states_complete:
@@ -109,9 +111,9 @@ def parse_intent(request: QueryRequest, anchor: date) -> tuple[Intent, dict]:
         prompt += "问题有明确的州筛选要求，states 不得为空；无法识别州名时返回澄清。"
     model_usage = {"parser": "llm", "model": model, "tokens": None}
     try:
-        with telemetry.stage("model"), httpx.Client(timeout=20, follow_redirects=False) as client:
+        with telemetry.stage("model"), transport.client() as client:
             telemetry.update(parser="llm", model=model[:100], model_calls=1, input_tokens=None, output_tokens=None, total_tokens=None)
-            response = client.post(base + "/chat/completions", headers={"Authorization": "Bearer " + os.environ["LLM_API_KEY"]}, json={"model": model, "messages": [{"role": "system", "content": prompt}, {"role": "user", "content": request.input.question}], "response_format": {"type": "json_object"}, "max_tokens": 800, "temperature": 0})
+            response = transport.post(client, prompt, request.input.question, transport.intent_max_tokens)
             response.raise_for_status()
             data = response.json()
         usage = data.get("usage") or {}
@@ -155,10 +157,12 @@ def parse_query_plan(request: QueryRequest, anchor: date) -> tuple[QueryPlan, di
     except RuleMiss:
         if not os.getenv("LLM_API_KEY"):
             raise
-    base, model = os.getenv("LLM_BASE_URL", "").rstrip("/"), os.getenv("LLM_MODEL", "")
-    if not base.startswith("https://") or not model:
+    try:
+        transport = ModelTransport.from_env()
+    except ModelConfigurationError:
         telemetry.update(error_code="model_config")
         raise HTTPException(503, "模型配置不完整")
+    model = transport.model
     c = catalog()
     values = constraints.prompt_values()
     requires_state, complete = values.pop("requires_state"), values.pop("filters_complete")
@@ -170,9 +174,9 @@ def parse_query_plan(request: QueryRequest, anchor: date) -> tuple[QueryPlan, di
         prompt += "必须保留州筛选，州名无法确定则澄清。"
     usage = {"parser": "llm", "model": model, "tokens": None}
     try:
-        with telemetry.stage("model"), httpx.Client(timeout=20, follow_redirects=False) as client:
+        with telemetry.stage("model"), transport.client() as client:
             telemetry.update(parser="llm", model=model[:100], model_calls=1, input_tokens=None, output_tokens=None, total_tokens=None)
-            response = client.post(base + "/chat/completions", headers={"Authorization": "Bearer " + os.environ["LLM_API_KEY"]}, json={"model": model, "messages": [{"role": "system", "content": prompt}, {"role": "user", "content": request.input.question}], "response_format": {"type": "json_object"}, "max_tokens": 1500, "temperature": 0})
+            response = transport.post(client, prompt, request.input.question, transport.plan_max_tokens)
             response.raise_for_status()
             data = response.json()
         usage["tokens"] = (data.get("usage") or {}).get("total_tokens")

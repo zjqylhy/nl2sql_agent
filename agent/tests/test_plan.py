@@ -191,7 +191,7 @@ def test_new_model_plan_preserves_multimetric_and_named_filter(monkeypatch, stat
     calls=model(monkeypatch,payload)
     plan,usage=runtime.parse_query_plan(request("本月 GMV 和订单量，只看圣保罗州"),ANCHOR)
     assert plan.filters[0].values==["SP"] and usage["tokens"]==99 and len(calls)==1
-    assert calls[0]["max_tokens"]==1500
+    assert set(calls[0]) == {"model", "messages", "max_tokens"} and calls[0]["max_tokens"]==512
 
 
 @pytest.mark.parametrize("change", [

@@ -71,7 +71,7 @@ $bootstrapPassword = $null
 
 “本月 GMV 和有效订单量按州统计”“最近 6 个月 GMV 和客单价按月统计”“本月商品金额大于 100 的订单量”“本月 GMV 按州排名，取前 5 名”等完整规则表达，即使配置了模型也走规则，Token 为 0。“本月 GMV 和订单量，只看圣保罗州”等陌生表达可由模型兜底。六指标最多组合三个，金额筛选不含运费；不支持品类、跨表关联、同比/环比和自由 SQL。缺少时间、手动指标冲突、非法州代码或越权时直接澄清或拒绝。
 
-在 `.env` 配置 `LLM_API_KEY`、HTTPS `LLM_BASE_URL` 与提供商支持的 `LLM_MODEL`，再重建 agent 容器使配置生效。项目读取 `LLM_API_KEY`；Windows 用户环境里的 `DEEPSEEK_API_KEY` 或 `QWEN_API_KEY` 需显式传给该变量。手动选择的参数参与规则解析，并约束模型结果；仅部分表达未识别时仍可使用模型兜底。模型失败或无效输出不会回退执行未完整识别的 SQL。
+模型请求通过网关转发。应用 Key 使用 Windows 用户环境变量 `NL2SQL_AGENT_API_KEY`，Compose 注入容器的 `LLM_API_KEY`；不使用厂商 Key。当前服务器入口为 `https://localhost:9443/v1`、逻辑模型 `chat`，通过本机 SSH 隧道访问；Docker 的连接覆盖和公开 CA 挂载见 [网关操作说明](docs/model-gateway-operations.md)。修改配置后需重建 agent。手动选择的参数约束模型结果；模型失败或无效 JSON 不回退厂商，也不执行未完整识别的 SQL。
 
 ### 源码调试
 
