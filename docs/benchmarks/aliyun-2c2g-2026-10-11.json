@@ -1,0 +1,209 @@
+{
+  "source_commit": "09e552da954f6cfb72763a6a82e36b644ee4f9c9",
+  "scope": "Docker Desktop app-only constrained test; external databases, no paid model",
+  "cpuset": "0,1",
+  "swap": false,
+  "rounds": [
+    {
+      "label": "rules",
+      "concurrency": 1,
+      "count": 20,
+      "passed": 20,
+      "p50_s": 0.20399999999790452,
+      "p95_s": 0.4220000000059372,
+      "max_s": 0.4220000000059372,
+      "tasks_per_second": 3.9753528125599993,
+      "wall_s": 5.0310000000026776
+    },
+    {
+      "label": "rules",
+      "concurrency": 5,
+      "count": 50,
+      "passed": 50,
+      "p50_s": 0.8120000000053551,
+      "p95_s": 1.235000000000582,
+      "max_s": 1.4220000000059372,
+      "tasks_per_second": 4.0,
+      "wall_s": 12.5
+    },
+    {
+      "label": "rules",
+      "concurrency": 10,
+      "count": 50,
+      "passed": 50,
+      "p50_s": 1.25,
+      "p95_s": 2.452999999994063,
+      "max_s": 2.672000000005937,
+      "tasks_per_second": 3.994886545221075,
+      "wall_s": 12.51600000000326
+    },
+    {
+      "label": "rules",
+      "concurrency": 20,
+      "count": 60,
+      "passed": 60,
+      "p50_s": 2.686999999990803,
+      "p95_s": 4.9210000000020955,
+      "max_s": 5.125,
+      "tasks_per_second": 4.0082837864928,
+      "wall_s": 14.968999999997322
+    },
+    {
+      "label": "rules",
+      "concurrency": 50,
+      "count": 150,
+      "passed": 150,
+      "p50_s": 6.25,
+      "p95_s": 11.906000000002678,
+      "max_s": 12.51600000000326,
+      "tasks_per_second": 4.015096763832359,
+      "wall_s": 37.35899999999674
+    },
+    {
+      "label": "mock_model_5s",
+      "concurrency": 10,
+      "count": 20,
+      "passed": 20,
+      "p50_s": 6.35899999999674,
+      "p95_s": 7.562999999994645,
+      "max_s": 7.578000000008615,
+      "tasks_per_second": 1.3209167162007591,
+      "wall_s": 15.14100000000326
+    },
+    {
+      "label": "mock_model_5s",
+      "concurrency": 50,
+      "count": 100,
+      "passed": 100,
+      "p50_s": 11.297000000005937,
+      "p95_s": 17.0,
+      "max_s": 17.437999999994645,
+      "tasks_per_second": 2.8686173264486037,
+      "wall_s": 34.86000000000058
+    },
+    {
+      "label": "mock_model_15s",
+      "concurrency": 10,
+      "count": 20,
+      "passed": 20,
+      "p50_s": 16.389999999999418,
+      "p95_s": 17.531000000002678,
+      "max_s": 17.60899999999674,
+      "tasks_per_second": 0.5691519635742838,
+      "wall_s": 35.13999999999942
+    },
+    {
+      "label": "mock_model_15s",
+      "concurrency": 50,
+      "count": 100,
+      "passed": 100,
+      "p50_s": 21.327999999994063,
+      "p95_s": 31.89100000000326,
+      "max_s": 32.655999999988126,
+      "tasks_per_second": 1.534048199794654,
+      "wall_s": 65.1869999999908
+    }
+  ],
+  "images": {
+    "api": {
+      "image": "sha256:96c221142cb0f738f0ce46ee84d1f4cb1b18f22af41dfc5c95d7ab4b9dede642",
+      "cpuset": "0,1",
+      "nano_cpus": 1000000000,
+      "memory": 536870912,
+      "memory_swap": 536870912
+    },
+    "agent": {
+      "image": "sha256:4810d31a2adc92bed7d75f06ea56640158df3609cc2a3fc752c19195bda18270",
+      "cpuset": "0,1",
+      "nano_cpus": 1000000000,
+      "memory": 536870912,
+      "memory_swap": 536870912
+    },
+    "web": {
+      "image": "sha256:c05e99821f861be587ce6af8b11ab73342510406f23551ad9080a5e1729e3526",
+      "cpuset": "0,1",
+      "nano_cpus": 500000000,
+      "memory": 134217728,
+      "memory_swap": 134217728
+    }
+  },
+  "orders": 99441,
+  "csv_sha256": {
+    "olist_customers_dataset.csv": "983a422239e1712ded753b3bf9ecf47dc73f144d306029dcfa99e70a226883d2",
+    "olist_orders_dataset.csv": "8df58ef3d2d7e9944010f7beecd9b75367f5588ec6e3c91cec19ae3345ef9ecf",
+    "olist_order_items_dataset.csv": "0bc4d068c4fe38cbb01bd90e8746e3c613fe7b4baef75fab7b0e329701c3e279",
+    "olist_order_reviews_dataset.csv": "012b61c7593e34f51fa614efdf802b9c7056ce6aae5307ddb93236e7cfc797d7"
+  },
+  "golden_cases_verified": 10,
+  "sampling_errors": [
+    "CalledProcessError",
+    "CalledProcessError",
+    "CalledProcessError",
+    "CalledProcessError",
+    "CalledProcessError",
+    "CalledProcessError",
+    "CalledProcessError",
+    "CalledProcessError",
+    "CalledProcessError"
+  ],
+  "attempts": {
+    "attempts": 581,
+    "model_calls": 241,
+    "max_call_ms": 20112.822
+  },
+  "sse_resume": true,
+  "container_states": {
+    "api": {
+      "oom_killed": false,
+      "restarts": 0,
+      "health": "healthy"
+    },
+    "agent": {
+      "oom_killed": false,
+      "restarts": 0,
+      "health": "healthy"
+    },
+    "web": {
+      "oom_killed": false,
+      "restarts": 0,
+      "health": "healthy"
+    }
+  },
+  "agent_cgroup": {
+    "memory.peak": "86368256\n",
+    "memory.events": "low 0\nhigh 0\nmax 0\noom 0\noom_kill 0\noom_group_kill 0\n",
+    "cpu.stat": "usage_usec 5194530\nuser_usec 4301720\nsystem_usec 892809\nnice_usec 0\nnr_periods 1084\nnr_throttled 3\nthrottled_usec 17606\nnr_bursts 0\nburst_usec 0\n",
+    "cpuset.cpus.effective": "0-1\n"
+  },
+  "resources": {
+    "sample_count": 120,
+    "peaks": {
+      "api": {
+        "memory_mib": 13.71,
+        "cpu_percent": 19.23
+      },
+      "agent": {
+        "memory_mib": 80.19,
+        "cpu_percent": 22.55
+      },
+      "web": {
+        "memory_mib": 9.617,
+        "cpu_percent": 8.51
+      }
+    },
+    "max_combined_sample_memory_mib": 96.65899999999999,
+    "max_combined_sample_cpu_percent": 36.980000000000004,
+    "note": "Docker stats working-set samples, not process RSS or a whole 2GiB guest VM"
+  },
+  "verification_harness_sha256": "288079e45e2353f2fe79da8527293acd7f59dc5e6a6bc4935995b0ca83b33ada",
+  "queue_observation": {
+    "max_querying": 50,
+    "max_pending": 32,
+    "sample_count": 15,
+    "interval_s": 2
+  },
+  "completed_tasks": 570,
+  "measured_tasks": 570,
+  "first_sample": "2026-10-11T10:58:54.984937+00:00",
+  "last_sample": "2026-10-11T11:03:16.250601+00:00"
+}

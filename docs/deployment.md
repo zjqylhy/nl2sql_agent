@@ -2,7 +2,7 @@
 
 2026-10-10：用户明确云端目标为阿里云 ECS + Docker Compose。后续实现须遵循 [阿里云部署要求](aliyun-deployment-design.md)；云模板已补齐双数据库 CA、宿主 TLS 入口、探针、资源限制、日志轮换和可信代理配置，尚未在阿里云验收。Kubernetes 保留为后续参考，当前交付优先 ECS 路径。
 
-2026-10-11：用户已确认 [阿里云发布规格](aliyun-release-spec.md)。发布包、RDS 初始化、就绪检查及故障处理见 [阿里云运维手册](aliyun-operations.md)；真实云环境仍待验收。
+2026-10-11：用户已确认 [阿里云发布规格](aliyun-release-spec.md)。发布包、RDS 初始化、就绪检查及故障处理见 [阿里云运维手册](aliyun-operations.md)；真实云环境仍待验收。2 核 2GiB 应用容量的实测结果与边界见 [2c2g 验证报告](aliyun-2c2g-validation.md)。
 
 ## 本地部署（Windows）
 
