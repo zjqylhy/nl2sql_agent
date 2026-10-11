@@ -12,6 +12,7 @@ from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from fastapi.responses import JSONResponse
 from . import telemetry
+from . import readiness
 
 from .intent import Clarification, Intent, RuleMiss, question_constraints, rules_intent, period_bounds
 from .security import UnsafeSQL, validate_sql
@@ -235,6 +236,14 @@ def health():
         configured = False
     if not configured:
         raise HTTPException(503, "数据源配置不完整")
+    return {"status": "ok"}
+
+
+@app.get("/readyz")
+def ready():
+    health()
+    if not readiness.check(sources().values()):
+        raise HTTPException(503, "分析数据库尚未就绪")
     return {"status": "ok"}
 
 

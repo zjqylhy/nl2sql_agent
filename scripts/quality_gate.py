@@ -85,6 +85,8 @@ def validate_suite(report):
 def release_identity(report, manifest):
     """报告与待发布配置绑定，防止使用旧报告发布新镜像。"""
     validate_report(report)
+    if report.get("execution_scope") != "release_images" or report.get("sse_verified") is not True:
+        raise ValueError("release_requires_actual_images")
     import re
     if not re.fullmatch(r"[a-f0-9]{40}", report.get("source_commit", "")):
         raise ValueError("release_requires_committed_source")

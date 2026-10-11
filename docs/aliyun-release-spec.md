@@ -2,7 +2,7 @@
 
 日期：2026-10-11。
 
-状态：用户同意继续补齐阿里云部署准备；本文件为待人工确认的技术方案，尚未开始本批代码实现。沿用 [阿里云部署要求](aliyun-deployment-design.md) 的 ECS Linux + Docker Compose 路线。
+状态：2026-10-11 用户已确认本方案；本批代码、配置及测试按此方案实现，待代码/测试人工验收。沿用 [阿里云部署要求](aliyun-deployment-design.md) 的 ECS Linux + Docker Compose 路线；真实云资源与发布仍需目标环境验收。
 
 ## 目标与交付范围
 

@@ -6,6 +6,8 @@ COPY cmd ./cmd
 COPY internal ./internal
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /api ./cmd/api
 FROM gcr.io/distroless/static-debian12:nonroot
+ARG SOURCE_COMMIT=uncommitted
+LABEL org.opencontainers.image.revision=$SOURCE_COMMIT
 COPY --from=build /api /app/api
 EXPOSE 8080
 ENTRYPOINT ["/app/api"]

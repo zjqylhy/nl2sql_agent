@@ -28,14 +28,22 @@ def chunks(iterator, size=2000):
         yield batch
 
 
-def provision(connection, folder: Path, schema: str, readonly_user: str, readonly_password: str, states: list[str]):
+def provision(connection, folder: Path, schema: str, readonly_user: str, readonly_password: str, states: list[str], *, use_existing_database=False, skip_account_provisioning=False):
     if not re.fullmatch(r"[a-z][a-z0-9_]{1,63}", schema) or not re.fullmatch(r"[a-z][a-z0-9_]{1,31}", readonly_user):
         raise ValueError("schema 和账号必须是受限标识符")
     if any(not re.fullmatch("[A-Z]{2}", state) for state in states):
         raise ValueError("州代码格式无效")
     # 已有 schema 必须显式由管理员另行管理，避免导入意外覆盖线上数据。
     with connection.cursor() as cursor:
-        cursor.execute("CREATE DATABASE " + schema + " CHARACTER SET utf8mb4 COLLATE utf8mb4_bin")
+        if use_existing_database:
+            cursor.execute("SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name=%s", (schema,))
+            if cursor.fetchone()[0] != 1:
+                raise ValueError("指定数据库不存在")
+            cursor.execute("SELECT COUNT(*) FROM information_schema.tables WHERE table_schema=%s", (schema,))
+            if cursor.fetchone()[0] != 0:
+                raise ValueError("指定数据库非空，导入已拒绝")
+        else:
+            cursor.execute("CREATE DATABASE " + schema + " CHARACTER SET utf8mb4 COLLATE utf8mb4_bin")
         cursor.execute("USE " + schema)
         for table, (filename, columns, ddl) in TABLES.items():
             path = folder / filename
@@ -67,8 +75,9 @@ def provision(connection, folder: Path, schema: str, readonly_user: str, readonl
             raise ValueError("订单聚合发生丢失，请检查客户关联；不会创建查询账号")
         filter_sql = " WHERE customer_state IN (" + ",".join("'" + state + "'" for state in states) + ")" if states else ""
         cursor.execute("CREATE SQL SECURITY DEFINER VIEW metric_orders AS SELECT order_id,order_status,purchased_at,customer_state,item_amount,delivery_days,review_score FROM order_facts" + filter_sql)
-        cursor.execute("CREATE USER %s@'%%' IDENTIFIED BY %s", (readonly_user, readonly_password))
-        cursor.execute(f"GRANT SELECT ON {schema}.metric_orders TO %s@'%%'", (readonly_user,))
+        if not skip_account_provisioning:
+            cursor.execute("CREATE USER %s@'%%' IDENTIFIED BY %s", (readonly_user, readonly_password))
+            cursor.execute(f"GRANT SELECT ON {schema}.metric_orders TO %s@'%%'", (readonly_user,))
         cursor.execute("SELECT COUNT(*) AS order_count, MAX(purchased_at) AS latest_date FROM order_facts")
         print("订单校验：", cursor.fetchone(), "；请据此设置 analysis_date")
 
@@ -79,18 +88,20 @@ def main():
     parser.add_argument("--schema", required=True)
     parser.add_argument("--readonly-user", required=True)
     parser.add_argument("--states", default="", help="可选行级权限，例如 SP,RJ")
+    parser.add_argument("--use-existing-database", action="store_true", help="仅导入已存在的空数据库")
+    parser.add_argument("--skip-account-provisioning", action="store_true", help="只导入，不创建账号或修改授权")
     args = parser.parse_args()
     missing = [filename for filename, _, _ in TABLES.values() if not (args.csv_dir / filename).is_file()]
     if missing:
         parser.error("缺少官方下载 CSV：" + ", ".join(missing))
     admin_password = os.getenv("MYSQL_ADMIN_PASSWORD") or getpass.getpass("MySQL 管理密码：")
-    readonly_password = os.getenv("MYSQL_READONLY_PASSWORD") or getpass.getpass("新只读账号密码：")
-    if len(readonly_password) < 12:
+    readonly_password = "" if args.skip_account_provisioning else (os.getenv("MYSQL_READONLY_PASSWORD") or getpass.getpass("新只读账号密码："))
+    if not args.skip_account_provisioning and len(readonly_password) < 12:
         parser.error("只读账号密码至少 12 字符")
     ca = os.getenv("MYSQL_SSL_CA")
     connection = pymysql.connect(host=os.getenv("MYSQL_HOST", "127.0.0.1"), port=int(os.getenv("MYSQL_PORT", "3306")), user=os.getenv("MYSQL_ADMIN_USER", "root"), password=admin_password, autocommit=True, ssl_ca=ca, ssl_verify_cert=bool(ca), ssl_verify_identity=bool(ca))
     try:
-        provision(connection, args.csv_dir, args.schema, args.readonly_user, readonly_password, [s for s in args.states.split(",") if s])
+        provision(connection, args.csv_dir, args.schema, args.readonly_user, readonly_password, [s for s in args.states.split(",") if s], use_existing_database=args.use_existing_database, skip_account_provisioning=args.skip_account_provisioning)
     finally:
         connection.close()
 

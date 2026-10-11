@@ -108,3 +108,21 @@ Windows；Go 1.27.1、Python 3.12、Node.js 24。功能验收使用临时 Postgr
 本地完成一次基线/候选比较与完整题单复核；手动 CI 的三轮受控评测尚未在远端执行。合并必需检查、环境保护、ACR 摘要及实际发布镜像评测/部署依赖尚待远端配置。阿里云 RDS/公网 TLS/SLS、资源压测与备份恢复、生产共享费用硬预算仍未验收。前端代码未变，镜像复用已通过的 TypeScript/Vite 构建。Starlette TestClient 的既有弃用提示仍在。
 
 测试配置排查时，工具错误诊断曾意外打印一项本地数据库配置密码；后续避免打印连接串，临时环境文件将在测试结束后删除。应用 JSON 日志的敏感字段回归通过；该配置密码建议后续轮换，不将日志测试通过当作排查输出从未泄漏。
+
+## 阿里云发布准备
+
+2026-10-11：用户已确认 [需求与方案](aliyun-release-spec.md)，实现手动镜像工作流、实际镜像评测、清单门禁、Linux 发布/回滚、RDS 初始化模式、就绪检查、HSTS 与 [运维手册](aliyun-operations.md)。代码和测试待人工验收；本轮未推送镜像或创建/更新云资源。
+
+| 检查 | 实际结果 |
+| --- | --- |
+| Windows Python | 最终完整回归 191 passed、15 skipped；8 条 MySQL 集成和 7 条 Linux 发布/状态测试在下面 Linux 环境验证 |
+| Linux Python / MySQL 8.4 | 完整回归 205 passed；之后新增的镜像诊断身份专项 1 passed。使用独立临时双库/网络，包含普通导入账号、已有空库/账号模式、视图最小权限、真实就绪/TLS 错误与原有指标回归 |
+| 发布故障路径 | 迁移失败不更新应用、健康超时/冒烟失败不记录成功、部署锁阻止重入、回滚不执行迁移、报告保存、指针写入失败保留 current/previous；均在 Linux 执行 |
+| 模型预算 | 独立 HTTP 转发器测试：未授权请求不出站，一次预算只允许一次上游调用，下一次返回 429；测试上游为 mock，不产生真实模型费用 |
+| 发布门禁 | 三轮报告/内容摘要、冻结题单、错误镜像/commit、SSE、运行范围、边界和正确率失败均拒绝；本地诊断即使传 digest 仍不能冒充正式镜像评测 |
+| Go / PostgreSQL 17 | 独立双库网络中 go vet 与 go test 全套通过，API/store 集成用例执行；Go 业务代码未变 |
+| Linux 镜像 | api/agent/web 三个 linux/amd64 镜像构建通过；正式发布标签和 ACR digest 需真实工作流执行 |
+| 实际镜像链路 | 本地独立镜像栈冻结验收 45/45，规则 25、澄清 10、范围拒绝 6、权限 4；运行实际 API/agent/web，经元数据库读取 attempt，SSE/Last-Event-ID 通过；无模型付费调用 |
+| 云模板与入口 | Compose config、真实 Compose JSON preflight、工作流 YAML/Bash 语法、Nginx ECS TLS/SSE/HSTS 配置检查通过；TLS 使用临时自签证书，只验证配置 |
+
+诊断镜像、隔离夹具与报告在忽略目录 `.cache`，执行范围为 local_images，不能作为正式发布证明。测试栈已清理，既有本地应用未更新。镜像工作流、ACR digest 实测、三轮真实镜像模型验收、RDS 私网/证书、公网 HTTPS、SLS、固定资源压测和备份恢复尚未执行。Starlette TestClient 的既有弃用提示仍在。

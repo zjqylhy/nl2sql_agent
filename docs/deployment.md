@@ -2,7 +2,7 @@
 
 2026-10-10：用户明确云端目标为阿里云 ECS + Docker Compose。后续实现须遵循 [阿里云部署要求](aliyun-deployment-design.md)；云模板已补齐双数据库 CA、宿主 TLS 入口、探针、资源限制、日志轮换和可信代理配置，尚未在阿里云验收。Kubernetes 保留为后续参考，当前交付优先 ECS 路径。
 
-2026-10-11：继续部署准备的需求与技术方案见 [阿里云发布规格](aliyun-release-spec.md)，覆盖实际镜像评测、ACR 发布、迁移/回滚、RDS 初始化、就绪检查与运维验收。技术方案待人工确认，本批尚未开始代码实现。
+2026-10-11：用户已确认 [阿里云发布规格](aliyun-release-spec.md)。发布包、RDS 初始化、就绪检查及故障处理见 [阿里云运维手册](aliyun-operations.md)；真实云环境仍待验收。
 
 ## 本地部署（Windows）
 
@@ -80,10 +80,12 @@ docker build -f deploy/Dockerfile.web -t REGISTRY/olist-web:VERSION .
 
 ```bash
 docker compose --env-file .env.cloud -f deploy/compose.cloud.yaml config --quiet
-docker compose --env-file .env.cloud -f deploy/compose.cloud.yaml up -d
+docker compose --env-file .env.cloud -f deploy/compose.cloud.yaml run --rm --no-deps migrate
+# 仅在迁移成功后启动应用；正式发布使用运维手册的清单/门禁入口。
+docker compose --env-file .env.cloud -f deploy/compose.cloud.yaml up --wait --wait-timeout 120 api agent web
 ```
 
-迁移使用独立 `MIGRATION_DATABASE_URL`，完成后 API 才启动。迁移按文件版本记录 SHA256，在事务与锁下串行执行；禁止改写已应用版本，通过新增 SQL 演进。应用回滚不会自动撤销破坏性 schema 变更。
+迁移使用独立 `MIGRATION_DATABASE_URL`，由发布入口显式等待成功后启动 API。迁移按文件版本记录 SHA256，在事务与锁下串行执行；禁止改写已应用版本，通过新增 SQL 演进。应用回滚不会自动撤销破坏性 schema 变更。
 
 7. 私网一次性执行 `api -command bootstrap`，stdin 提供管理员密码。可由专门初始化身份执行，不需要把 DDL 权限赋给运行账号。
 8. TLS 代理将同域名 `/` 和 `/api/*` 转发到 web:8080。`PUBLIC_ORIGIN` 必须是最终 HTTPS origin（无路径/尾斜杠）。跨机器负载均衡时 `BIND_HOST` 设私网地址，安全组只允许负载均衡来源；本机 TLS 代理保持 127.0.0.1。
@@ -112,7 +114,7 @@ docker compose --env-file .env.cloud -f deploy/compose.cloud.yaml \
   run --rm --no-deps api -command prune-attempts
 ```
 
-运维定期显式执行清理，按返回 deleted 数判断是否还需分批执行。版本 002 新增表需在新版 API 启动前迁移，并将 `task_attempts` 授权给运行账号；云 Compose 已按迁移成功 → agent 健康 → API 健康 → web 的依赖启动。重启不会自动降级数据库迁移。
+运维定期显式执行清理，按返回 deleted 数判断是否还需分批执行。版本 002 新增表需在新版 API 启动前迁移，并将 `task_attempts` 授权给运行账号；发布入口独立迁移成功后，云 Compose 按 agent 健康 → API 健康 → web 启动。重启不会自动降级数据库迁移。
 
 Agent 发布准入与本地评测命令见 [评测与变更准入](agent-quality-gate.md)。代码评测报告不等于发布镜像或阿里云实测证明。
 
