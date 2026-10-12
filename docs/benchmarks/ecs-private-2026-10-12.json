@@ -3,7 +3,7 @@
   "host": "8.155.128.79",
   "region": "cn-heyuan",
   "application_commit": "a2be1c3f32c98e0e3a45da77ca5306e8a5eba0e8",
-  "operations_commit": "9ba7101199729917cf4e83797aa6ceb08d374a0b",
+  "operations_commit": "0cddbabb078a6d9eba2fc7a571669dfd607a913c",
   "entry": "SSH -> http://localhost:8088",
   "orders": 99441,
   "csv_cases": 9,
@@ -31,7 +31,7 @@
     "mysql": true
   },
   "local_backup_sha256_verified": true,
-  "backup_timer": "03:00 Asia/Shanghai daily; keep 7 complete backups",
+  "backup_timer": "03:00 Asia/Shanghai daily; retain all complete backups from the last 7 days",
   "reboot": {
     "boot_before": "abf8d26d-ca76-4beb-8a26-c630e6a57db9",
     "boot_after": "edb3e9c7-eb07-47fd-8380-4bb63b32e4c4",
