@@ -115,4 +115,4 @@ npm run dev
 
 下一阶段的[问数质量与线上运行方案](docs/quality-operations-design.md)细化独立评测、逐次执行记录、租户统计及云主机 Compose 验收；需求和技术方案待人工确认，尚未实现。
 
-云端目标已明确为阿里云 ECS + Docker Compose，后续适配以[阿里云部署要求](docs/aliyun-deployment-design.md)为准，覆盖 RDS、ACR、HTTPS、安全组、日志和恢复验收。
+当前 ECS 部署采用[自建双数据库与 SSH 私有访问方案](docs/ecs-private-deployment-spec.md)，运维见[私有部署手册](docs/ecs-private-operations.md)。RDS、ACR 和公网 HTTPS 的正式发布模板继续保留，后续按[阿里云部署要求](docs/aliyun-deployment-design.md)迁移和验收。

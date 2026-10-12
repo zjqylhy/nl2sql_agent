@@ -1,0 +1,175 @@
+# 仅供用户经 SSH 回环转发访问；公网 HTTPS 使用原 cloud 模板。
+name: olist-agent-private
+x-logging: &logging
+  driver: json-file
+  options: {max-size: "10m", max-file: "3"}
+x-api-environment: &api-environment
+  DATABASE_URL: postgres://platform_runtime:${POSTGRES_RUNTIME_PASSWORD:?required}@postgres:5432/platform?sslmode=disable&pool_max_conns=8
+  PUBLIC_ORIGIN: http://localhost:8088
+  COOKIE_SECURE: "false"
+  SERVICE_KEY: ${SERVICE_KEY:?required}
+  AGENT_URL: http://agent:8000
+services:
+  postgres:
+    image: ${POSTGRES_IMAGE:-postgres:17-alpine}
+    environment:
+      POSTGRES_USER: platform_migrator
+      POSTGRES_DB: platform
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?required}
+    command: ["postgres", "-c", "shared_buffers=32MB", "-c", "max_connections=30", "-c", "work_mem=2MB", "-c", "maintenance_work_mem=16MB", "-c", "max_parallel_workers_per_gather=0"]
+    volumes: [postgres_data:/var/lib/postgresql/data]
+    networks: [backend]
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 192m
+    memswap_limit: 192m
+    cpus: 0.5
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "platform_migrator", "-d", "platform"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+  mysql:
+    image: ${MYSQL_IMAGE:-mysql:8.4}
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?required}
+      # 一次性导入容器需要连接；3306 无宿主端口映射。
+      MYSQL_ROOT_HOST: "%"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./mysql-private.cnf:/etc/mysql/conf.d/private.cnf:ro
+    networks: [backend]
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 640m
+    memswap_limit: 640m
+    cpus: 0.75
+    healthcheck:
+      # 初始化临时实例禁用 TCP，以最终 TCP 实例为准。
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "--silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 60
+      start_period: 30s
+  gateway:
+    image: ${TUNNEL_IMAGE:?required}
+    command: ["-N", "-T", "-i", "/run/secrets/tunnel-key", "-o", "BatchMode=yes", "-o", "IdentitiesOnly=yes", "-o", "StrictHostKeyChecking=yes", "-o", "UserKnownHostsFile=/run/secrets/gateway-known-hosts", "-o", "ExitOnForwardFailure=yes", "-o", "ServerAliveInterval=30", "-o", "ServerAliveCountMax=3", "-o", "ConnectTimeout=10", "-L", "0.0.0.0:9443:127.0.0.1:8443", "nl2sql-tunnel@47.113.231.252"]
+    volumes:
+      - ${TUNNEL_KEY_FILE:?required}:/run/secrets/tunnel-key:ro
+      - ${GATEWAY_KNOWN_HOSTS_FILE:?required}:/run/secrets/gateway-known-hosts:ro
+    networks: [backend]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+    logging: *logging
+    mem_limit: 32m
+    memswap_limit: 32m
+    cpus: 0.1
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "9443"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+  migrate:
+    profiles: [maintenance]
+    image: ${API_IMAGE:?required}
+    command: ["-command", "migrate"]
+    environment:
+      DATABASE_URL: postgres://platform_migrator:${POSTGRES_ADMIN_PASSWORD:?required}@postgres:5432/platform?sslmode=disable&pool_max_conns=4
+    networks: [backend]
+    logging: *logging
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 128m
+    memswap_limit: 128m
+  import:
+    profiles: [maintenance]
+    image: ${AGENT_IMAGE:?required}
+    entrypoint: ["python", "-m", "tools.import_olist"]
+    command: ["--csv-dir", "/data", "--schema", "olist_alpha", "--readonly-user", "alpha_ro"]
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_ADMIN_PASSWORD: ${MYSQL_ROOT_PASSWORD:?required}
+      MYSQL_READONLY_PASSWORD: ${MYSQL_READONLY_PASSWORD:?required}
+    volumes: ["${CSV_DIR:?required}:/data:ro"]
+    networks: [backend]
+    logging: *logging
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 256m
+    memswap_limit: 256m
+  agent:
+    image: ${AGENT_IMAGE:?required}
+    environment:
+      SERVICE_KEY: ${SERVICE_KEY:?required}
+      TENANT_DATASOURCES: ${TENANT_DATASOURCES:?required}
+      LLM_API_KEY: ${NL2SQL_AGENT_API_KEY:?required}
+      LLM_BASE_URL: https://localhost:9443/v1
+      LLM_MODEL: chat
+      LLM_CONNECT_HOST: gateway
+      LLM_CA_FILE: /run/secrets/gateway-ca.pem
+      LLM_INTENT_MAX_TOKENS: "256"
+      LLM_PLAN_MAX_TOKENS: "512"
+    volumes: ["${GATEWAY_CA_FILE:?required}:/run/secrets/gateway-ca.pem:ro"]
+    depends_on:
+      mysql: {condition: service_healthy}
+      gateway: {condition: service_healthy}
+    networks: [backend]
+    logging: *logging
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 256m
+    memswap_limit: 256m
+    cpus: 0.5
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz',timeout=6)"]
+      interval: 10s
+      timeout: 7s
+      retries: 12
+  api:
+    image: ${API_IMAGE:?required}
+    environment: *api-environment
+    depends_on:
+      postgres: {condition: service_healthy}
+      agent: {condition: service_healthy}
+    networks: [backend]
+    logging: *logging
+    restart: unless-stopped
+    read_only: true
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 128m
+    memswap_limit: 128m
+    cpus: 0.5
+    healthcheck:
+      test: ["CMD", "/app/api", "-command", "health"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+  web:
+    image: ${WEB_IMAGE:?required}
+    ports: ["127.0.0.1:8088:8080"]
+    depends_on:
+      api: {condition: service_healthy}
+    networks: [backend]
+    logging: *logging
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 64m
+    memswap_limit: 64m
+    cpus: 0.25
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:8080/healthz"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+volumes:
+  postgres_data:
+  mysql_data:
+networks:
+  backend:

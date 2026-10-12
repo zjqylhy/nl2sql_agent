@@ -10,9 +10,11 @@ import urllib.request
 from urllib.parse import urlparse
 
 
-def run(origin):
+def run(origin, *, allow_private=False):
     parsed = urlparse(origin)
-    if parsed.scheme != "https" or not parsed.netloc or parsed.path or parsed.query or parsed.fragment:
+    # 私有部署仅允许固定回环 origin，正式发布仍强制 HTTPS。
+    private = allow_private and origin == "http://localhost:8088"
+    if not private and (parsed.scheme != "https" or not parsed.netloc or parsed.path or parsed.query or parsed.fragment):
         raise ValueError("https_origin_required")
     if not all(os.getenv(key) for key in ("SMOKE_TENANT", "SMOKE_USER", "SMOKE_PASSWORD")):
         raise ValueError("explicit_smoke_identity_required")

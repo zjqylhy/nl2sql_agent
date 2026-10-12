@@ -1,0 +1,6 @@
+FROM alpine:3.22
+RUN apk add --no-cache openssh-client && adduser -D -u 10002 tunnel
+ARG SOURCE_COMMIT=uncommitted
+LABEL org.opencontainers.image.revision=$SOURCE_COMMIT
+USER 10002
+ENTRYPOINT ["ssh"]
