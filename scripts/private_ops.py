@@ -16,6 +16,25 @@ BUSINESS_TABLES = "tenants,users,sessions,tasks,task_events,task_outbox,task_att
 BACKUP_NAME = re.compile(r"\d{8}T\d{6}Z-[a-f0-9]{8}")
 
 
+def copy_counts(lines):
+    counts, current = {"users": 0, "tasks": 0}, None
+    seen = set()
+    for line in lines:
+        if current:
+            if line.rstrip(b"\r\n") == b"\\.":
+                current = None
+            else:
+                counts[current] += 1
+        else:
+            match = re.match(rb"COPY public\.(users|tasks) \(", line)
+            if match:
+                current = match[1].decode()
+                seen.add(current)
+    if current or seen != set(counts):
+        raise ValueError("incomplete_postgres_snapshot_data")
+    return str(counts["users"]) + "|" + str(counts["tasks"])
+
+
 def dotenv(values):
     lines = []
     for key, value in values.items():
@@ -95,6 +114,22 @@ with pymysql.connect(host='mysql',user='root',password=request['password'],autoc
         payload = json.dumps(dict(password=self.values["MYSQL_ROOT_PASSWORD"], query=query)).encode()
         return json.loads(self.call("run", "--rm", "-T", "--no-deps", "--entrypoint", "python", "import", "-c", program, data=payload))
 
+    def dump_counts(self, dump):
+        # 从已备份的快照计数，避免备份期间新增任务造成恢复验收误报。
+        with dump.open("rb") as source:
+            process = subprocess.Popen([*self.compose, "exec", "-T", "postgres", "pg_restore",
+                                        "--data-only", "--table=users", "--table=tasks", "--file=-"],
+                                       stdin=source, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            try:
+                counts = copy_counts(process.stdout)
+                if process.wait(timeout=120):
+                    raise RuntimeError("postgres_snapshot_inspection_failed")
+                return counts
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                    process.wait()
+
     def initialize(self):
         marker = self.env_file.parent / "state/initialized.json"
         if marker.exists():
@@ -141,7 +176,7 @@ with pymysql.connect(host='mysql',user='root',password=request['password'],autoc
         account = self.mysql("SHOW CREATE USER 'alpha_ro'@'%'")[0][-1]
         grants = self.mysql("SHOW GRANTS FOR 'alpha_ro'@'%'")
         write_private(temporary / "mysql-accounts.sql", account + ";\n" + "\n".join(row[0] + ";" for row in grants) + "\n")
-        counts = self.sql("SELECT (SELECT COUNT(*) FROM users), (SELECT COUNT(*) FROM tasks);\n").decode().strip()
+        counts = self.dump_counts(temporary / "postgres.dump")
         orders = self.mysql("SELECT COUNT(*) FROM olist_alpha.order_facts")[0][0]
         hashes = {}
         for file in temporary.iterdir():

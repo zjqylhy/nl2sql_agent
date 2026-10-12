@@ -60,7 +60,7 @@ def test_backup_accepts_mysql_single_column_account_definition(tmp_path):
             output.write(b"fixture database dump")
         return b""
     stack.call = call
-    stack.sql = lambda query: b"1|2\n"
+    stack.dump_counts = lambda dump: "1|2"
     def mysql(query):
         if query.startswith("SHOW CREATE USER"):
             return [["CREATE USER 'alpha_ro'@'%' IDENTIFIED BY 'fixture-password'"]]
@@ -73,3 +73,14 @@ def test_backup_accepts_mysql_single_column_account_definition(tmp_path):
     assert manifest["orders"] == 99441 and manifest["postgres_counts"] == "1|2"
     assert "CREATE USER" in (folder / "mysql-accounts.sql").read_text()
     assert set(manifest["sha256"]) == {"postgres.dump", "postgres-roles.sql", "mysql.sql", "mysql-accounts.sql"}
+
+
+def test_snapshot_counts_escaped_rows_and_empty_tables():
+    lines = [b"COPY public.users (id,username) FROM stdin;\n", b"1\tname\\nline\n", b"\\.\n",
+             b"COPY public.tasks (id,input) FROM stdin;\n", b"\\.\n"]
+    assert private_ops.copy_counts(lines) == "1|0"
+
+
+def test_snapshot_counts_require_complete_copy_sections():
+    with pytest.raises(ValueError, match="incomplete_postgres_snapshot"):
+        private_ops.copy_counts([b"COPY public.users (id) FROM stdin;\n", b"1\n"])
