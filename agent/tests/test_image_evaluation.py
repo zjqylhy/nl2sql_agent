@@ -1,10 +1,21 @@
 import json
 from types import SimpleNamespace
 
+import pytest
+
 from scripts import evaluate_images
 
 
-def test_local_override_with_digest_still_cannot_claim_release_execution(tmp_path, monkeypatch):
+@pytest.mark.parametrize("cache_exists", [False, True])
+def test_local_override_with_digest_still_cannot_claim_release_execution(tmp_path, monkeypatch, cache_exists):
+    # 模拟全新检出，避免开发机已有缓存目录掩盖入口初始化问题。
+    root = tmp_path / "checkout"
+    (root / "evals").mkdir(parents=True)
+    for name in ("fixture.csv", "cases.py", "oracle.py"):
+        (root / "evals" / name).write_bytes((evaluate_images.ROOT / "evals" / name).read_bytes())
+    if cache_exists:
+        (root / ".cache").mkdir()
+    monkeypatch.setattr(evaluate_images, "ROOT", root)
     identity = tmp_path / "identity.json"
     identity.write_text(json.dumps({"source_commit":"a"*40,"images":{s:"registry.example/"+s+"@sha256:"+"b"*64 for s in ("api","agent","web")}}))
     stack = SimpleNamespace(start=lambda rows: None, verify_images=lambda: None, url="http://fixture", sessions=[None, None, None], observe=lambda value: {}, runtime_hash=lambda: "c"*64, verify_sse=lambda: True, close=lambda: None)

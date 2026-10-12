@@ -178,6 +178,8 @@ def run(args):
             raise ValueError("explicit_https_model_configuration_required")
     selected = [c for c in cases() if c["split"] == "acceptance" and (args.mode == "live" or c["category"] != "paraphrase")]
     rows, results = facts(ROOT / "evals/fixture.csv"), []
+    # 直接调用评测入口时也支持全新工作区，不依赖 CLI 预建缓存。
+    (ROOT / ".cache").mkdir(exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="image-evaluation-", dir=ROOT / ".cache") as folder:
         stack = Stack(images, Path(folder), args.mode, args.max_model_calls)
         stack.local, stack.commit = args.local_images, identity["source_commit"]
@@ -211,7 +213,6 @@ def main():
     parser.add_argument("--local-images", action="store_true", help="只允许本地诊断；报告不能作为正式发布证明")
     args = parser.parse_args()
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    (ROOT / ".cache").mkdir(exist_ok=True)
     try:
         run(args)
         return 0
