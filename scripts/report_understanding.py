@@ -98,7 +98,7 @@ def main():
         print("Invalid or incomplete understanding report", file=sys.stderr)
         return 1
     args.output.parent.mkdir(parents=True, exist_ok=True)
-    args.output.write_text(text, encoding="utf-8")
+    args.output.write_text(text, encoding="utf-8", newline="\n")
     return 0
 
 

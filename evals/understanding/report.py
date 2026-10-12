@@ -17,6 +17,13 @@ def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def text_hashes(path):
+    # 历史报告保留运行时字节摘要，只兼容 Git 的 LF/CRLF 转换。
+    raw = path.read_bytes()
+    normalized = raw.replace(b"\r\n", b"\n")
+    return {hashlib.sha256(value).hexdigest() for value in (raw, normalized, normalized.replace(b"\n", b"\r\n"))}
+
+
 def fingerprints(paths):
     value = hashlib.sha256()
     for path in sorted(paths):
@@ -34,9 +41,9 @@ def validate(study):
     data = load()
     if identity["split"] not in ("development", "acceptance", "all", "diagnostic") or not identity["case_ids"]:
         raise ValueError("invalid or empty selection")
-    if identity["fixture_kind"] != "synthetic_order_facts" or identity["fixture_hash"] != digest(ROOT / "evals/fixture.csv"):
+    if identity["fixture_kind"] != "synthetic_order_facts" or identity["fixture_hash"] not in text_hashes(ROOT / "evals/fixture.csv"):
         raise ValueError("unexpected fixture identity")
-    if identity["dataset_hash"] != digest(DATASET) or identity["annotation_status"] != data.annotation_status or identity["reviewer"] != data.reviewer:
+    if identity["dataset_hash"] not in text_hashes(DATASET) or identity["annotation_status"] != data.annotation_status or identity["reviewer"] != data.reviewer:
         raise ValueError("dataset or annotation identity mismatch")
     suite = [c for c in data.cases if identity["split"] == "all" or c.split == identity["split"] or identity["split"] == "diagnostic" and c.id in identity["case_ids"]]
     expected = {c.id: c for c in suite}
@@ -132,4 +139,4 @@ def summarize(study):
 
 def save(path, report):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    path.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8", newline="\n")

@@ -1,4 +1,5 @@
 import copy
+import hashlib
 import sys
 from pathlib import Path
 
@@ -7,7 +8,7 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 from evals.understanding.dataset import DATASET, load
-from evals.understanding.report import digest, summarize, validate
+from evals.understanding.report import digest, save, summarize, validate
 from scripts.report_understanding import markdown
 
 
@@ -82,3 +83,20 @@ def test_flaky_results_and_no_human_review_acceptance_claim():
     for c in load().cases:
         if c.split == "acceptance":
             assert c.question not in text
+
+
+def test_git_newlines_preserve_historical_identity_without_accepting_content_changes(tmp_path):
+    value = study()
+    identity = copy.deepcopy(value["identity"])
+    for key, path in (("dataset_hash", DATASET), ("fixture_hash", ROOT / "evals/fixture.csv")):
+        data = path.read_bytes().replace(b"\r\n", b"\n").replace(b"\n", b"\r\n")
+        identity[key] = hashlib.sha256(data).hexdigest()
+    value["identity"] = identity
+    for report in value["rounds"][0].values():
+        report["identity"] = copy.deepcopy(identity)
+    assert summarize(value)["rounds"][0]["full"]["supported"]["rate"] == 1
+    save(tmp_path / "report.json", value)
+    assert b"\r\n" not in (tmp_path / "report.json").read_bytes()
+    value["identity"]["dataset_hash"] = hashlib.sha256(DATASET.read_bytes() + b" ").hexdigest()
+    with pytest.raises(ValueError):
+        validate(value)
