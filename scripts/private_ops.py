@@ -137,7 +137,8 @@ with pymysql.connect(host='mysql',user='root',password=request['password'],autoc
                 self.call(*command, output=stream, timeout=600)
             if path.stat().st_size == 0:
                 raise ValueError("empty_backup")
-        account = self.mysql("SHOW CREATE USER 'alpha_ro'@'%'")[0][1]
+        # MySQL 8.4 返回单列；兼容带身份列的输出时，定义也位于最后一列。
+        account = self.mysql("SHOW CREATE USER 'alpha_ro'@'%'")[0][-1]
         grants = self.mysql("SHOW GRANTS FOR 'alpha_ro'@'%'")
         write_private(temporary / "mysql-accounts.sql", account + ";\n" + "\n".join(row[0] + ";" for row in grants) + "\n")
         counts = self.sql("SELECT (SELECT COUNT(*) FROM users), (SELECT COUNT(*) FROM tasks);\n").decode().strip()

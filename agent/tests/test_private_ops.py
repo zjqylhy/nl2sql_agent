@@ -50,3 +50,26 @@ def test_existing_analysis_database_blocks_initialize(tmp_path):
     with pytest.raises(ValueError, match="no_overwrite"):
         stack.initialize()
     assert not any(call[0] == "run" for call in calls)
+
+
+def test_backup_accepts_mysql_single_column_account_definition(tmp_path):
+    stack = object.__new__(private_ops.Stack)
+    stack.env_file = tmp_path / ".env.private"
+    def call(*args, output=None, **kwargs):
+        if output:
+            output.write(b"fixture database dump")
+        return b""
+    stack.call = call
+    stack.sql = lambda query: b"1|2\n"
+    def mysql(query):
+        if query.startswith("SHOW CREATE USER"):
+            return [["CREATE USER 'alpha_ro'@'%' IDENTIFIED BY 'fixture-password'"]]
+        if query.startswith("SHOW GRANTS"):
+            return [["GRANT SELECT ON olist_alpha.metric_orders TO 'alpha_ro'@'%'"]]
+        return [[99441]]
+    stack.mysql = mysql
+    folder = stack.backup()
+    manifest = json.loads((folder / "manifest.json").read_text())
+    assert manifest["orders"] == 99441 and manifest["postgres_counts"] == "1|2"
+    assert "CREATE USER" in (folder / "mysql-accounts.sql").read_text()
+    assert set(manifest["sha256"]) == {"postgres.dump", "postgres-roles.sql", "mysql.sql", "mysql-accounts.sql"}
