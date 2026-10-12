@@ -3,7 +3,7 @@
   "host": "8.155.128.79",
   "region": "cn-heyuan",
   "application_commit": "a2be1c3f32c98e0e3a45da77ca5306e8a5eba0e8",
-  "operations_commit": "46a6a061a4c2c1691f3be3f85d73b748a32a45a6",
+  "operations_commit": "9ba7101199729917cf4e83797aa6ceb08d374a0b",
   "entry": "SSH -> http://localhost:8088",
   "orders": 99441,
   "csv_cases": 9,
@@ -87,5 +87,6 @@
     "Continuous off-host backups not configured; first verified backup copied to Windows",
     "Private SSH access; no public HTTPS entry",
     "Formal RDS/HTTPS release gate not claimed"
-  ]
+  ],
+  "postgres_backup_snapshot_counts_verified": true
 }

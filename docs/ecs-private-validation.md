@@ -2,7 +2,7 @@
 
 日期：2026-10-12。应用主机 8.155.128.79，华南 2（河源）；Ubuntu 22.04.5 LTS、2 核、系统报告约 1736 MiB 内存。用户确认需求、技术方案及代码/测试后部署，无 RDS/ACR 采购。
 
-应用镜像对应 commit `a2be1c3f32c98e0e3a45da77ca5306e8a5eba0e8`；运维脚本对应 `46a6a061a4c2c1691f3be3f85d73b748a32a45a6`，包含真实备份验收发现的 MySQL 单列账号定义兼容修复。传输包 SHA256、镜像文件层、架构、revision 和实际 image ID 均已核对，分别记录应用与运维身份。
+应用镜像对应 commit `a2be1c3f32c98e0e3a45da77ca5306e8a5eba0e8`；运维脚本对应 `9ba7101199729917cf4e83797aa6ceb08d374a0b`，包含 MySQL 单列账号定义兼容修复和 PostgreSQL 实际快照计数。后者避免备份期间新增任务造成恢复核对误报，已用真实 dump 和新完整备份流程验证。传输包 SHA256、镜像文件层、架构、revision 和实际 image ID 均已核对，分别记录应用与运维身份。
 
 机器可读结果：[云端验收数据](benchmarks/ecs-private-2026-10-12.json)。云端成功记录为 /srv/olist/state/current.json；操作见[运维手册](ecs-private-operations.md)。
 
@@ -10,7 +10,7 @@
 
 | 项目 | 实测结果 |
 | --- | --- |
-| 代码回归 | Linux 228 项通过、8 项因未配置专用集成测试数据库跳过；备份兼容修复后相关 11 项全部通过 |
+| 代码回归 | Linux 228 项通过、8 项因未配置专用集成测试数据库跳过；备份修复后相关 13 项全部通过 |
 | 部署配置 | Compose 配置、回环绑定、常驻 1312 MiB 内存预算、PowerShell 语法均通过；独立本地受限双库健康启动 |
 | 云端运行 | PostgreSQL、MySQL、gateway、agent、API、web 共六个常驻容器健康；未观察到 OOM |
 | Olist | 99,441 条订单事实，分析基准 2018-08-31 |

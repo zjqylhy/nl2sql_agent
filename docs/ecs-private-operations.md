@@ -33,7 +33,7 @@ python3 /srv/olist/app/scripts/private_ops.py backup
 python3 /srv/olist/app/scripts/private_restore_check.py /srv/olist/backups/实际备份目录
 ```
 
-完整备份包括 PostgreSQL custom dump、角色定义、MySQL 数据/视图、alpha_ro 身份和授权、内容摘要与行数。全部成功后原子改名，才轮换本工具的备份目录，保留最近七份；`.partial-*` 为失败现场，不作为有效备份。运维需检查失败现场并处理磁盘占用，脚本不自动清理失败数据。
+完整备份包括 PostgreSQL custom dump、角色定义、MySQL 数据/视图、alpha_ro 身份和授权、内容摘要与行数。PostgreSQL 行数从已生成的 dump 快照流式读取，备份期间新增任务不影响恢复核对。全部成功后原子改名，才轮换本工具的备份目录，保留最近七份；`.partial-*` 为失败现场，不作为有效备份。运维需检查失败现场并处理磁盘占用，脚本不自动清理失败数据。
 
 安装 deploy/private-backup.service 和 private-backup.timer 到 /etc/systemd/system，启用 timer。备份每天按服务器时区 03:00 执行；部署时设为 Asia/Shanghai。通过 systemctl status/journalctl 检查失败。初始化和备份共用 flock，避免操作交错。
 
