@@ -6,6 +6,8 @@
 
 规则优先解析常见问题，完整命中时不调用模型、Token 为 0；支持范围内的陌生表达在配置模型后由 LLM 兜底。两条路径生成统一 QueryPlan，由版本化语义目录编译参数化 SQL。已支持一次 1–3 个指标、州/日/月分组、筛选、排序、Top N 和月趋势，详见 [语义查询规格](docs/semantic-query-design.md)。未配置模型、条件缺失或冲突时要求澄清。归因、多轮、LangGraph/Celery、报告及完整线上运营验收属于 M2/M3。
 
+独立表达评测已增加 90 条问题、75 个意图组，并运行三轮真实模型同题对照：仅规则正确完成 30/60，模型加入后为 46/60、48/60、48/60，分别补足 16、18、18 道支持题。检查 QueryPlan、全部条件及独立 CSV 结果；保留拒答、失败和五道波动案例。题单仍待人工复核，统计不代表真实用户分布。详见 [实测证据与失败分析](docs/user-understanding-evidence.md)及[复现步骤](docs/user-understanding-evaluation.md)。
+
 ## Windows 本地启动
 
 需要 Docker Desktop（Linux containers）、Docker Compose。源码调试另需 Go 1.27、Python 3.12、Node.js 24。数据库和数据均存本地，不提交 Git。

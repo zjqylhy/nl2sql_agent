@@ -1,5 +1,6 @@
 """展示只从经身份校验的实测报告生成；验收题不作为公开演示题。"""
 import argparse
+from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
 import sys
@@ -18,9 +19,13 @@ def fraction(value):
 def markdown(study, report_hash):
     summary = summarize(study)
     identity = study["identity"]
+    created = datetime.fromisoformat(study["created_at"])
+    if created.tzinfo is None:
+        created = created.replace(tzinfo=timezone.utc)
+    local_time = created.astimezone(timezone(timedelta(hours=8))).strftime("%Y-%m-%d %H:%M:%S")
     suite = {c.id: c.model_dump() for c in load().cases}
     selected = [suite[case_id] for case_id in identity["case_ids"]]
-    lines = ["# 用户意图理解实测证据", "", f"报告生成时间：{study['created_at']}。代码提交：`{identity['source_commit']}`。",
+    lines = ["# 用户意图理解实测证据", "", f"报告生成时间：{local_time}（上海时间）。代码提交：`{identity['source_commit']}`。",
              f"报告 SHA256：`{report_hash}`。题集 SHA256：`{identity['dataset_hash']}`。",
              "", f"数据为独立合成 CSV 订单夹具；分析基准 {identity['analysis_date']}，分区 {identity['split']}。包含 {len(selected)} 条表达、{len({c['group'] for c in selected})} 个意图组。",
              "", "题单复核状态：" + ("人工已复核。" if summary["human_reviewed"] else "待人工复核；统计用于展示当前实现的表现，尚不能称为人工复核验收正确率。"),
@@ -73,7 +78,9 @@ def markdown(study, report_hash):
     if failures:
         lines += ["| 案例 | 类别 | 状态 | 错误类别 | 可观察差异 |", "| --- | --- | --- | --- | --- |"]
         for c in failures:
-            differences = ", ".join(d["field"] + ":" + d["kind"] for d in c["differences"]) or "无计划差异可观察"
+            differences = ", ".join(d["field"] + ":" + d["kind"] for d in c["differences"])
+            if not differences:
+                differences = "计划一致但结果不正确" if c["intent_correct"] is True else "计划不可观察" if c["intent_correct"] is None else "协议或计划错误"
             lines.append(f"| {c['id']} | {c['category']} | {c['task_status']} | {c['error_code'] or '无'} | {differences} |")
     else:
         lines += ["本轮没有失败案例。"]
