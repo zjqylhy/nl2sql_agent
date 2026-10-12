@@ -32,6 +32,11 @@ func run() error {
 	}
 	defer admin.Pool.Close()
 	schema := "test_eval_" + prefix
+	// Windows 强制结束子进程后仍可由父评测器清理精确匹配的临时 schema。
+	if os.Getenv("EVAL_CLEANUP_ONLY") == "true" {
+		_, err = admin.Pool.Exec(ctx, "DROP SCHEMA IF EXISTS "+schema+" CASCADE")
+		return err
+	}
 	if _, err = admin.Pool.Exec(ctx, "CREATE SCHEMA "+schema); err != nil {
 		return fmt.Errorf("test schema creation failed")
 	}

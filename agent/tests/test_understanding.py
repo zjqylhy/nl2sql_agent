@@ -15,7 +15,7 @@ from evals.understanding.scorer import plan_diff, score
 
 def example():
     case = load().cases[0].model_dump()
-    # 原始 CSV 的八月有效订单：金额 330、有效订单 5，无不可履约订单。
+    # 原始 CSV 的八月有效订单：金额 330、有效订单 5；另有一笔不可履约订单。
     result = {"plan": copy.deepcopy(case["expected"]), "rows": [{"dimensions": {}, "total_orders": 7,
               "unavailable_orders": 1, "values": {"gmv": {"value": "330", "sample_size": 5, "excluded_orders": 2}}}]}
     return case, {"status": "completed", "result": result}, {"sql_calls": 1, "model_calls": 0}
