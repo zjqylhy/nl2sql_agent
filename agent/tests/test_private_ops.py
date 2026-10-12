@@ -53,6 +53,17 @@ def test_existing_analysis_database_blocks_initialize(tmp_path):
 
 
 def test_backup_accepts_mysql_single_column_account_definition(tmp_path):
+    from datetime import datetime, timedelta, timezone
+    root = tmp_path / "backups"
+    root.mkdir()
+    recent = []
+    for hours in range(9):
+        name = (datetime.now(timezone.utc) - timedelta(hours=hours)).strftime("%Y%m%dT%H%M%SZ") + "-aaaaaaaa"
+        folder = root / name
+        folder.mkdir()
+        recent.append(folder)
+    old = root / ((datetime.now(timezone.utc) - timedelta(days=8)).strftime("%Y%m%dT%H%M%SZ") + "-bbbbbbbb")
+    old.mkdir()
     stack = object.__new__(private_ops.Stack)
     stack.env_file = tmp_path / ".env.private"
     def call(*args, output=None, **kwargs):
@@ -73,6 +84,7 @@ def test_backup_accepts_mysql_single_column_account_definition(tmp_path):
     assert manifest["orders"] == 99441 and manifest["postgres_counts"] == "1|2"
     assert "CREATE USER" in (folder / "mysql-accounts.sql").read_text()
     assert set(manifest["sha256"]) == {"postgres.dump", "postgres-roles.sql", "mysql.sql", "mysql-accounts.sql"}
+    assert all(folder.exists() for folder in recent) and not old.exists()
 
 
 def test_snapshot_counts_escaped_rows_and_empty_tables():

@@ -1,6 +1,6 @@
 """单机私有部署的配置、初始化和双库备份；秘密只从受限文件或 stdin 读取。"""
 import argparse
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 import hashlib
 import json
 import os
@@ -190,7 +190,11 @@ with pymysql.connect(host='mysql',user='root',password=request['password'],autoc
         temporary.rename(complete)
         # 成功生成完整新备份后才轮换；只处理本工具创建的目录。
         previous = sorted((p for p in root.iterdir() if BACKUP_NAME.fullmatch(p.name) and p.is_dir() and not p.is_symlink()), reverse=True)
-        for old in previous[7:]:
+        cutoff = datetime.now(timezone.utc) - timedelta(days=7)
+        for old in previous:
+            timestamp = datetime.strptime(old.name[:16], "%Y%m%dT%H%M%SZ").replace(tzinfo=timezone.utc)
+            if timestamp >= cutoff:
+                continue
             if old.resolve().parent != root.resolve():
                 raise ValueError("backup_path_outside_root")
             shutil.rmtree(old)
