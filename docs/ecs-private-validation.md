@@ -2,7 +2,7 @@
 
 日期：2026-10-12。应用主机 8.155.128.79，华南 2（河源）；Ubuntu 22.04.5 LTS、2 核、系统报告约 1736 MiB 内存。用户确认需求、技术方案及代码/测试后部署，无 RDS/ACR 采购。
 
-应用镜像对应 commit `a2be1c3f32c98e0e3a45da77ca5306e8a5eba0e8`；运维脚本对应 `9ba7101199729917cf4e83797aa6ceb08d374a0b`，包含 MySQL 单列账号定义兼容修复和 PostgreSQL 实际快照计数。后者避免备份期间新增任务造成恢复核对误报，已用真实 dump 和新完整备份流程验证。传输包 SHA256、镜像文件层、架构、revision 和实际 image ID 均已核对，分别记录应用与运维身份。
+应用镜像对应 commit `a2be1c3f32c98e0e3a45da77ca5306e8a5eba0e8`；运维脚本对应 `0cddbabb078a6d9eba2fc7a571669dfd607a913c`，包含 MySQL 单列账号定义兼容修复和 PostgreSQL 实际快照计数。后者避免备份期间新增任务造成恢复核对误报，已用真实 dump 和新完整备份流程验证。传输包 SHA256、镜像文件层、架构、revision 和实际 image ID 均已核对，分别记录应用与运维身份。
 
 机器可读结果：[云端验收数据](benchmarks/ecs-private-2026-10-12.json)。云端成功记录为 /srv/olist/state/current.json；操作见[运维手册](ecs-private-operations.md)。
 
@@ -23,7 +23,7 @@
 | 双库备份 | 数据、角色/只读账号、视图和授权完整生成并记录摘要 |
 | 恢复验证 | 分别恢复到独立临时容器，元数据和订单数一致，恢复后只读权限通过；验收容器和其临时 volume 已移除 |
 | 本机副本 | 首份备份通过 SSH 下载至本机受限目录，所有文件 SHA256 一致 |
-| 定时备份 | private-backup.timer 已启用，上海时区每日 03:00，保留最近七份完整备份 |
+| 定时备份 | private-backup.timer 已启用，上海时区每日 03:00，保留最近七天全部完整备份 |
 | 整机重启 | 实际 reboot，boot ID 改变，六个容器自动恢复健康，数据保留；API 启动阶段自动重启一次后健康；重启后规则/模型及 SSE 再次通过，timer active |
 | 用户入口 | 本机 SSH 隧道重建后，http://localhost:8088/ 与 /healthz 均返回 200 |
 | 公网隔离 | 宿主应用只监听 127.0.0.1:8088，数据库/API/agent/模型隧道均无公网端口映射 |
