@@ -308,6 +308,8 @@ def run_query(request: QueryRequest):
         telemetry.update(error_code="unsupported" if isinstance(exc, Unsupported) else "clarification")
         message = str(exc) if isinstance(exc, Clarification) else "指标、时间或地区格式不明确，请确认后重试。"
         result = {"status": "needs_clarification", "message": message}
+        if request.context:
+            result.update(context_binding=binding["binding"],multiturn={"version":1,"changes":[],"notes":[]})
         if isinstance(exc, Clarification) and exc.usage is not None:
             result["usage"] = exc.usage
         return result

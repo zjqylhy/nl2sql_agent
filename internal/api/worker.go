@@ -64,7 +64,16 @@ func (s *Server) execute(ctx context.Context, t store.Task) {
 		s.finish(t, "failed", nil, "指标权限已撤销")
 		return
 	}
-	raw, _ := json.Marshal(map[string]any{"tenant_id": current.TenantID, "role": current.Role, "allowed_metrics": current.AllowedMetrics, "input": t.Input, "execution": map[string]any{"task_id": t.ID, "execution_version": t.Version}})
+	if !s.taskContextAllowed(ctx, current, t) {
+		code = "permission"
+		s.finish(t, "failed", nil, "会话授权或数据基准已变化")
+		return
+	}
+	requestBody := map[string]any{"tenant_id": current.TenantID, "role": current.Role, "allowed_metrics": current.AllowedMetrics, "input": t.Input, "execution": map[string]any{"task_id": t.ID, "execution_version": t.Version}}
+	if t.ConversationID != "" {
+		requestBody["context"] = t.Context
+	}
+	raw, _ := json.Marshal(requestBody)
 	callCtx, cancel := context.WithTimeout(ctx, 35*time.Second)
 	defer cancel()
 	req, err := http.NewRequestWithContext(callCtx, "POST", s.Config.AgentURL+"/internal/query", bytes.NewReader(raw))
@@ -145,16 +154,27 @@ func (s *Server) execute(ctx context.Context, t store.Task) {
 		return
 	}
 	var outcome struct {
-		Status string `json:"status"`
+		Status  string `json:"status"`
+		Binding string `json:"context_binding"`
 	}
 	if json.Unmarshal(body, &outcome) != nil || (outcome.Status != "completed" && outcome.Status != "needs_clarification") {
 		code = "agent_format"
 		s.finish(t, "failed", nil, "分析服务返回格式错误")
 		return
 	}
+	if t.ConversationID != "" {
+		var snapshot struct {
+			Binding string `json:"binding"`
+		}
+		if json.Unmarshal(t.Context, &snapshot) != nil || outcome.Binding != snapshot.Binding {
+			code = "agent_format"
+			s.finish(t, "failed", nil, "分析服务返回的会话数据基准不一致")
+			return
+		}
+	}
 	t.Result = body
 	current, err = s.executionUser(ctx, t)
-	if err != nil || !allowed(current, t) {
+	if err != nil || !allowed(current, t) || !s.taskContextAllowed(ctx, current, t) {
 		code = "permission"
 		s.finish(t, "failed", nil, "指标权限已撤销")
 		return

@@ -102,3 +102,9 @@ def query(body: dict, x_service_key: str = Header(default="")):
                 value.setdefault("stages_ms", {})[name] = value["stages_ms"].get(name, 0) + duration
             observations[task_id] = value
         active.reset(token)
+
+
+@app.post("/internal/context")
+def context(body: dict, x_service_key: str = Header(default="")):
+    authenticate(x_service_key)
+    return runtime.context_metadata(runtime.ContextIdentity.model_validate(body))

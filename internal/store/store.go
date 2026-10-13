@@ -43,17 +43,22 @@ type Input struct {
 }
 
 type Task struct {
-	ID        string          `json:"id"`
-	TenantID  string          `json:"tenant_id"`
-	UserID    string          `json:"user_id"`
-	Input     Input           `json:"input"`
-	Status    string          `json:"status"`
-	Result    json.RawMessage `json:"result"`
-	Error     string          `json:"error,omitempty"`
-	Attempts  int             `json:"attempts"`
-	Version   int             `json:"execution_version"`
-	CreatedAt time.Time       `json:"created_at"`
-	StartedAt *time.Time      `json:"-"`
+	ID               string          `json:"id"`
+	TenantID         string          `json:"tenant_id"`
+	UserID           string          `json:"user_id"`
+	Input            Input           `json:"input"`
+	Status           string          `json:"status"`
+	Result           json.RawMessage `json:"result"`
+	Error            string          `json:"error,omitempty"`
+	Attempts         int             `json:"attempts"`
+	Version          int             `json:"execution_version"`
+	CreatedAt        time.Time       `json:"created_at"`
+	StartedAt        *time.Time      `json:"-"`
+	ConversationID   string          `json:"conversation_id,omitempty"`
+	ConversationTurn int             `json:"conversation_turn,omitempty"`
+	Context          json.RawMessage `json:"-"`
+	AdmissionVersion int             `json:"-"`
+	RequestID        string          `json:"request_id,omitempty"`
 }
 
 type Event struct {
@@ -165,12 +170,12 @@ func (s *Store) NewSession(ctx context.Context, u User) (string, error) {
 	return token, err
 }
 
-const taskColumns = `t.id,t.tenant_id,t.user_id,t.input,t.status,t.result,t.error,t.attempts,t.execution_version,t.created_at,t.started_at`
+const taskColumns = `t.id,t.tenant_id,t.user_id,t.input,t.status,t.result,t.error,t.attempts,t.execution_version,t.created_at,t.started_at,COALESCE(t.conversation_id,''),COALESCE(t.conversation_turn,0),t.conversation_context,COALESCE(t.admission_version,0),COALESCE(t.request_id,'')`
 
 func scanTask(row pgx.Row) (Task, error) {
 	var t Task
 	var raw []byte
-	err := row.Scan(&t.ID, &t.TenantID, &t.UserID, &raw, &t.Status, &t.Result, &t.Error, &t.Attempts, &t.Version, &t.CreatedAt, &t.StartedAt)
+	err := row.Scan(&t.ID, &t.TenantID, &t.UserID, &raw, &t.Status, &t.Result, &t.Error, &t.Attempts, &t.Version, &t.CreatedAt, &t.StartedAt, &t.ConversationID, &t.ConversationTurn, &t.Context, &t.AdmissionVersion, &t.RequestID)
 	if err == nil {
 		err = json.Unmarshal(raw, &t.Input)
 	}
@@ -182,11 +187,11 @@ func scanTask(row pgx.Row) (Task, error) {
 
 func (s *Store) Task(ctx context.Context, u User, id string) (Task, error) {
 	// 任务可见性包含租户和人员，管理员可读取本租户轨迹。
-	return scanTask(s.Pool.QueryRow(ctx, `SELECT `+taskColumns+` FROM tasks t WHERE t.id=$1 AND t.tenant_id=$2 AND (t.user_id=$3 OR $4 IN ('admin','data'))`, id, u.TenantID, u.ID, u.Role))
+	return scanTask(s.Pool.QueryRow(ctx, `SELECT `+taskColumns+` FROM tasks t WHERE t.id=$1 AND t.tenant_id=$2 AND (t.user_id=$3 OR (t.conversation_id IS NULL AND $4 IN ('admin','data')))`, id, u.TenantID, u.ID, u.Role))
 }
 
 func (s *Store) Tasks(ctx context.Context, u User) ([]Task, error) {
-	rows, err := s.Pool.Query(ctx, `SELECT `+taskColumns+` FROM tasks t WHERE t.tenant_id=$1 AND (t.user_id=$2 OR $3 IN ('admin','data')) ORDER BY t.created_at DESC LIMIT 100`, u.TenantID, u.ID, u.Role)
+	rows, err := s.Pool.Query(ctx, `SELECT `+taskColumns+` FROM tasks t WHERE t.tenant_id=$1 AND (t.user_id=$2 OR (t.conversation_id IS NULL AND $3 IN ('admin','data'))) ORDER BY t.created_at DESC LIMIT 100`, u.TenantID, u.ID, u.Role)
 	if err != nil {
 		return nil, err
 	}
@@ -259,11 +264,24 @@ func (s *Store) Stop(ctx context.Context, u User, id string) error {
 		return err
 	}
 	defer tx.Rollback(ctx)
+	if err = lockTaskConversation(ctx, tx, t); err != nil {
+		return err
+	}
 	tag, err := tx.Exec(ctx, `UPDATE tasks SET status='canceled',execution_version=execution_version+1,lease_until=NULL,updated_at=NOW() WHERE id=$1 AND tenant_id=$2 AND status IN ('pending','querying','needs_clarification')`, t.ID, u.TenantID)
 	if err != nil {
 		return err
 	}
 	if tag.RowsAffected() > 0 {
+		if t.ConversationID != "" {
+			if t.Status == "needs_clarification" {
+				_, err = tx.Exec(ctx, `UPDATE conversations SET pending=NULL,version=version+1,updated_at=NOW() WHERE id=$1 AND pending->>'last_task_id'=$2 AND active_task_id IS NULL`, t.ConversationID, t.ID)
+			} else {
+				err = completeConversation(ctx, tx, t, "canceled", nil)
+			}
+			if err != nil {
+				return err
+			}
+		}
 		if _, err = tx.Exec(ctx, `UPDATE task_attempts SET state='canceled',ended_at=NOW(),error_code='canceled' WHERE task_id=$1 AND state='running'`, t.ID); err != nil {
 			return err
 		}
@@ -280,6 +298,14 @@ func (s *Store) Claim(ctx context.Context) (Task, error) {
 		return Task{}, err
 	}
 	defer tx.Rollback(ctx)
+	// 先读取候选并锁其会话，再取队列容量锁和任务行，避免与接纳/停止锁反序。
+	candidate, err := scanTask(tx.QueryRow(ctx, `SELECT `+taskColumns+` FROM tasks t JOIN task_outbox o ON o.task_id=t.id WHERE o.delivered_at IS NULL AND (t.status='pending' OR (t.status='querying' AND t.lease_until<NOW())) AND NOT EXISTS(SELECT 1 FROM tasks a WHERE a.user_id=t.user_id AND a.id<>t.id AND a.status='querying' AND a.lease_until>NOW()) ORDER BY t.created_at LIMIT 1`))
+	if err != nil {
+		return Task{}, err
+	}
+	if err = lockTaskConversation(ctx, tx, candidate); err != nil {
+		return Task{}, err
+	}
 	if _, err = tx.Exec(ctx, `SELECT pg_advisory_xact_lock(710091)`); err != nil {
 		return Task{}, err
 	}
@@ -290,12 +316,15 @@ func (s *Store) Claim(ctx context.Context) (Task, error) {
 	if active >= 50 {
 		return Task{}, ErrMissing
 	}
-	t, err := scanTask(tx.QueryRow(ctx, `SELECT `+taskColumns+` FROM tasks t JOIN task_outbox o ON o.task_id=t.id WHERE o.delivered_at IS NULL AND (t.status='pending' OR (t.status='querying' AND t.lease_until<NOW())) AND NOT EXISTS(SELECT 1 FROM tasks a WHERE a.user_id=t.user_id AND a.id<>t.id AND a.status='querying' AND a.lease_until>NOW()) ORDER BY t.created_at LIMIT 1 FOR UPDATE OF t SKIP LOCKED`))
+	t, err := scanTask(tx.QueryRow(ctx, `SELECT `+taskColumns+` FROM tasks t JOIN task_outbox o ON o.task_id=t.id WHERE t.id=$1 AND o.delivered_at IS NULL AND (t.status='pending' OR (t.status='querying' AND t.lease_until<NOW())) AND NOT EXISTS(SELECT 1 FROM tasks a WHERE a.user_id=t.user_id AND a.id<>t.id AND a.status='querying' AND a.lease_until>NOW()) FOR UPDATE OF t SKIP LOCKED`, candidate.ID))
 	if err != nil {
 		return Task{}, err
 	}
 	if t.Attempts >= 3 || (t.StartedAt != nil && time.Since(*t.StartedAt) > 5*time.Minute) {
 		if _, err = tx.Exec(ctx, `UPDATE tasks SET status='failed',error='执行预算已耗尽',lease_until=NULL,updated_at=NOW() WHERE id=$1`, t.ID); err != nil {
+			return Task{}, err
+		}
+		if err = completeConversation(ctx, tx, t, "failed", nil); err != nil {
 			return Task{}, err
 		}
 		if _, err = tx.Exec(ctx, `UPDATE task_attempts SET state='lease_expired',ended_at=NOW(),error_code='lease_expired' WHERE task_id=$1 AND state='running'`, t.ID); err != nil {
@@ -340,6 +369,9 @@ func (s *Store) Retry(ctx context.Context, t Task, message string) error {
 		return err
 	}
 	defer tx.Rollback(ctx)
+	if err = lockTaskConversation(ctx, tx, t); err != nil {
+		return err
+	}
 	tag, err := tx.Exec(ctx, `UPDATE tasks SET status='pending',lease_until=NULL,updated_at=NOW() WHERE id=$1 AND execution_version=$2 AND status='querying'`, t.ID, t.Version)
 	if err != nil {
 		return err
@@ -362,12 +394,27 @@ func (s *Store) Finish(ctx context.Context, t Task, status string, result json.R
 		return err
 	}
 	defer tx.Rollback(ctx)
+	if err = lockTaskConversation(ctx, tx, t); err != nil {
+		return err
+	}
+	if t.ConversationID != "" && (status == "completed" || status == "needs_clarification") {
+		var current User
+		err = tx.QueryRow(ctx, `SELECT id,tenant_id,role,allowed_metrics FROM users WHERE id=$1 AND tenant_id=$2 AND enabled FOR SHARE`, t.UserID, t.TenantID).Scan(&current.ID, &current.TenantID, &current.Role, &current.AllowedMetrics)
+		var role string
+		roleErr := tx.QueryRow(ctx, `SELECT role FROM conversations WHERE id=$1`, t.ConversationID).Scan(&role)
+		if err != nil || roleErr != nil || current.Role != role || !MetricsAllowed(t.Context, current.AllowedMetrics) || !MetricsAllowed(result, current.AllowedMetrics) {
+			status, result, message = "failed", nil, "指标权限或账号已变化"
+		}
+	}
 	tag, err := tx.Exec(ctx, `UPDATE tasks SET status=$3,result=$4,error=$5,lease_until=NULL,updated_at=NOW() WHERE id=$1 AND execution_version=$2 AND status='querying'`, t.ID, t.Version, status, result, message)
 	if err != nil {
 		return err
 	}
 	if tag.RowsAffected() == 0 {
 		return nil
+	}
+	if err = completeConversation(ctx, tx, t, status, result); err != nil {
+		return err
 	}
 	if _, err = tx.Exec(ctx, `UPDATE task_attempts SET state=$3,ended_at=NOW() WHERE task_id=$1 AND execution_version=$2 AND state='running'`, t.ID, t.Version, status); err != nil {
 		return err
