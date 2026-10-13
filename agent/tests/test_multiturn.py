@@ -61,6 +61,18 @@ def test_initial_missing_time_can_be_filled_without_fake_plan(monkeypatch):
     assert completed.time_range.start == date(2018,8,1)
 
 
+def test_unresolved_filter_cannot_be_dropped_by_unrelated_followup(monkeypatch):
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    original=base(dimensions=["state"])
+    plan,_,info=turn("只看圣保罗州",original)
+    assert plan is None and info["pending"]["missing"]==["expression"]
+    plan,_,info=turn("改成整体",original,Pending.model_validate(info["pending"]))
+    assert plan is None and "expression" in info["pending"]["missing"]
+    # 明确补充原筛选后，草稿里的整体修改一并生效。
+    plan,_,_=turn("只看 SP",original,Pending.model_validate(info["pending"]))
+    assert plan.dimensions==[] and plan.filters[0].values==["SP"]
+
+
 def test_unrelated_filters_survive_clear_and_metric_change():
     plan = base(dimensions=["state"], filters=[{"field":"state","op":"in","values":["SP"]},{"field":"amount","op":"gte","values":["100"]}])
     updated, _, _ = turn("取消州筛选", plan)
@@ -98,6 +110,14 @@ def test_delta_cannot_replace_field_or_inject_sql():
     delta = Delta.model_validate({"operations":[{"op":"replace_filter","id":filter_id(plan.filters[0]),"value":{"field":"amount","op":"gt","values":["1"]}}]})
     with pytest.raises(Exception): apply_operations(plan, delta.operations, ANCHOR)
     with pytest.raises(ValueError): Delta.model_validate({"operations":[],"sql":"DROP TABLE facts"})
+
+
+def test_or_and_contradictory_filters_never_become_partial_queries():
+    plan=base(filters=[{"field":"state","op":"in","values":["SP"]}])
+    with pytest.raises(runtime.Clarification): turn("排除 SP",plan)
+    with pytest.raises(runtime.Clarification): turn("商品金额大于100或订单状态为 canceled",plan)
+    delta=Delta.model_validate({"operations":[{"op":"add_filter","value":{"field":"amount","op":"gte","values":["100"]}},{"op":"add_filter","value":{"field":"amount","op":"lt","values":["100"]}}]})
+    with pytest.raises(runtime.Clarification): apply_operations(plan,delta.operations,ANCHOR)
 
 
 def test_binding_ignores_password_and_tracks_revision():

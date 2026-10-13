@@ -4,6 +4,7 @@ import json
 import os
 import re
 from datetime import date, timedelta
+from decimal import Decimal
 from typing import Annotated, Literal, Union
 
 import httpx
@@ -175,6 +176,26 @@ def apply_operations(base, operations, anchor):
                 notes.append("改为整体，移除了排名和 Top N")
             data.update(top_n=None, order_by=[])
     seed = Seed.model_validate({k:v for k,v in data.items() if k != "version"})
+    # 筛选以 AND 组合；空枚举交集与矛盾金额区间应澄清，不能伪装成无数据。
+    for field in ("state", "status"):
+        possible = set(catalog().filters[field].values)
+        for condition in seed.filters:
+            if condition.field != field: continue
+            if condition.op in ("eq", "in"): possible &= set(condition.values)
+            else: possible -= set(condition.values)
+        if not possible: raise Clarification("筛选条件相互矛盾，请明确保留哪些条件。")
+    low, high, excluded = Decimal(0), None, set()
+    for condition in seed.filters:
+        if condition.field != "amount": continue
+        value = Decimal(condition.values[0])
+        if condition.op == "ne": excluded.add(value)
+        if condition.op in ("eq", "gt", "gte"):
+            low = max(low, value + (Decimal("0.01") if condition.op == "gt" else 0))
+        if condition.op in ("eq", "lt", "lte"):
+            ceiling = value - (Decimal("0.01") if condition.op == "lt" else 0)
+            high = ceiling if high is None else min(high, ceiling)
+    if high is not None and (low > high or low == high and low in excluded):
+        raise Clarification("商品金额筛选相互矛盾，请明确区间。")
     missing = []
     if not seed.metrics: missing.append("metrics")
     if seed.time_range is None: missing.append("time_range")
@@ -215,7 +236,7 @@ def normalize_question(question):
 
 def rule_delta(question, base, pending, anchor, overrides):
     q = normalize_question(question)
-    if re.search(r"品类|卖家|支付方式|同比|环比|归因|为什么|为何|报告|利润|营收|城市|或者|再往前", q):
+    if re.search(r"品类|卖家|支付方式|同比|环比|归因|为什么|为何|报告|利润|营收|城市|或|(?i:\bOR\b)|再往前", q):
         raise Unsupported("当前多轮支持修改指标、时间、州和日/月分组及筛选；该分析尚未支持。")
     ops, missing, allowed = [], [], set()
     filters = base.filters if base else []
@@ -371,6 +392,7 @@ def resolve_followup(request, anchor, parse_initial):
     known = delta.operations
     filters = {filter_id(f): f.model_dump(mode="json") for f in parsing_base.filters} if parsing_base else {}
     usage = initial_usage or {"parser": "rules", "tokens": 0}
+    complete_expression = not remainder
     if remainder and not missing:
         if initial_usage or not os.getenv("LLM_API_KEY") or not allowed:
             missing.append("expression")
@@ -401,6 +423,7 @@ def resolve_followup(request, anchor, parse_initial):
                         if op.model_dump(mode="json") not in [o.model_dump(mode="json") for o in proposal.operations]:
                             raise Clarification("解析结果改变了已明确修改，请确认。")
                     delta = proposal
+                    complete_expression = True
             except Clarification as exc:
                 exc.usage = usage; raise
             except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError) as exc:
@@ -411,7 +434,13 @@ def resolve_followup(request, anchor, parse_initial):
     seed, plan, needed, notes = apply_operations(seed_base, operations, anchor)
     for field in (pending.missing if pending else []):
         if field == "states" and not any(operation_target(o, filters) == "filters:state" for o in delta.operations): missing.append(field)
-        if field == "expression" and remainder: missing.append(field)
+        if field == "expression":
+            # 未理解的原条件不能被一个无关的合法修改隐式取消。
+            original_allowed = rule_delta(pending.question, parsing_base, None, anchor, {})[2]
+            unresolved = original_allowed - {operation_target(o, filters) for o in pending.operations}
+            current_targets = {operation_target(o, filters) for o in delta.operations}
+            if not complete_expression or not unresolved or not unresolved <= current_targets:
+                missing.append(field)
     missing = list(dict.fromkeys(missing + needed))
     if any(m not in request.allowed_metrics for m in seed.metrics): raise HTTPException(403, "没有全部请求指标的权限")
     if missing:
