@@ -1,6 +1,6 @@
 # 受控多轮问数实测证据
 
-日期：2026-10-14。依据为已确认的 [需求与技术方案](controlled-multiturn-spec.md)。配对评测业务代码提交为 `f61f07823ba77bcdc8be97e46c68f94824ac0838`；Olist 最终复核为 `0497ae7`。本批未部署到 ECS。
+日期：2026-10-14。依据为已确认的 [需求与技术方案](controlled-multiturn-spec.md)。配对评测业务代码提交为 `f61f07823ba77bcdc8be97e46c68f94824ac0838`；隔离 Olist 最终复核为 `0497ae7`。本报告记录隔离评测；后续 ECS 发布已完成，见[线上验收](multiturn-ecs-validation.md)。
 
 人工验收：用户于 2026-10-14 对 `91b5eb9` 交付的代码及测试结果确认通过；此确认不改变题单标注的 draft 状态。
 

@@ -1,0 +1,355 @@
+{
+  "status": "complete",
+  "date": "2026-10-14",
+  "application_commit": "d0de02ff44bb0afbf78384cefc949e6cf781c4a2",
+  "pull_request": "https://github.com/zjqylhy/nl2sql_agent/pull/2",
+  "entry": "SSH -> http://localhost:8088",
+  "images": {
+    "api": {
+      "ref": "nl2sql-api:d0de02ff44bb0afbf78384cefc949e6cf781c4a2",
+      "id": "sha256:9ab993770636659586e6c82db9ed02cf02644628c0bb8b7bd7c1f8e1ffccb640"
+    },
+    "agent": {
+      "ref": "nl2sql-agent:d0de02ff44bb0afbf78384cefc949e6cf781c4a2",
+      "id": "sha256:bcefed468a1bd0873df6778391ff5ff8f3b1d31627a43dfe8224608b92744622"
+    },
+    "web": {
+      "ref": "nl2sql-web:d0de02ff44bb0afbf78384cefc949e6cf781c4a2",
+      "id": "sha256:0ae6de888dd2c8e00d45c7ead6e1e421ba51d368a6370987b2c5edc1b58d600d"
+    }
+  },
+  "migration_versions": [
+    "migrations/001_init.sql",
+    "migrations/002_attempts.sql",
+    "migrations/003_conversations.sql"
+  ],
+  "runtime_conversations_dml_only": true,
+  "actual_images": {
+    "candidate_cases": 45,
+    "candidate_passed": 45,
+    "sse_verified": true,
+    "rollback_cases": 45,
+    "rollback_passed": 45,
+    "rollback_mode": "keep_new_api_revert_agent_web",
+    "scope": "local_actual_images_private_release"
+  },
+  "http": {
+    "rule_turns": 5,
+    "rule_passed": 5,
+    "model_turns": 3,
+    "model_passed": 3,
+    "restart_persistence": true,
+    "boundaries": {
+      "idempotent": true,
+      "sse_resume": true,
+      "stale_version": true
+    }
+  },
+  "olist_csv": {
+    "turns": 12,
+    "passed": 12,
+    "records": [
+      {
+        "chain": "chain-01",
+        "turn": 1,
+        "passed": true,
+        "status_correct": true,
+        "plan_correct": true,
+        "result_correct": true,
+        "context_correct": true,
+        "draft_correct": true,
+        "differences": [],
+        "inheritance_errors": [],
+        "unsafe_execution": false,
+        "parser": "rules",
+        "tokens": 0,
+        "model_calls": 0,
+        "sql_calls": 1
+      },
+      {
+        "chain": "chain-01",
+        "turn": 2,
+        "passed": true,
+        "status_correct": true,
+        "plan_correct": true,
+        "result_correct": true,
+        "context_correct": true,
+        "draft_correct": true,
+        "differences": [],
+        "inheritance_errors": [],
+        "unsafe_execution": false,
+        "parser": "rules",
+        "tokens": 0,
+        "model_calls": 0,
+        "sql_calls": 1
+      },
+      {
+        "chain": "chain-01",
+        "turn": 3,
+        "passed": true,
+        "status_correct": true,
+        "plan_correct": null,
+        "result_correct": null,
+        "context_correct": true,
+        "draft_correct": true,
+        "differences": [],
+        "inheritance_errors": [],
+        "unsafe_execution": false,
+        "parser": "rules",
+        "tokens": 0,
+        "model_calls": 0,
+        "sql_calls": 0
+      },
+      {
+        "chain": "chain-01",
+        "turn": 4,
+        "passed": true,
+        "status_correct": true,
+        "plan_correct": null,
+        "result_correct": null,
+        "context_correct": true,
+        "draft_correct": true,
+        "differences": [],
+        "inheritance_errors": [],
+        "unsafe_execution": false,
+        "parser": "rules",
+        "tokens": 0,
+        "model_calls": 0,
+        "sql_calls": 0
+      },
+      {
+        "chain": "chain-01",
+        "turn": 5,
+        "passed": true,
+        "status_correct": true,
+        "plan_correct": true,
+        "result_correct": true,
+        "context_correct": true,
+        "draft_correct": true,
+        "differences": [],
+        "inheritance_errors": [],
+        "unsafe_execution": false,
+        "parser": "rules",
+        "tokens": 0,
+        "model_calls": 0,
+        "sql_calls": 1
+      },
+      {
+        "chain": "chain-02",
+        "turn": 1,
+        "passed": true,
+        "status_correct": true,
+        "plan_correct": true,
+        "result_correct": true,
+        "context_correct": true,
+        "draft_correct": true,
+        "differences": [],
+        "inheritance_errors": [],
+        "unsafe_execution": false,
+        "parser": "rules",
+        "tokens": 0,
+        "model_calls": 0,
+        "sql_calls": 1
+      },
+      {
+        "chain": "chain-02",
+        "turn": 2,
+        "passed": true,
+        "status_correct": true,
+        "plan_correct": true,
+        "result_correct": true,
+        "context_correct": true,
+        "draft_correct": true,
+        "differences": [],
+        "inheritance_errors": [],
+        "unsafe_execution": false,
+        "parser": "rules",
+        "tokens": 0,
+        "model_calls": 0,
+        "sql_calls": 1
+      },
+      {
+        "chain": "chain-02",
+        "turn": 3,
+        "passed": true,
+        "status_correct": true,
+        "plan_correct": true,
+        "result_correct": true,
+        "context_correct": true,
+        "draft_correct": true,
+        "differences": [],
+        "inheritance_errors": [],
+        "unsafe_execution": false,
+        "parser": "rules",
+        "tokens": 0,
+        "model_calls": 0,
+        "sql_calls": 1
+      },
+      {
+        "chain": "chain-02",
+        "turn": 4,
+        "passed": true,
+        "status_correct": true,
+        "plan_correct": true,
+        "result_correct": true,
+        "context_correct": true,
+        "draft_correct": true,
+        "differences": [],
+        "inheritance_errors": [],
+        "unsafe_execution": false,
+        "parser": "rules",
+        "tokens": 0,
+        "model_calls": 0,
+        "sql_calls": 1
+      },
+      {
+        "chain": "chain-16",
+        "turn": 1,
+        "passed": true,
+        "status_correct": true,
+        "plan_correct": true,
+        "result_correct": true,
+        "context_correct": true,
+        "draft_correct": true,
+        "differences": [],
+        "inheritance_errors": [],
+        "unsafe_execution": false,
+        "parser": "rules",
+        "tokens": 0,
+        "model_calls": 0,
+        "sql_calls": 1
+      },
+      {
+        "chain": "chain-16",
+        "turn": 2,
+        "passed": true,
+        "status_correct": true,
+        "plan_correct": true,
+        "result_correct": true,
+        "context_correct": true,
+        "draft_correct": true,
+        "differences": [],
+        "inheritance_errors": [],
+        "unsafe_execution": false,
+        "parser": "llm",
+        "tokens": 1850,
+        "model_calls": 1,
+        "sql_calls": 1
+      },
+      {
+        "chain": "chain-16",
+        "turn": 3,
+        "passed": true,
+        "status_correct": true,
+        "plan_correct": true,
+        "result_correct": true,
+        "context_correct": true,
+        "draft_correct": true,
+        "differences": [],
+        "inheritance_errors": [],
+        "unsafe_execution": false,
+        "parser": "rules",
+        "tokens": 0,
+        "model_calls": 0,
+        "sql_calls": 1
+      }
+    ]
+  },
+  "permissions": {
+    "same_tenant_admin_cannot_bypass_owner": true,
+    "unauthorized_metric_preserves_plan": true,
+    "ops_cannot_read_statistics": true,
+    "temporary_user_disabled": true
+  },
+  "backup": {
+    "predeploy": "20261013T201554Z-75c28b29",
+    "predeploy_download_sha256": "350837d1965479afcd2bbeaf273d296e6b852c75da32dbb7bfe36e94526a388c",
+    "local_download_verified": true,
+    "postdeploy_restore": "20261013T205159Z-0b22cf16",
+    "postgres_restore": true,
+    "mysql_restore": true,
+    "conversation_rows": 4,
+    "plan_and_pending_counts": "4|1",
+    "conversation_snapshot_match": true,
+    "snapshot_sha256": "87e5d2eb85e356de0e6ae513675ad5ce68f7900ced7a3c364f9d67661973b07b"
+  },
+  "browser": {
+    "login": true,
+    "clarification_answer": true,
+    "refresh_same_conversation": true,
+    "state_filter_and_top_n_preserved": true,
+    "screenshot": "multiturn-ecs-ui-20261014.jpg"
+  },
+  "services": [
+    {
+      "name": "olist-agent-private-agent-1",
+      "healthy": "healthy",
+      "oom_killed": false,
+      "restart_count": 0,
+      "image": "sha256:bcefed468a1bd0873df6778391ff5ff8f3b1d31627a43dfe8224608b92744622"
+    },
+    {
+      "name": "olist-agent-private-api-1",
+      "healthy": "healthy",
+      "oom_killed": false,
+      "restart_count": 0,
+      "image": "sha256:9ab993770636659586e6c82db9ed02cf02644628c0bb8b7bd7c1f8e1ffccb640"
+    },
+    {
+      "name": "olist-agent-private-gateway-1",
+      "healthy": "healthy",
+      "oom_killed": false,
+      "restart_count": 0,
+      "image": "sha256:e7ba6a877a646b0aa6480841196f1b0b0e39faeeb1660d92cf687b3bdeb8b18a"
+    },
+    {
+      "name": "olist-agent-private-mysql-1",
+      "healthy": "healthy",
+      "oom_killed": false,
+      "restart_count": 0,
+      "image": "sha256:6ea90827b1100f8f2ae306a539f86d2c264a26ed435a2a9f75551dd5c3aeb242"
+    },
+    {
+      "name": "olist-agent-private-postgres-1",
+      "healthy": "healthy",
+      "oom_killed": false,
+      "restart_count": 0,
+      "image": "sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24"
+    },
+    {
+      "name": "olist-agent-private-web-1",
+      "healthy": "healthy",
+      "oom_killed": false,
+      "restart_count": 0,
+      "image": "sha256:0ae6de888dd2c8e00d45c7ead6e1e421ba51d368a6370987b2c5edc1b58d600d"
+    }
+  ],
+  "backup_timer": "active",
+  "model_usage": {
+    "calls": 3,
+    "known_tokens": 5592,
+    "unknown_usage_calls": 0,
+    "includes_one_uncompleted_csv_controller_run": true
+  },
+  "diagnostics": [
+    {
+      "stage": "original_host_csv_controller",
+      "reason": "missing_host_pydantic",
+      "queries_issued": 0
+    },
+    {
+      "stage": "stdlib_csv_controller_initial",
+      "reason": "schema_default_pending_values_not_hydrated",
+      "model_calls": 1,
+      "known_tokens": 1874,
+      "status": "incomplete"
+    }
+  ],
+  "limits": [
+    "private SSH entry only",
+    "draft question annotations",
+    "no new sustained load or full host reboot test",
+    "formal RDS HTTPS release gate not claimed",
+    "full old API rollback would remove new ownership protection; retain new API for fallback"
+  ]
+}

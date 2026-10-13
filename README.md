@@ -10,6 +10,8 @@
 
 受控多轮在同一会话保存成功 QueryPlan 和独立澄清草稿，可说“最近半年 GMV 按月统计”→“改成按州”→“只看两个州，取前三名”，再补充州与排序。独立 30 链/100 问三轮真实模型评测均通过 100/100 问、30/30 链；无上下文对照均为 39/100 问、1/30 链。相同多轮实现仅规则为 80/100 问、20/30 链，模型补足十个陌生追问及十个后续继承轮次。题单仍为 draft；首次失败和重跑用量均保留。详见 [多轮实测](docs/multiturn-evidence.md)与[复现说明](docs/multiturn-evaluation.md)。
 
+2026-10-14 已将多轮版部署到现有私有 ECS：迁移 003、最小运行授权、真实 HTTP/CSV 核对、重启后的草稿恢复及包含会话数据的双库恢复均通过，详见 [线上验收](docs/multiturn-ecs-validation.md)。
+
 ## Windows 本地启动
 
 需要 Docker Desktop（Linux containers）、Docker Compose。源码调试另需 Go 1.27、Python 3.12、Node.js 24。数据库和数据均存本地，不提交 Git。
