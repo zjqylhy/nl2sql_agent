@@ -1,0 +1,9 @@
+[Unit]
+Description=Olist private PostgreSQL and MySQL backup
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+UMask=0077
+ExecStart=/usr/bin/python3 /srv/olist/app/scripts/private_ops.py backup

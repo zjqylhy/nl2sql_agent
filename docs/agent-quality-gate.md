@@ -13,7 +13,7 @@
 ## 两层 CI
 
 - `Agent quality / agent-quality`：每次 push/PR 在隔离 PostgreSQL/MySQL 上，经过登录、任务、worker、Python 与 SQL，跑开发分区 50 条确定性案例，比较 PR base 或 push 前一提交。无付费模型调用。
-- `Live agent acceptance / live-agent-quality`：手动启动，填写已发布基线完整 commit SHA。使用 `agent-evaluation` 环境的 `LLM_API_KEY` Secret 与 `LLM_BASE_URL`、`LLM_MODEL` Variables，验收分区两版本各跑 3 轮，每轮均须过门禁。每个版本每轮最多 45 个模型请求，总上限 270 次；正常情况下 15 次/轮，两版本共 90 次。没有凭据直接失败，禁止降级为离线通过。
+- `Live agent acceptance / live-agent-quality`：手动启动，填写已发布基线完整 commit SHA。使用 `agent-evaluation` 环境的 `NL2SQL_AGENT_API_KEY` 网关应用 Secret（评测进程映射为 LLM_API_KEY）与 `LLM_BASE_URL`、`LLM_MODEL` Variables，验收分区两版本各跑 3 轮，每轮均须过门禁。网关地址须从 runner 可达，不能使用 Windows SSH 隧道地址。每个版本每轮最多 45 个模型请求，总上限 270 次；正常情况下 15 次/轮，两版本共 90 次。没有凭据直接失败，禁止降级为离线通过。
 
 模型请求数由独立探针观察真实 HTTP 调用；不替换模型响应。SQL 调用、计划条件、排序、NULL、样本数和结果同时判定。两版本在同一个候选 Go 平台上运行，比较对象是 Python agent；Go/权限平台变更另外由真实数据库集成测试检查。因此不能把此报告称为完整发布镜像的端到端认证。
 
@@ -44,6 +44,12 @@ python scripts/quality_gate.py --candidate .cache/evaluation/candidate.json \
 
 ## 正式发布边界
 
-`quality_gate.py --manifest release-manifest.json` 额外核对 live/acceptance、commit、配置哈希、三个镜像 `registry/image@sha256:...` 的一致性，缺失或 tag 镜像拒绝。当前隔离源码评测报告不包含发布镜像摘要，因此不能直接作为该发布关卡的通过证明。实际 ACR 构建摘要、在目标镜像上的评测记录及部署 job 的依赖关系需在真实发布流程接入，禁止手工给源码报告补三个摘要冒充镜像实测。
+`quality_gate.py --manifest release-manifest.json` 额外核对实际镜像执行范围、SSE、live/acceptance、commit、配置哈希及三个镜像 `registry/image@sha256:...`。源码评测报告不能直接用于正式发布，禁止补三个摘要冒充镜像实测。
+
+2026-10-11：新增 `scripts/evaluate_images.py`，启动实际 API/agent/web 镜像、独立双库与身份，遥测直接从元数据库读取；核对运行镜像 ID 和 commit 标签，执行冻结验收题单及 SSE 续传。模型经过隔离转发器取得真实响应，出站前执行每轮调用预算，不改写问数服务或模型结果。配置哈希从实际 agent 镜像文件及供应商 endpoint/model 计算。
+
+`scripts/package_release.py` 将三轮报告与摘要封装为发布包；`scripts/release.py` 再核对完整题单、冻结门槛、镜像/模型身份及报告摘要。正式发布入口先独立迁移，再等待应用和外部冒烟，最后原子保存成功状态。手动工作流仅构建候选包；真实 ACR/模型评测与 ECS 上线需目标资源及授权。操作见 [阿里云运维手册](aliyun-operations.md)。
+
+镜像入口的 `--local-images` 仅用于无仓库 digest 的本地诊断，报告执行范围为 local_images，不能通过正式发布关卡。镜像报告包含经校验无凭据的模型 endpoint；密钥、租户映射、DSN、问题、SQL 与结果不写入 artifact。
 
 阿里云上线还需 TLS/私网证书、运行账号授权、备份恢复、固定资源 P95/并发压测。此批门禁覆盖语义与权限回归；共享 CI runner 耗时不作为线上 P95 验收，生产 Token/费用硬预算留在 B 批。

@@ -1,0 +1,10 @@
+[Unit]
+Description=Daily Olist database backup
+
+[Timer]
+OnCalendar=*-*-* 03:00:00
+Persistent=true
+Unit=private-backup.service
+
+[Install]
+WantedBy=timers.target

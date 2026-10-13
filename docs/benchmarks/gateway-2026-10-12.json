@@ -1,0 +1,49 @@
+{
+  "orders": 99441,
+  "cases": [
+    {
+      "id": "rules-00-0",
+      "status": "completed",
+      "csv_match": true,
+      "parser": "rules",
+      "model": null,
+      "tokens": 0,
+      "elapsed_s": 0.329,
+      "sse_resume": true
+    },
+    {
+      "id": "paraphrase-00-0",
+      "status": "completed",
+      "csv_match": true,
+      "parser": "llm",
+      "model": "chat",
+      "tokens": 514,
+      "elapsed_s": 1.563,
+      "sse_resume": true
+    },
+    {
+      "id": "paraphrase-01-0",
+      "status": "completed",
+      "csv_match": true,
+      "parser": "llm",
+      "model": "chat",
+      "tokens": 1339,
+      "elapsed_s": 2.312,
+      "sse_resume": true
+    }
+  ],
+  "gateway": "https://localhost:9443/v1",
+  "model": "chat",
+  "runtime_configuration": {
+    "LLM_BASE_URL": "https://localhost:9443/v1",
+    "LLM_MODEL": "chat",
+    "LLM_CONNECT_HOST": "host.docker.internal",
+    "LLM_CA_FILE": "/run/secrets/gateway-ca.pem"
+  },
+  "image_id": "sha256:f81f6194cbd8fc2ae08084d82485b275b0e139ddb508c119fb781d21402d6d58",
+  "runtime_hash": "43103c001082b76b100579d91d6b2f9d5457db868b4cdb09d5cba933e67208c7",
+  "model_tasks_completed": 2,
+  "scope": "local_application_server_gateway",
+  "date": "2026-10-12",
+  "linux_tests_passed": 228
+}

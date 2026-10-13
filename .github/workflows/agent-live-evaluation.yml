@@ -45,7 +45,7 @@ jobs:
       - name: Three rounds against the same model
         run: bash scripts/compare_agent.sh .cache/baseline live acceptance
         env:
-          LLM_API_KEY: ${{ secrets.LLM_API_KEY }}
+          LLM_API_KEY: ${{ secrets.NL2SQL_AGENT_API_KEY }}
           LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
           LLM_MODEL: ${{ vars.LLM_MODEL }}
       - uses: actions/upload-artifact@v4

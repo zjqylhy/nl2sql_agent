@@ -1,0 +1,92 @@
+{
+  "date": "2026-10-12",
+  "host": "8.155.128.79",
+  "region": "cn-heyuan",
+  "application_commit": "a2be1c3f32c98e0e3a45da77ca5306e8a5eba0e8",
+  "operations_commit": "0cddbabb078a6d9eba2fc7a571669dfd607a913c",
+  "entry": "SSH -> http://localhost:8088",
+  "orders": 99441,
+  "csv_cases": 9,
+  "csv_rule_cases": 8,
+  "csv_model_cases": 1,
+  "model_case_tokens": 1467,
+  "http_login_rules_model_sse_resume": true,
+  "permissions": {
+    "postgres_runtime_no_ddl_or_migration_access": true,
+    "mysql_view_readonly": true,
+    "unauthenticated_and_tenant_injection_rejected": true,
+    "cross_tenant_task_events_and_stop_rejected": true
+  },
+  "small_load": {
+    "users": 5,
+    "completed": 5,
+    "consistent": true,
+    "parser": "rules",
+    "tokens": 0,
+    "p95_seconds": 0.858
+  },
+  "backup": "20261012T101356Z-98c08951",
+  "isolated_restore": {
+    "postgres": true,
+    "mysql": true
+  },
+  "local_backup_sha256_verified": true,
+  "backup_timer": "03:00 Asia/Shanghai daily; retain all complete backups from the last 7 days",
+  "reboot": {
+    "boot_before": "abf8d26d-ca76-4beb-8a26-c630e6a57db9",
+    "boot_after": "edb3e9c7-eb07-47fd-8380-4bb63b32e4c4",
+    "services_healthy_after_reboot": 6,
+    "observed_wait_seconds": 2.0
+  },
+  "services": {
+    "web": {
+      "image_id": "sha256:df64dd66afda770111477a700bd8c89a65a340ef86705eb2e806efb164a358a1",
+      "health": "healthy",
+      "restart_count": 0,
+      "oom_killed": false,
+      "memory_limit_bytes": 67108864
+    },
+    "api": {
+      "image_id": "sha256:8d65438c152c740f61538739ad63b9407464efada9c06342470ed9698987a104",
+      "health": "healthy",
+      "restart_count": 1,
+      "oom_killed": false,
+      "memory_limit_bytes": 134217728
+    },
+    "agent": {
+      "image_id": "sha256:585d3f0ddf3ad4e94f0619c0f803cef7560a6d87ac3fc5a4ea7226b59f4ecd9b",
+      "health": "healthy",
+      "restart_count": 0,
+      "oom_killed": false,
+      "memory_limit_bytes": 268435456
+    },
+    "postgres": {
+      "image_id": "sha256:b0f9560a2de083e2cc7382e75f808c7381a32852a7ec49117deedb300e552b24",
+      "health": "healthy",
+      "restart_count": 0,
+      "oom_killed": false,
+      "memory_limit_bytes": 201326592
+    },
+    "mysql": {
+      "image_id": "sha256:6ea90827b1100f8f2ae306a539f86d2c264a26ed435a2a9f75551dd5c3aeb242",
+      "health": "healthy",
+      "restart_count": 0,
+      "oom_killed": false,
+      "memory_limit_bytes": 671088640
+    },
+    "gateway": {
+      "image_id": "sha256:e7ba6a877a646b0aa6480841196f1b0b0e39faeeb1660d92cf687b3bdeb8b18a",
+      "health": "healthy",
+      "restart_count": 0,
+      "oom_killed": false,
+      "memory_limit_bytes": 33554432
+    }
+  },
+  "limitations": [
+    "Short small-load check only; no sustained capacity or high-availability claim",
+    "Continuous off-host backups not configured; first verified backup copied to Windows",
+    "Private SSH access; no public HTTPS entry",
+    "Formal RDS/HTTPS release gate not claimed"
+  ],
+  "postgres_backup_snapshot_counts_verified": true
+}

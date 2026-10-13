@@ -45,7 +45,7 @@ def test_release_cannot_use_offline_or_different_images():
     import pytest
     new = report()
     with pytest.raises(ValueError): release_identity(new, {})
-    new.update(mode="live", split="acceptance", configuration_hash="c", images={k: "registry.test/" + k + "@sha256:" + "a" * 64 for k in ("api", "agent", "web")})
+    new.update(mode="live", split="acceptance", configuration_hash="c", execution_scope="release_images", sse_verified=True, images={k: "registry.test/" + k + "@sha256:" + "a" * 64 for k in ("api", "agent", "web")})
     manifest = {k: new[k] for k in ("source_commit", "configuration_hash", "images")}
     release_identity(new, manifest)
     manifest["images"] = {**manifest["images"], "api": "registry.test/api:latest"}

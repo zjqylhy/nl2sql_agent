@@ -1,6 +1,10 @@
 # 本地与云部署
 
+2026-10-12：用户确认在 8.155.128.79 自建 PostgreSQL/MySQL，备案期间通过 SSH 隧道访问，不购买 RDS/ACR。独立规格与限制见[私有部署方案](ecs-private-deployment-spec.md)，配置入口为 deploy/compose.private.yaml，操作见[私有运维手册](ecs-private-operations.md)。下述 RDS/HTTPS 发布模板保留为后续正式迁移路线。
+
 2026-10-10：用户明确云端目标为阿里云 ECS + Docker Compose。后续实现须遵循 [阿里云部署要求](aliyun-deployment-design.md)；云模板已补齐双数据库 CA、宿主 TLS 入口、探针、资源限制、日志轮换和可信代理配置，尚未在阿里云验收。Kubernetes 保留为后续参考，当前交付优先 ECS 路径。
+
+2026-10-11：用户已确认 [阿里云发布规格](aliyun-release-spec.md)。发布包、RDS 初始化、就绪检查及故障处理见 [阿里云运维手册](aliyun-operations.md)；真实云环境仍待验收。2 核 2GiB 应用容量的实测结果与边界见 [2c2g 验证报告](aliyun-2c2g-validation.md)。
 
 ## 本地部署（Windows）
 
@@ -78,10 +82,12 @@ docker build -f deploy/Dockerfile.web -t REGISTRY/olist-web:VERSION .
 
 ```bash
 docker compose --env-file .env.cloud -f deploy/compose.cloud.yaml config --quiet
-docker compose --env-file .env.cloud -f deploy/compose.cloud.yaml up -d
+docker compose --env-file .env.cloud -f deploy/compose.cloud.yaml run --rm --no-deps migrate
+# 仅在迁移成功后启动应用；正式发布使用运维手册的清单/门禁入口。
+docker compose --env-file .env.cloud -f deploy/compose.cloud.yaml up --wait --wait-timeout 120 api agent web
 ```
 
-迁移使用独立 `MIGRATION_DATABASE_URL`，完成后 API 才启动。迁移按文件版本记录 SHA256，在事务与锁下串行执行；禁止改写已应用版本，通过新增 SQL 演进。应用回滚不会自动撤销破坏性 schema 变更。
+迁移使用独立 `MIGRATION_DATABASE_URL`，由发布入口显式等待成功后启动 API。迁移按文件版本记录 SHA256，在事务与锁下串行执行；禁止改写已应用版本，通过新增 SQL 演进。应用回滚不会自动撤销破坏性 schema 变更。
 
 7. 私网一次性执行 `api -command bootstrap`，stdin 提供管理员密码。可由专门初始化身份执行，不需要把 DDL 权限赋给运行账号。
 8. TLS 代理将同域名 `/` 和 `/api/*` 转发到 web:8080。`PUBLIC_ORIGIN` 必须是最终 HTTPS origin（无路径/尾斜杠）。跨机器负载均衡时 `BIND_HOST` 设私网地址，安全组只允许负载均衡来源；本机 TLS 代理保持 127.0.0.1。
@@ -110,7 +116,7 @@ docker compose --env-file .env.cloud -f deploy/compose.cloud.yaml \
   run --rm --no-deps api -command prune-attempts
 ```
 
-运维定期显式执行清理，按返回 deleted 数判断是否还需分批执行。版本 002 新增表需在新版 API 启动前迁移，并将 `task_attempts` 授权给运行账号；云 Compose 已按迁移成功 → agent 健康 → API 健康 → web 的依赖启动。重启不会自动降级数据库迁移。
+运维定期显式执行清理，按返回 deleted 数判断是否还需分批执行。版本 002 新增表需在新版 API 启动前迁移，并将 `task_attempts` 授权给运行账号；发布入口独立迁移成功后，云 Compose 按 agent 健康 → API 健康 → web 启动。重启不会自动降级数据库迁移。
 
 Agent 发布准入与本地评测命令见 [评测与变更准入](agent-quality-gate.md)。代码评测报告不等于发布镜像或阿里云实测证明。
 
@@ -119,7 +125,7 @@ Agent 发布准入与本地评测命令见 [评测与变更准入](agent-quality
 `deploy/kubernetes.yaml` 含 API/agent/web 双副本、ClusterIP、TLS Ingress、入站 NetworkPolicy、独立迁移 Job、资源限制和探针。它是待配置模板，不能直接宣称线上可用。
 
 1. 创建 `olist` namespace、`olist-config` ConfigMap：PUBLIC_ORIGIN、LLM_BASE_URL、LLM_MODEL。密码不放 ConfigMap。
-2. 创建 `olist-secrets`：DATABASE_URL、MIGRATION_DATABASE_URL、SERVICE_KEY、TENANT_DATASOURCES、可选 LLM_API_KEY；`mysql-ca` Secret 包含 `ca.pem`，映射使用 `/run/secrets/mysql/ca.pem`。配置静态加密、RBAC、轮换，实际 Secret YAML 不提交 Git。
+2. 创建 `olist-secrets`：DATABASE_URL、MIGRATION_DATABASE_URL、SERVICE_KEY、TENANT_DATASOURCES、可选 NL2SQL_AGENT_API_KEY（注入 Agent 的 LLM_API_KEY）；`mysql-ca` Secret 包含 `ca.pem`，映射使用 `/run/secrets/mysql/ca.pem`。配置静态加密、RBAC、轮换，实际 Secret YAML 不提交 Git。
 3. 替换镜像、域名、Ingress class；配置 ingress controller 与 `olist-web-tls` Secret。NetworkPolicy 要求支持它的 CNI；安全组限制数据库及出口。
 4. 单独执行 `platform-migrate` Job，等待成功再滚动 Deployment。整份 YAML 的资源顺序不能保证迁移完成。每次发布使用新 Job 名称。
 5. API 只获运行 DSN/服务密钥，agent 只获数据源/模型密钥，web 不接触数据库密钥。初始账号通过一次性 Job 创建。

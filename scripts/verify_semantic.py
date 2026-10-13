@@ -68,7 +68,10 @@ with httpx.Client(timeout=35,trust_env=False) as client:
   results.append({'http_status':response.status_code,'result':response.json()})
  print(json.dumps(results,ensure_ascii=False))
 """
-    response=subprocess.run(["docker","compose","exec","-T","agent","python","-c",probe],input=json.dumps(requests,ensure_ascii=False).encode(),stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=90)
+    compose=["docker","compose"]
+    if args.env_file: compose += ["--env-file",str(args.env_file)]
+    if args.compose_file: compose += ["-f",str(args.compose_file)]
+    response=subprocess.run([*compose,"exec","-T","agent","python","-c",probe],input=json.dumps(requests,ensure_ascii=False).encode(),stdout=subprocess.PIPE,stderr=subprocess.PIPE,timeout=90)
     assert response.returncode==0, "分析容器验证进程失败"
     results=json.loads(response.stdout.decode("utf-8"))
     for index,(case,actual) in enumerate(zip(cases,results,strict=True)):
@@ -106,4 +109,6 @@ if __name__=="__main__":
     parser.add_argument("--tenant",default="alpha")
     parser.add_argument("--role",choices=["admin","ops","data"],default="admin")
     parser.add_argument("--with-model",action="store_true",help="增加一次付费模型兜底验证")
+    parser.add_argument("--compose-file",type=Path,help="指定待验收的部署配置")
+    parser.add_argument("--env-file",type=Path,help="指定受限部署环境文件")
     run(parser.parse_args())

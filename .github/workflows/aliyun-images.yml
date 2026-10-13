@@ -1,0 +1,99 @@
+name: Aliyun candidate images and acceptance
+on:
+  workflow_dispatch:
+    inputs:
+      baseline_ref:
+        description: 基线完整 commit SHA（首次上线也需明确选择比较基线）
+        required: true
+        type: string
+permissions: {contents: read}
+concurrency:
+  group: aliyun-images
+  cancel-in-progress: false
+jobs:
+  images:
+    runs-on: ubuntu-latest
+    environment: aliyun-release
+    timeout-minutes: 90
+    env:
+      ACR_REGISTRY: ${{ vars.ACR_REGISTRY }}
+      ACR_NAMESPACE: ${{ vars.ACR_NAMESPACE }}
+      LLM_BASE_URL: ${{ vars.LLM_BASE_URL }}
+      LLM_MODEL: ${{ vars.LLM_MODEL }}
+      LLM_API_KEY: ${{ secrets.NL2SQL_AGENT_API_KEY }}
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTEST_DISABLE_PLUGIN_AUTOLOAD: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate explicit release configuration
+        env:
+          BASELINE: ${{ inputs.baseline_ref }}
+          ACR_USER: ${{ secrets.ACR_USERNAME }}
+          ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+        run: |
+          [[ "$BASELINE" =~ ^[a-f0-9]{40}$ ]]
+          [[ "$ACR_REGISTRY" =~ ^[a-zA-Z0-9.-]+(:[0-9]+)?$ ]]
+          [[ "$ACR_NAMESPACE" =~ ^[a-z0-9_-]+$ ]]
+          test -n "$ACR_USER" && test -n "$ACR_PASSWORD"
+          test -n "$LLM_API_KEY" && test -n "$LLM_MODEL"
+          [[ "$LLM_BASE_URL" == https://* ]]
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.baseline_ref }}
+          path: .cache/release-baseline
+      - name: Check frozen evaluation contract before building
+        run: |
+          for file in policy.json cases.py oracle.py fixture.csv; do cmp "evals/$file" ".cache/release-baseline/evals/$file" || exit 1; done
+      - uses: actions/setup-go@v5
+        with: {go-version: "1.27"}
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - uses: actions/setup-node@v4
+        with: {node-version: "24"}
+      - run: pip install -r agent/requirements.lock
+      - run: go vet ./... && go test -race ./...
+      - run: python -m pytest agent/tests -q
+      - run: npm ci && npm run build
+        working-directory: web
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ vars.ACR_REGISTRY }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
+      - name: Push candidate and baseline with full source identities
+        env: {BASELINE: "${{ inputs.baseline_ref }}"}
+        run: |
+          set -euo pipefail
+          mkdir -p .cache/release
+          for role in candidate baseline; do
+            context=.
+            ref="$GITHUB_SHA"
+            if [[ "$role" == baseline ]]; then context=.cache/release-baseline; ref="$BASELINE"; fi
+            for service in api agent web; do
+              image="$ACR_REGISTRY/$ACR_NAMESPACE/olist-$service:$ref-$GITHUB_RUN_ID"
+              docker buildx build --platform linux/amd64 --build-arg SOURCE_COMMIT="$ref" --label org.opencontainers.image.revision="$ref" --file "$context/deploy/Dockerfile.$service" --tag "$image" --push --metadata-file ".cache/release/$role-$service-metadata.json" "$context"
+            done
+            ROLE="$role" SOURCE_COMMIT="$ref" python - <<'PY'
+          import json, os
+          from pathlib import Path
+          p=Path('.cache/release'); role=os.environ['ROLE']
+          images={s: os.environ['ACR_REGISTRY']+'/'+os.environ['ACR_NAMESPACE']+'/olist-'+s+'@'+json.loads((p/(role+'-'+s+'-metadata.json')).read_text())['containerimage.digest'] for s in ('api','agent','web')}
+          (p/(role+'-identity.json')).write_text(json.dumps({'source_commit':os.environ['SOURCE_COMMIT'],'images':images}))
+          PY
+          done
+      - name: Frozen contract and three actual image rounds
+        run: |
+          set -euo pipefail
+          for round in 1 2 3; do
+            python scripts/evaluate_images.py --identity .cache/release/baseline-identity.json --mode live --max-model-calls 45 --output ".cache/release/baseline-$round.json"
+            python scripts/evaluate_images.py --identity .cache/release/candidate-identity.json --mode live --max-model-calls 45 --output ".cache/release/candidate-$round.json"
+            python scripts/quality_gate.py --candidate ".cache/release/candidate-$round.json" --baseline ".cache/release/baseline-$round.json" --policy evals/policy.json
+          done
+          python scripts/package_release.py .cache/release
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: aliyun-release-${{ github.sha }}
+          path: .cache/release/*.json
+          if-no-files-found: error

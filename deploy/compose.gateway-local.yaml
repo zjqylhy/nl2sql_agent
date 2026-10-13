@@ -1,0 +1,18 @@
+# Windows SSH 隧道专用；生产网关使用真实 DNS 与该环境的 CA。
+services:
+  agent:
+    environment:
+      LLM_BASE_URL: https://localhost:9443/v1
+      LLM_MODEL: chat
+      LLM_CONNECT_HOST: host.docker.internal
+      LLM_CA_FILE: /run/secrets/gateway-ca.pem
+    volumes:
+      - type: bind
+        source: ${GATEWAY_CA_FILE:?set GATEWAY_CA_FILE to trusted public CA}
+        target: /run/secrets/gateway-ca.pem
+        read_only: true
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/readyz',timeout=6)"]
+      interval: 15s
+      timeout: 7s
+      retries: 5

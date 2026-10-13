@@ -70,7 +70,7 @@ def cleanup(root, names):
         root.close()
 
 
-def execute_case(client, probe, service_key, case, sessions, rows):
+def execute_case(client, probe, service_key, case, sessions, rows, observe=None):
     alpha, beta, ops = sessions
     question = {"question": case["question"]}
     if case["category"] == "permission":
@@ -105,9 +105,12 @@ def execute_case(client, probe, service_key, case, sessions, rows):
     else:
         alpha.post("/api/tasks/" + task_id + "/stop")
         return False, {"error_code": "evaluation_timeout"}
-    observed = httpx.get(probe + "/evaluation/" + task_id, headers={"X-Service-Key": service_key}, timeout=3, trust_env=False)
-    if observed.status_code != 200: return False, {"error_code": "observation_missing"}
-    trace = observed.json()
+    if observe is None:
+        observed = httpx.get(probe + "/evaluation/" + task_id, headers={"X-Service-Key": service_key}, timeout=3, trust_env=False)
+        if observed.status_code != 200: return False, {"error_code": "observation_missing"}
+        trace = observed.json()
+    else:
+        trace = observe(task_id)
     trace["task_status"] = task["status"]
     if case["category"] in ("clarification", "unsupported"):
         return task["status"] == "needs_clarification" and trace["sql_calls"] == 0 and trace["model_calls"] == 0, trace
