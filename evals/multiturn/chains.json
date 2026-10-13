@@ -1,0 +1,5017 @@
+{
+  "version": 1,
+  "annotation_status": "draft",
+  "reviewer": null,
+  "analysis_date": "2018-08-31",
+  "chains": [
+    {
+      "id": "chain-01",
+      "intent": "半年分组及两次补答",
+      "group": "半年分组及两次补答",
+      "split": "development",
+      "category": "rules",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "最近半年 GMV 按月统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "改成按州",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "dimensions"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "只看两个州，取前三名",
+          "status": "needs_clarification",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [
+            "states",
+            "order_by"
+          ],
+          "pending_values": {
+            "top_n": 3
+          },
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "SP、RJ",
+          "status": "needs_clarification",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [
+            "order_by"
+          ],
+          "pending_values": {
+            "top_n": 3
+          },
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "按 GMV 从高到低",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "in",
+                "values": [
+                  "SP",
+                  "RJ"
+                ]
+              }
+            ],
+            "order_by": [
+              {
+                "field": "gmv",
+                "direction": "desc"
+              }
+            ],
+            "top_n": 3
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters",
+            "order_by",
+            "top_n"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-02",
+      "intent": "指标增加及移除",
+      "group": "指标增加及移除",
+      "split": "acceptance",
+      "category": "rules",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "本月 GMV 按州统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "再加上订单量",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv",
+              "orders"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "metrics"
+          ],
+          "preserved_fields": [
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "再加上平均评分",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv",
+              "orders",
+              "review_score"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv",
+              "orders"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "metrics"
+          ],
+          "preserved_fields": [
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "去掉 GMV",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "orders",
+              "review_score"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv",
+              "orders",
+              "review_score"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "metrics"
+          ],
+          "preserved_fields": [
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-03",
+      "intent": "固定基准日期",
+      "group": "固定基准日期",
+      "split": "development",
+      "category": "rules",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "本月 GMV 按州统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "那上个月呢",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-07-01",
+              "end_exclusive": "2018-08-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "time_range"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "本月",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-07-01",
+              "end_exclusive": "2018-08-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "time_range"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "2018-06-01 至 2018-07-01",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-06-01",
+              "end_exclusive": "2018-07-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "time_range"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-04",
+      "intent": "州集合增加",
+      "group": "州集合增加",
+      "split": "acceptance",
+      "category": "rules",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "本月 GMV 按州统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "只看 SP",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "in",
+                "values": [
+                  "SP"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "再加 RJ 州",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "in",
+                "values": [
+                  "SP",
+                  "RJ"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "in",
+                "values": [
+                  "SP"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-05",
+      "intent": "清除州保留金额",
+      "group": "清除州保留金额",
+      "split": "development",
+      "category": "rules",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "本月 GMV 按州统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "商品金额大于 100",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "amount",
+                "op": "gt",
+                "values": [
+                  "100"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "只看 SP",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "amount",
+                "op": "gt",
+                "values": [
+                  "100"
+                ]
+              },
+              {
+                "field": "state",
+                "op": "in",
+                "values": [
+                  "SP"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "amount",
+                "op": "gt",
+                "values": [
+                  "100"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "取消州筛选",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "amount",
+                "op": "gt",
+                "values": [
+                  "100"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "amount",
+                "op": "gt",
+                "values": [
+                  "100"
+                ]
+              },
+              {
+                "field": "state",
+                "op": "in",
+                "values": [
+                  "SP"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-06",
+      "intent": "状态条件替换清除",
+      "group": "状态条件替换清除",
+      "split": "acceptance",
+      "category": "rules",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "本月订单量按州统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "orders"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "订单状态为 delivered",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "orders"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "status",
+                "op": "in",
+                "values": [
+                  "delivered"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "orders"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "订单状态为 shipped",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "orders"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "status",
+                "op": "in",
+                "values": [
+                  "shipped"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "orders"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "status",
+                "op": "in",
+                "values": [
+                  "delivered"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "取消状态筛选",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "orders"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "orders"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "status",
+                "op": "in",
+                "values": [
+                  "shipped"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-07",
+      "intent": "金额运算符替换",
+      "group": "金额运算符替换",
+      "split": "development",
+      "category": "rules",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "本月客单价按州统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "aov"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "商品金额至少 100",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "aov"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "amount",
+                "op": "gte",
+                "values": [
+                  "100"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "aov"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "商品金额小于 200",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "aov"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "amount",
+                "op": "lt",
+                "values": [
+                  "200"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "aov"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "amount",
+                "op": "gte",
+                "values": [
+                  "100"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "取消金额筛选",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "aov"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "aov"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "amount",
+                "op": "lt",
+                "values": [
+                  "200"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-08",
+      "intent": "排除州继承",
+      "group": "排除州继承",
+      "split": "acceptance",
+      "category": "rules",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "本月 GMV 按州统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "排除 SP",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "not_in",
+                "values": [
+                  "SP"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "改成订单量",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "orders"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "not_in",
+                "values": [
+                  "SP"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "not_in",
+                "values": [
+                  "SP"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "metrics"
+          ],
+          "preserved_fields": [
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "取消州筛选",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "orders"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "orders"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "not_in",
+                "values": [
+                  "SP"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-09",
+      "intent": "排名数量与方向",
+      "group": "排名数量与方向",
+      "split": "development",
+      "category": "rules",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "本月 GMV 按州统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "按 GMV 从高到低，取前 3 名",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [
+              {
+                "field": "gmv",
+                "direction": "desc"
+              }
+            ],
+            "top_n": 3
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "order_by",
+            "top_n"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters"
+          ]
+        },
+        {
+          "question": "取前 2 名",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [
+              {
+                "field": "gmv",
+                "direction": "desc"
+              }
+            ],
+            "top_n": 2
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [
+              {
+                "field": "gmv",
+                "direction": "desc"
+              }
+            ],
+            "top_n": 3
+          },
+          "changed_fields": [
+            "top_n"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ]
+        },
+        {
+          "question": "按 GMV 从低到高",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [
+              {
+                "field": "gmv",
+                "direction": "asc"
+              }
+            ],
+            "top_n": 2
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [
+              {
+                "field": "gmv",
+                "direction": "desc"
+              }
+            ],
+            "top_n": 2
+          },
+          "changed_fields": [
+            "order_by"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-10",
+      "intent": "整体清理排名",
+      "group": "整体清理排名",
+      "split": "acceptance",
+      "category": "rules",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "本月 GMV 按州排名，从高到低取前 3 名",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [
+              {
+                "field": "gmv",
+                "direction": "desc"
+              }
+            ],
+            "top_n": 3
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ],
+          "preserved_fields": []
+        },
+        {
+          "question": "改成整体",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [
+              {
+                "field": "gmv",
+                "direction": "desc"
+              }
+            ],
+            "top_n": 3
+          },
+          "changed_fields": [
+            "dimensions",
+            "order_by",
+            "top_n"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "time_range",
+            "filters"
+          ]
+        },
+        {
+          "question": "改成按月",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "dimensions"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-11",
+      "intent": "分组清理失效排序",
+      "group": "分组清理失效排序",
+      "split": "development",
+      "category": "rules",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "最近 6 个月 GMV 按月统计，按月份降序",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [
+              {
+                "field": "month",
+                "direction": "desc"
+              }
+            ],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "改成按州",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [
+              {
+                "field": "month",
+                "direction": "desc"
+              }
+            ],
+            "top_n": null
+          },
+          "changed_fields": [
+            "dimensions",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "time_range",
+            "filters",
+            "top_n"
+          ]
+        },
+        {
+          "question": "改成按日",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "day"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "dimensions"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-12",
+      "intent": "换指标保留排名草稿",
+      "group": "换指标保留排名草稿",
+      "split": "acceptance",
+      "category": "rules",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "本月 GMV 按州排名，从高到低取前 3 名",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [
+              {
+                "field": "gmv",
+                "direction": "desc"
+              }
+            ],
+            "top_n": 3
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ],
+          "preserved_fields": []
+        },
+        {
+          "question": "改成订单量",
+          "status": "needs_clarification",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [
+              {
+                "field": "gmv",
+                "direction": "desc"
+              }
+            ],
+            "top_n": 3
+          },
+          "pending_missing": [
+            "order_by"
+          ],
+          "pending_values": {},
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [
+              {
+                "field": "gmv",
+                "direction": "desc"
+              }
+            ],
+            "top_n": 3
+          },
+          "changed_fields": [],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "按订单量从低到高",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "orders"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [
+              {
+                "field": "orders",
+                "direction": "asc"
+              }
+            ],
+            "top_n": 3
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [
+              {
+                "field": "gmv",
+                "direction": "desc"
+              }
+            ],
+            "top_n": 3
+          },
+          "changed_fields": [
+            "metrics",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "dimensions",
+            "time_range",
+            "filters",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-13",
+      "intent": "初始缺时间补答",
+      "group": "初始缺时间补答",
+      "split": "development",
+      "category": "rules",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "GMV 按州统计",
+          "status": "needs_clarification",
+          "expected": null,
+          "pending_missing": [
+            "time_range"
+          ],
+          "pending_values": {},
+          "base": null,
+          "changed_fields": [],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "本月",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "改成按月",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "dimensions"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-14",
+      "intent": "取消草稿恢复有效计划",
+      "group": "取消草稿恢复有效计划",
+      "split": "acceptance",
+      "category": "rules",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "本月 GMV 按州统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "只看两个州，取前三名",
+          "status": "needs_clarification",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [
+            "states",
+            "order_by"
+          ],
+          "pending_values": {
+            "top_n": 3
+          },
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "action": "discard",
+          "status": "discarded",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "改成按月",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "dimensions"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-15",
+      "intent": "明确重新开始",
+      "group": "明确重新开始",
+      "split": "development",
+      "category": "rules",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "本月 GMV 按州统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "只看两个州，取前三名",
+          "status": "needs_clarification",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [
+            "states",
+            "order_by"
+          ],
+          "pending_values": {
+            "top_n": 3
+          },
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "重新开始，上月订单量按月统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "orders"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-07-01",
+              "end_exclusive": "2018-08-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range"
+          ],
+          "preserved_fields": [
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-16",
+      "intent": "陌生追问-01",
+      "group": "陌生追问-01",
+      "split": "acceptance",
+      "category": "unfamiliar",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "本月GMV按州统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "只看圣保罗州",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "in",
+                "values": [
+                  "SP"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "改成整体",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "in",
+                "values": [
+                  "SP"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "in",
+                "values": [
+                  "SP"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "dimensions"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-17",
+      "intent": "陌生追问-02",
+      "group": "陌生追问-02",
+      "split": "development",
+      "category": "unfamiliar",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "本月订单量按州统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "orders"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "只看里约热内卢州",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "orders"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "in",
+                "values": [
+                  "RJ"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "orders"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "改成整体",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "orders"
+            ],
+            "dimensions": [],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "in",
+                "values": [
+                  "RJ"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "orders"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "in",
+                "values": [
+                  "RJ"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "dimensions"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-18",
+      "intent": "陌生追问-03",
+      "group": "陌生追问-03",
+      "split": "acceptance",
+      "category": "unfamiliar",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "最近 6 个月客单价按月统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "aov"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "只看圣保罗州",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "aov"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "in",
+                "values": [
+                  "SP"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "aov"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "改成整体",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "aov"
+            ],
+            "dimensions": [],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "in",
+                "values": [
+                  "SP"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "aov"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "in",
+                "values": [
+                  "SP"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "dimensions"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-19",
+      "intent": "陌生追问-04",
+      "group": "陌生追问-04",
+      "split": "development",
+      "category": "unfamiliar",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "上月平均评分按州统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "review_score"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-07-01",
+              "end_exclusive": "2018-08-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "只看里约热内卢州",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "review_score"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-07-01",
+              "end_exclusive": "2018-08-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "in",
+                "values": [
+                  "RJ"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "review_score"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-07-01",
+              "end_exclusive": "2018-08-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "改成整体",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "review_score"
+            ],
+            "dimensions": [],
+            "time_range": {
+              "start": "2018-07-01",
+              "end_exclusive": "2018-08-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "in",
+                "values": [
+                  "RJ"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "review_score"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-07-01",
+              "end_exclusive": "2018-08-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "in",
+                "values": [
+                  "RJ"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "dimensions"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-20",
+      "intent": "陌生追问-05",
+      "group": "陌生追问-05",
+      "split": "acceptance",
+      "category": "unfamiliar",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "最近 6 个月平均交付时长按月统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "delivery_days"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "排除圣保罗州",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "delivery_days"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "not_in",
+                "values": [
+                  "SP"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "delivery_days"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "改成整体",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "delivery_days"
+            ],
+            "dimensions": [],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "not_in",
+                "values": [
+                  "SP"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "delivery_days"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "not_in",
+                "values": [
+                  "SP"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "dimensions"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-21",
+      "intent": "陌生追问-06",
+      "group": "陌生追问-06",
+      "split": "development",
+      "category": "unfamiliar",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "上月取消率按州统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "cancellation_rate"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-07-01",
+              "end_exclusive": "2018-08-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "排除里约热内卢州",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "cancellation_rate"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-07-01",
+              "end_exclusive": "2018-08-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "not_in",
+                "values": [
+                  "RJ"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "cancellation_rate"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-07-01",
+              "end_exclusive": "2018-08-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "改成整体",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "cancellation_rate"
+            ],
+            "dimensions": [],
+            "time_range": {
+              "start": "2018-07-01",
+              "end_exclusive": "2018-08-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "not_in",
+                "values": [
+                  "RJ"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "cancellation_rate"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-07-01",
+              "end_exclusive": "2018-08-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "not_in",
+                "values": [
+                  "RJ"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "dimensions"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-22",
+      "intent": "陌生追问-07",
+      "group": "陌生追问-07",
+      "split": "acceptance",
+      "category": "unfamiliar",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "本月GMV按州统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "商品金额至少一百雷亚尔",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "amount",
+                "op": "gte",
+                "values": [
+                  "100"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "改成整体",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "amount",
+                "op": "gte",
+                "values": [
+                  "100"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "amount",
+                "op": "gte",
+                "values": [
+                  "100"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "dimensions"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-23",
+      "intent": "陌生追问-08",
+      "group": "陌生追问-08",
+      "split": "development",
+      "category": "unfamiliar",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "最近 6 个月订单量按月统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "orders"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "订单状态只保留已送达的",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "orders"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "status",
+                "op": "in",
+                "values": [
+                  "delivered"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "orders"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "改成整体",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "orders"
+            ],
+            "dimensions": [],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "status",
+                "op": "in",
+                "values": [
+                  "delivered"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "orders"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "status",
+                "op": "in",
+                "values": [
+                  "delivered"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "dimensions"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-24",
+      "intent": "陌生追问-09",
+      "group": "陌生追问-09",
+      "split": "acceptance",
+      "category": "unfamiliar",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "上月客单价按州统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "aov"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-07-01",
+              "end_exclusive": "2018-08-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "商品金额低于两百雷亚尔",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "aov"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-07-01",
+              "end_exclusive": "2018-08-01"
+            },
+            "filters": [
+              {
+                "field": "amount",
+                "op": "lt",
+                "values": [
+                  "200"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "aov"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-07-01",
+              "end_exclusive": "2018-08-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "改成整体",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "aov"
+            ],
+            "dimensions": [],
+            "time_range": {
+              "start": "2018-07-01",
+              "end_exclusive": "2018-08-01"
+            },
+            "filters": [
+              {
+                "field": "amount",
+                "op": "lt",
+                "values": [
+                  "200"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "aov"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-07-01",
+              "end_exclusive": "2018-08-01"
+            },
+            "filters": [
+              {
+                "field": "amount",
+                "op": "lt",
+                "values": [
+                  "200"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "dimensions"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-25",
+      "intent": "陌生追问-10",
+      "group": "陌生追问-10",
+      "split": "development",
+      "category": "unfamiliar",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "最近 6 个月平均评分按月统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "review_score"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "订单状态不要取消的",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "review_score"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "status",
+                "op": "not_in",
+                "values": [
+                  "canceled"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "review_score"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "改成整体",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "review_score"
+            ],
+            "dimensions": [],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "status",
+                "op": "not_in",
+                "values": [
+                  "canceled"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "review_score"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-03-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "status",
+                "op": "not_in",
+                "values": [
+                  "canceled"
+                ]
+              }
+            ],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "dimensions"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-26",
+      "intent": "范围外保留已有草稿",
+      "group": "范围外保留已有草稿",
+      "split": "acceptance",
+      "category": "boundary",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "本月 GMV 按州统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "只看两个州，取前三名",
+          "status": "needs_clarification",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [
+            "states",
+            "order_by"
+          ],
+          "pending_values": {
+            "top_n": 3
+          },
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "改成按品类",
+          "status": "needs_clarification",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [
+            "states",
+            "order_by"
+          ],
+          "pending_values": {
+            "top_n": 3
+          },
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "SP、RJ，按 GMV 从高到低",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [
+              {
+                "field": "state",
+                "op": "in",
+                "values": [
+                  "SP",
+                  "RJ"
+                ]
+              }
+            ],
+            "order_by": [
+              {
+                "field": "gmv",
+                "direction": "desc"
+              }
+            ],
+            "top_n": 3
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "filters",
+            "order_by",
+            "top_n"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-27",
+      "intent": "冲突后继续",
+      "group": "冲突后继续",
+      "split": "development",
+      "category": "boundary",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "本月 GMV 按州统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "改成本月和上月",
+          "status": "needs_clarification",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "pending_values": {},
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "改成上月",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-07-01",
+              "end_exclusive": "2018-08-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "time_range"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-28",
+      "intent": "初始缺指标补答",
+      "group": "初始缺指标补答",
+      "split": "acceptance",
+      "category": "boundary",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "本月按州统计",
+          "status": "needs_clarification",
+          "expected": null,
+          "pending_missing": [
+            "metrics"
+          ],
+          "pending_values": {},
+          "base": null,
+          "changed_fields": [],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "GMV",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "那上个月呢",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-07-01",
+              "end_exclusive": "2018-08-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "time_range"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-29",
+      "intent": "追问越权不推进",
+      "group": "追问越权不推进",
+      "split": "development",
+      "category": "boundary",
+      "identity": "ops",
+      "turns": [
+        {
+          "question": "本月 GMV 按州统计",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        },
+        {
+          "question": "再加上平均评分",
+          "status": "denied",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "改成按月",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "month"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "changed_fields": [
+            "dimensions"
+          ],
+          "preserved_fields": [
+            "metrics",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "chain-30",
+      "intent": "无前文澄清",
+      "group": "无前文澄清",
+      "split": "acceptance",
+      "category": "boundary",
+      "identity": "admin",
+      "turns": [
+        {
+          "question": "改成按州",
+          "status": "needs_clarification",
+          "expected": null,
+          "pending_missing": [
+            "metrics",
+            "time_range"
+          ],
+          "pending_values": {},
+          "base": null,
+          "changed_fields": [],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "GMV",
+          "status": "needs_clarification",
+          "expected": null,
+          "pending_missing": [
+            "time_range"
+          ],
+          "pending_values": {},
+          "base": null,
+          "changed_fields": [],
+          "preserved_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by",
+            "top_n"
+          ]
+        },
+        {
+          "question": "本月",
+          "status": "completed",
+          "expected": {
+            "version": 1,
+            "metrics": [
+              "gmv"
+            ],
+            "dimensions": [
+              "state"
+            ],
+            "time_range": {
+              "start": "2018-08-01",
+              "end_exclusive": "2018-09-01"
+            },
+            "filters": [],
+            "order_by": [],
+            "top_n": null
+          },
+          "pending_missing": [],
+          "base": null,
+          "changed_fields": [
+            "metrics",
+            "dimensions",
+            "time_range",
+            "filters",
+            "order_by"
+          ],
+          "preserved_fields": [
+            "top_n"
+          ]
+        }
+      ]
+    }
+  ]
+}
