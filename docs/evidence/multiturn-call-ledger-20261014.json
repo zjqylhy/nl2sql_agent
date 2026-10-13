@@ -1,0 +1,164 @@
+{
+  "scope": "multiturn_work_only",
+  "earlier_expression_study_is_separate": true,
+  "draft_fix_diagnostic": {
+    "source_commit": "506bc49914100c31dc422e02d84b1ec4982ae5cc",
+    "model_calls": 48,
+    "known_tokens": 71213,
+    "summary": [
+      {
+        "independent": {
+          "turns": 101,
+          "question_turns": 100,
+          "correct_turns": 39,
+          "chains": 30,
+          "correct_chains": 1,
+          "expected_successes": 87,
+          "observable_plans": 27,
+          "correct_plans": 27,
+          "correct_results": 27,
+          "inheritance_error_turns": 0,
+          "unsafe_executions": 0,
+          "model_calls": 6,
+          "known_tokens": 3973,
+          "unknown_usage_calls": 0
+        },
+        "controlled": {
+          "turns": 101,
+          "question_turns": 100,
+          "correct_turns": 100,
+          "chains": 30,
+          "correct_chains": 30,
+          "expected_successes": 87,
+          "observable_plans": 87,
+          "correct_plans": 87,
+          "correct_results": 87,
+          "inheritance_error_turns": 0,
+          "unsafe_executions": 0,
+          "model_calls": 10,
+          "known_tokens": 19068,
+          "unknown_usage_calls": 0
+        }
+      },
+      {
+        "independent": {
+          "turns": 101,
+          "question_turns": 100,
+          "correct_turns": 38,
+          "chains": 30,
+          "correct_chains": 0,
+          "expected_successes": 87,
+          "observable_plans": 26,
+          "correct_plans": 26,
+          "correct_results": 26,
+          "inheritance_error_turns": 0,
+          "unsafe_executions": 0,
+          "model_calls": 6,
+          "known_tokens": 5695,
+          "unknown_usage_calls": 0
+        },
+        "controlled": {
+          "turns": 101,
+          "question_turns": 100,
+          "correct_turns": 100,
+          "chains": 30,
+          "correct_chains": 30,
+          "expected_successes": 87,
+          "observable_plans": 87,
+          "correct_plans": 87,
+          "correct_results": 87,
+          "inheritance_error_turns": 0,
+          "unsafe_executions": 0,
+          "model_calls": 10,
+          "known_tokens": 18962,
+          "unknown_usage_calls": 0
+        }
+      },
+      {
+        "independent": {
+          "turns": 101,
+          "question_turns": 100,
+          "correct_turns": 39,
+          "chains": 30,
+          "correct_chains": 1,
+          "expected_successes": 87,
+          "observable_plans": 27,
+          "correct_plans": 27,
+          "correct_results": 27,
+          "inheritance_error_turns": 0,
+          "unsafe_executions": 0,
+          "model_calls": 6,
+          "known_tokens": 4700,
+          "unknown_usage_calls": 0
+        },
+        "controlled": {
+          "turns": 101,
+          "question_turns": 100,
+          "correct_turns": 100,
+          "chains": 30,
+          "correct_chains": 30,
+          "expected_successes": 87,
+          "observable_plans": 87,
+          "correct_plans": 87,
+          "correct_results": 87,
+          "inheritance_error_turns": 0,
+          "unsafe_executions": 0,
+          "model_calls": 10,
+          "known_tokens": 18815,
+          "unknown_usage_calls": 0
+        }
+      }
+    ]
+  },
+  "olist_attempts": [
+    {
+      "source_commit": "f61f07823ba77bcdc8be97e46c68f94824ac0838",
+      "status": "failed",
+      "turns": 12,
+      "correct": 10,
+      "failed_turns": [
+        [
+          "chain-16",
+          2
+        ],
+        [
+          "chain-16",
+          3
+        ]
+      ],
+      "model_calls": 1,
+      "known_tokens": 0,
+      "unknown_usage_calls": 1,
+      "cause": "not_attributed_from_available_observation"
+    },
+    {
+      "source_commit": "f61f07823ba77bcdc8be97e46c68f94824ac0838",
+      "status": "complete",
+      "turns": 12,
+      "correct": 12,
+      "model_calls": 1,
+      "known_tokens": 1846,
+      "unknown_usage_calls": 0
+    },
+    {
+      "source_commit": "0497ae71ae56fbcea4b72814c6e8a97fbc8ebb80",
+      "status": "complete",
+      "turns": 12,
+      "correct": 12,
+      "model_calls": 1,
+      "known_tokens": 1844,
+      "unknown_usage_calls": 0
+    }
+  ],
+  "final_paired": {
+    "source_commit": "f61f07823ba77bcdc8be97e46c68f94824ac0838",
+    "model_calls": 46,
+    "known_tokens": 69061,
+    "unknown_usage_calls": 0
+  },
+  "totals": {
+    "model_calls": 97,
+    "known_tokens": 143964,
+    "unknown_usage_calls": 1
+  }
+}
