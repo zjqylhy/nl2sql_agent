@@ -20,6 +20,7 @@ from .security import UnsafeSQL, validate_sql
 from .catalog import catalog
 from .plan import QueryPlan, from_intent, compile_plan, normalize_result
 from .plan_parser import requires_plan, plan_constraints
+from .multiturn import QueryContext, source_metadata, resolve_followup
 
 
 class QueryInput(BaseModel):
@@ -45,6 +46,7 @@ class QueryRequest(BaseModel):
     allowed_metrics: list[str]
     input: QueryInput
     execution: Execution | None = None
+    context: QueryContext | None = None
 
 
 class Datasource(BaseModel):
@@ -56,6 +58,7 @@ class Datasource(BaseModel):
     password: str = Field(repr=False)
     analysis_date: date
     ssl_ca: str | None = None
+    context_revision: int = Field(default=1, ge=1, strict=True)
 
 
 @lru_cache
@@ -266,6 +269,20 @@ def query(request: QueryRequest):
             return JSONResponse(status_code=500, content={"detail": "分析服务内部错误", "telemetry": trace})
 
 
+class ContextIdentity(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    tenant_id: str
+    role: Literal["admin", "data", "ops"]
+
+
+@app.post("/internal/context", dependencies=[Depends(authenticated)])
+def context_metadata(identity: ContextIdentity):
+    source = sources().get(identity.tenant_id + ":" + identity.role)
+    if source is None:
+        raise HTTPException(403, "租户或角色尚未授权数据源")
+    return source_metadata(source, identity.tenant_id, identity.role)
+
+
 def run_query(request: QueryRequest):
     try:
         source = sources().get(request.tenant_id + ":" + request.role)
@@ -273,14 +290,26 @@ def run_query(request: QueryRequest):
         raise HTTPException(503, "数据源配置无效") from exc
     if source is None:
         raise HTTPException(403, "租户或角色尚未授权数据源")
+    binding = source_metadata(source, request.tenant_id, request.role) if request.context else None
+    if request.context and request.context.binding != binding["binding"]:
+        raise HTTPException(409, "数据基准或授权范围已变化，请新建问数")
+    turn_info = None
     try:
         with telemetry.stage("parse"):
-            plan, usage = parse_query_plan(request, source.analysis_date)
+            if request.context:
+                plan, usage, turn_info = resolve_followup(request, source.analysis_date, parse_query_plan)
+                if plan is None:
+                    telemetry.update(error_code="clarification")
+                    return {"status":"needs_clarification", "message":turn_info["message"], "usage":usage, "multiturn":turn_info, "context_binding":binding["binding"]}
+            else:
+                plan, usage = parse_query_plan(request, source.analysis_date)
     except (Clarification, ValidationError) as exc:
         from .intent import Unsupported
         telemetry.update(error_code="unsupported" if isinstance(exc, Unsupported) else "clarification")
         message = str(exc) if isinstance(exc, Clarification) else "指标、时间或地区格式不明确，请确认后重试。"
         result = {"status": "needs_clarification", "message": message}
+        if request.context:
+            result.update(context_binding=binding["binding"],multiturn={"version":1,"changes":[],"notes":[]})
         if isinstance(exc, Clarification) and exc.usage is not None:
             result["usage"] = exc.usage
         return result
@@ -302,4 +331,7 @@ def run_query(request: QueryRequest):
         raise HTTPException(503, "分析数据暂时不可用或查询超时，请联系数据管理员") from exc
     telemetry.update(rows=len(rows))
     with telemetry.stage("normalize"):
-        return normalize_result(plan, rows, source.analysis_date, usage, sql, params)
+        result = normalize_result(plan, rows, source.analysis_date, usage, sql, params)
+        if turn_info is not None:
+            result.update(multiturn=turn_info, context_binding=binding["binding"])
+        return result

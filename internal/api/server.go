@@ -51,6 +51,11 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /api/me", s.auth(http.HandlerFunc(s.me)))
 	mux.Handle("GET /api/metrics", s.auth(http.HandlerFunc(s.metrics)))
 	mux.Handle("GET /api/operations/summary", s.auth(http.HandlerFunc(s.operations)))
+	mux.Handle("POST /api/conversations", s.auth(http.HandlerFunc(s.createConversation)))
+	mux.Handle("GET /api/conversations", s.auth(http.HandlerFunc(s.conversations)))
+	mux.Handle("GET /api/conversations/{id}", s.auth(http.HandlerFunc(s.conversation)))
+	mux.Handle("POST /api/conversations/{id}/turns", s.auth(http.HandlerFunc(s.createTurn)))
+	mux.Handle("POST /api/conversations/{id}/discard-pending", s.auth(http.HandlerFunc(s.discardPending)))
 	mux.Handle("POST /api/tasks", s.auth(http.HandlerFunc(s.create)))
 	mux.Handle("GET /api/tasks", s.auth(http.HandlerFunc(s.list)))
 	mux.Handle("GET /api/tasks/{id}", s.auth(http.HandlerFunc(s.detail)))
@@ -230,6 +235,9 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request) {
 }
 
 func allowed(u store.User, t store.Task) bool {
+	if !store.MetricsAllowed(t.Context, u.AllowedMetrics) {
+		return false
+	}
 	metrics := []string{}
 	if t.Input.Metric != "" {
 		metrics = append(metrics, t.Input.Metric)
@@ -269,7 +277,7 @@ func allowed(u store.User, t store.Task) bool {
 }
 func (s *Server) fetch(w http.ResponseWriter, r *http.Request) (store.Task, bool) {
 	t, err := s.DB.Task(r.Context(), user(r), r.PathValue("id"))
-	if err != nil || !allowed(user(r), t) {
+	if err != nil || !allowed(user(r), t) || !s.taskContextAllowed(r.Context(), user(r), t) {
 		fail(w, 404, "任务不存在或无权访问")
 		return store.Task{}, false
 	}
@@ -283,7 +291,7 @@ func (s *Server) list(w http.ResponseWriter, r *http.Request) {
 	}
 	visible := []store.Task{}
 	for _, t := range tasks {
-		if allowed(user(r), t) {
+		if allowed(user(r), t) && s.taskContextAllowed(r.Context(), user(r), t) {
 			visible = append(visible, t)
 		}
 	}
@@ -338,7 +346,7 @@ func (s *Server) events(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		t, err = s.DB.Task(r.Context(), current, t.ID)
-		if err != nil || !allowed(current, t) {
+		if err != nil || !allowed(current, t) || !s.taskContextAllowed(r.Context(), current, t) {
 			return
 		}
 		events, err := s.DB.Events(r.Context(), t.ID, after)
