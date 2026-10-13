@@ -48,7 +48,7 @@ def run(args):
         usage=result.get('usage') or {}
         task={'status':result.get('status'),'result':result,'http_status':r['http_status']}
         verdict=score(turns[(r['chain'],r['turn'])],task,trace,r['conversation'],'controlled',rows)
-        records.append({'chain':r['chain'],'turn':r['turn'],**verdict,'parser':usage.get('parser','unknown'),'tokens':usage.get('tokens'),'model_calls':trace.get('model_calls',0),'sql_calls':trace.get('sql_calls',0)})
+        records.append({'chain':r['chain'],'turn':r['turn'],**verdict,'http_status':r['http_status'],'task_status':task['status'],'error_code':trace.get('error_code',''),'parser':usage.get('parser','unknown'),'tokens':usage.get('tokens'),'model_calls':trace.get('model_calls',0),'sql_calls':trace.get('sql_calls',0)})
     report={'status':'complete' if all(r['passed'] for r in records) else 'failed','scope':'python_mysql_readonly_olist_csv','sql_observation':'runtime_sql_stage','source_commit':subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),'csv_hashes':{p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in args.csv_dir.glob('*.csv')},'records':records}
     args.output.parent.mkdir(parents=True,exist_ok=True)
     args.output.write_text(json.dumps(report,ensure_ascii=False,indent=2)+'\n',encoding='utf-8',newline='\n')
