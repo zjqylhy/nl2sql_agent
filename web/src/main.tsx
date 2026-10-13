@@ -2,13 +2,14 @@ import React,{lazy,Suspense,useEffect,useState} from 'react'
 import {createRoot} from 'react-dom/client'
 import './style.css'
 import QueryResult,{type SemanticResult} from './QueryResult'
+import ConversationWorkspace,{type Conversation} from './Conversation'
 const Chart=lazy(()=>import('./Chart'))
 
 type User={username:string;tenant_id:string;role:string;allowed_metrics:string[]}
 type Metric={id:string;name:string;version:string}
 type Row={label:string;value:string|number|null;sample_size:number;total_orders:number;excluded_orders:number;unavailable_orders:number}
 type Result={metric:string;metric_name:string;definition:string;unit:string;analysis_date:string;period:{start:string;end_exclusive:string};rows:Row[];sql:string;parameters:string[];usage:{parser:string;tokens:number|null};message:string}
-type Task={id:string;status:string;input:{question:string};result:Result|SemanticResult|{message:string}|null;error?:string;created_at:string}
+type Task={id:string;status:string;input:{question:string};result:Result|SemanticResult|{message:string}|null;error?:string;created_at:string;conversation_id?:string}
 const statusNames:Record<string,string>={pending:'排队中',querying:'正在取数',completed:'已完成',needs_clarification:'需要澄清',failed:'执行失败',canceled:'已停止'}
 
 async function api<T>(path:string,body?:unknown,method?:string):Promise<T>{
@@ -24,8 +25,13 @@ function App(){
   const[question,setQuestion]=useState(''),[metric,setMetric]=useState(''),[period,setPeriod]=useState(''),[group,setGroup]=useState(''),[start,setStart]=useState(''),[end,setEnd]=useState('')
   const[tenant,setTenant]=useState(''),[username,setUsername]=useState(''),[password,setPassword]=useState('')
   const[showUsers,setShowUsers]=useState(false)
+  const[singleMode,setSingleMode]=useState(false),[conversationId,setConversationId]=useState<string|null>(null),[conversations,setConversations]=useState<Conversation[]>([])
+  const refreshConversations=async()=>{const data=await api<{conversations:Conversation[]}>('/conversations');setConversations(data.conversations)}
+  const selectConversation=(id:string)=>{setConversationId(id);setSingleMode(false);if(user)localStorage.setItem('olist.conversation.'+user.tenant_id+'.'+user.username,id)}
+  const newConversation=()=>{setSingleMode(false);setConversationId(null);if(user)localStorage.removeItem('olist.conversation.'+user.tenant_id+'.'+user.username)}
   const refresh=async()=>{setTasks(await api<Task[]>('/tasks'))}
   useEffect(()=>{api<User>('/me').then(setUser).catch(()=>{}).finally(()=>setLoading(false))},[])
+  useEffect(()=>{if(!user)return;setConversationId(localStorage.getItem('olist.conversation.'+user.tenant_id+'.'+user.username));void refreshConversations().catch(e=>setError(e.message))},[user])
   useEffect(()=>{if(!user)return;api<Metric[]>('/metrics').then(setMetrics).catch(e=>setError(e.message));refresh().catch(e=>setError(e.message));const timer=setInterval(()=>refresh().catch(()=>{}),5000);return()=>clearInterval(timer)},[user])
   useEffect(()=>{
     if(!task||!['pending','querying'].includes(task.status))return
@@ -41,16 +47,16 @@ function App(){
   async function login(event:React.FormEvent){event.preventDefault();setBusy(true);setError('');try{setUser(await api<User>('/login',{tenant,username,password}));setPassword('')}catch(e){setError((e as Error).message)}finally{setBusy(false)}}
   async function submit(event?:React.FormEvent){event?.preventDefault();if(!question.trim()||busy)return;setBusy(true);setError('');try{setTask(await api<Task>('/tasks',{question,...(metric?{metric}:{}),...(period?{period}:{}),...(group?{group_by:group}:{}),...(period==='custom'?{start,end}:{})}));await refresh()}catch(e){setError((e as Error).message)}finally{setBusy(false)}}
   async function stop(){if(!task)return;try{await api('/tasks/'+task.id+'/stop',{});setTask(await api<Task>('/tasks/'+task.id));await refresh()}catch(e){setError((e as Error).message)}}
-  async function logout(){try{await api('/logout',{});setUser(null);setTasks([]);setTask(null)}catch(e){setError((e as Error).message)}}
+  async function logout(){try{await api('/logout',{});setUser(null);setTasks([]);setTask(null);setConversationId(null);setConversations([]);setSingleMode(false)}catch(e){setError((e as Error).message)}}
   const result=task?.result&&'metric'in task.result?task.result:null
   const semantic=task?.result&&'result_version'in task.result&&task.result.result_version===2?task.result:null
   if(loading)return <div className="loading">正在连接工作台…</div>
   if(!user)return <main className="login-page"><section className="login-intro"><div className="brand-mark">O</div><p className="eyebrow">OLIST · BUSINESS ANALYTICS</p><h1>让数据回答<br/>经营问题。</h1><p>在统一口径下查询指标，每一次结果都有数据依据。</p><div className="intro-note">巴西电商历史数据 · 受限只读查询</div></section><form className="login-form" onSubmit={login}><h2>登录工作台</h2><p className="muted">使用管理员分配的租户与账号</p><label>租户<input value={tenant} onChange={e=>setTenant(e.target.value)} required autoComplete="organization" placeholder="租户标识"/></label><label>账号<input value={username} onChange={e=>setUsername(e.target.value)} required autoComplete="username" placeholder="你的账号"/></label><label>密码<input type="password" value={password} onChange={e=>setPassword(e.target.value)} required autoComplete="current-password"/></label>{error&&<p role="alert" className="error">{error}</p>}<button className="primary" disabled={busy}>{busy?'正在登录…':'进入工作台'}</button></form></main>
   return <div className="app-shell">
-    <aside className="sidebar"><div className="brand"><span className="brand-mark">O</span><span>经营分析<span className="brand-sub">Olist 工作台</span></span></div><button className="new-task" onClick={()=>{setTask(null);setQuestion('');setError('')}}>＋ 新建问数</button><div className="sidebar-label">最近任务</div><nav aria-label="历史任务">{tasks.length===0?<p className="empty-history">还没有任务，开始第一次问数</p>:tasks.map(t=><button key={t.id} className={'history-item '+(t.id===task?.id?'selected':'')} onClick={()=>api<Task>('/tasks/'+t.id).then(setTask).catch(e=>setError(e.message))}><span>{t.input.question}</span><small><i className={'dot '+t.status}/>{statusNames[t.status]} · {new Date(t.created_at).toLocaleDateString('zh-CN')}</small></button>)}</nav><div className="account"><strong>{user.username}</strong><small>{user.tenant_id} · {({admin:'管理员',data:'数据人员',ops:'运营人员'} as Record<string,string>)[user.role]}</small><div>{user.role==='admin'&&<button onClick={()=>setShowUsers(!showUsers)}>账号权限</button>}<button onClick={logout}>退出</button></div></div></aside>
+    <aside className="sidebar"><div className="brand"><span className="brand-mark">O</span><span>经营分析<span className="brand-sub">Olist 工作台</span></span></div><button className="new-task" onClick={()=>{newConversation();setShowUsers(false);setTask(null);setQuestion('');setError('')}}>＋ 新建问数</button><div className="sidebar-label">{singleMode?'单次问数历史':'最近会话'}</div><nav aria-label="问数历史">{!singleMode?conversations.map(c=><button key={c.id} className={'history-item '+(c.id===conversationId?'selected':'')} onClick={()=>{setShowUsers(false);selectConversation(c.id)}}><span>{c.title||'新的问数'}</span><small>{c.active_task_id?'正在执行':c.pending?'等待补充':c.turn_count+' 轮'} · {new Date(c.updated_at).toLocaleDateString('zh-CN')}</small></button>):tasks.filter(t=>!t.conversation_id).map(t=><button key={t.id} className={'history-item '+(t.id===task?.id?'selected':'')} onClick={()=>api<Task>('/tasks/'+t.id).then(setTask).catch(e=>setError(e.message))}><span>{t.input.question}</span><small><i className={'dot '+t.status}/>{statusNames[t.status]} · {new Date(t.created_at).toLocaleDateString('zh-CN')}</small></button>)}</nav><button onClick={()=>{setSingleMode(!singleMode);setShowUsers(false)}}>{singleMode?'返回多轮问数':'单次问数历史'}</button><div className="account"><strong>{user.username}</strong><small>{user.tenant_id} · {({admin:'管理员',data:'数据人员',ops:'运营人员'} as Record<string,string>)[user.role]}</small><div>{user.role==='admin'&&<button onClick={()=>setShowUsers(!showUsers)}>账号权限</button>}<button onClick={logout}>退出</button></div></div></aside>
     <main className="workspace"><header><div><p className="eyebrow">ANALYSIS WORKSPACE</p><h1>问数工作台</h1></div><span className="badge">Olist · 历史数据</span></header>
       {error&&<div role="alert" className="error banner">{error}<button onClick={()=>setError('')}>关闭</button></div>}
-      {showUsers?<Users onError={setError}/>:<>
+      {showUsers?<Users onError={setError}/>:singleMode?<>
       <section className="conversation">
         {!task?<div className="welcome"><div className="welcome-icon">↗</div><h2>你想了解哪项经营指标？</h2><p>用自然语言提问，或选择指标和时间。结果按已发布口径计算。</p><div className="examples">{['本月 GMV 和有效订单量按州统计','最近 6 个月 GMV 和客单价按月统计','本月 GMV 按州排名，取前 5 名'].map(q=><button key={q} onClick={()=>{setQuestion(q);setMetric('');setPeriod('');setGroup('')}}>{q} <span>↗</span></button>)}</div><div className="scope-note"><strong>当前可查询</strong><span>{metrics.map(m=>m.name).join(' · ')||'暂无获授权指标'}</span><small>相对日期以结果中的分析基准日期为准。归因与报告能力将在后续里程碑交付。</small></div></div>:<>
           <div className="question-bubble">{task.input.question}</div><div className="task-progress"><i className={'dot '+task.status}/><strong>{statusNames[task.status]}</strong><span>任务 {task.id.slice(0,8)}</span>{['pending','querying'].includes(task.status)&&<button onClick={stop}>停止任务</button>}</div>
@@ -68,7 +74,7 @@ function App(){
         </>}
       </section>
       <form className="composer" onSubmit={submit}><div className="controls"><label>指标<select value={metric} onChange={e=>setMetric(e.target.value)}><option value="">从问题识别</option>{metrics.map(m=><option key={m.id} value={m.id}>{m.name}</option>)}</select></label><label>时间<select value={period} onChange={e=>setPeriod(e.target.value)}><option value="">从问题识别</option>{[['today','今天'],['yesterday','昨日'],['this_week','本周'],['last_week','上周'],['this_month','本月'],['last_month','上月'],['custom','指定日期']].map(([v,n])=><option key={v} value={v}>{n}</option>)}</select></label><label>维度<select value={group} onChange={e=>setGroup(e.target.value)}><option value="">从问题识别 / 整体</option><option value="state">巴西州</option><option value="day">下单日期</option><option value="month">下单月份</option></select></label>{period==='custom'&&<><label>开始<input type="date" value={start} onChange={e=>setStart(e.target.value)} required/></label><label>结束（不含）<input type="date" value={end} onChange={e=>setEnd(e.target.value)} required/></label></>}</div><div className="input-row"><textarea value={question} onChange={e=>setQuestion(e.target.value)} placeholder="例如：本月 GMV 按州统计" maxLength={2000} rows={2} onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();void submit()}}}/><button className="primary" disabled={busy||!question.trim()||metrics.length===0}>{busy?'受理中…':'发送 ↗'}</button></div><small>Enter 发送 · Shift + Enter 换行 · 金额单位 BRL，GMV 不含运费</small></form>
-      </>}
+      </>:<ConversationWorkspace id={conversationId} onSelect={selectConversation} onChanged={()=>void refreshConversations().catch(e=>setError(e.message))} api={api} metrics={metrics}/>}
     </main>
   </div>
 }
