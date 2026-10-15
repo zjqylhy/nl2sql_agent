@@ -15,7 +15,7 @@ from .catalog import StrictModel, catalog
 from .intent import ALIASES, PERIODS, STATES, Clarification, Unsupported, Intent, period_bounds
 from .model_transport import ModelTransport, ModelConfigurationError
 from .plan import QueryPlan, TimeRange, Filter, Ordering, validate_filters
-from .query_grammar import recognize, canonical_followup
+from .query_grammar import recognize, canonical_followup, STATE_SCOPE_GUIDANCE
 
 
 class SetMetrics(StrictModel):
@@ -408,6 +408,7 @@ def resolve_followup(request, anchor, parse_initial):
             prompt += "根据完整原文解释否定及修改范围；无法完整理解或表达时必须澄清。不得忽略不支持的关联、比较、归因或报告请求。允许的修改目标=" + json.dumps(sorted(allowed or ALL_TARGETS)) + "；分析基准日=" + str(anchor) + "；当前计划=" + json.dumps(parsing_base.model_dump(mode="json") if parsing_base else None)
             prompt += "当前草稿=" + json.dumps(pending.model_dump(mode="json") if pending else None) + "；筛选 ID=" + json.dumps(filters) + "；明确操作必须保留=" + json.dumps(delta.model_dump(mode="json"))
             prompt += "授权指标=" + json.dumps(request.allowed_metrics) + "；维度=" + json.dumps(list(catalog().dimensions)) + "；筛选枚举=" + json.dumps({k:v.model_dump(exclude={"column"}) for k,v in catalog().filters.items()}, ensure_ascii=False)
+            prompt += STATE_SCOPE_GUIDANCE
             try:
                 with telemetry.stage("model"), transport.client() as client:
                     telemetry.update(parser="llm", model=transport.model[:100], model_calls=1, input_tokens=None, output_tokens=None, total_tokens=None)

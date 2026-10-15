@@ -20,6 +20,7 @@ from .security import UnsafeSQL, validate_sql
 from .catalog import catalog
 from .plan import QueryPlan, compile_plan, normalize_result
 from .plan_parser import plan_constraints
+from .query_grammar import STATE_SCOPE_GUIDANCE
 from .multiturn import QueryContext, source_metadata, resolve_followup
 
 
@@ -107,6 +108,7 @@ def parse_query_plan(request: QueryRequest, anchor: date) -> tuple[QueryPlan, di
     prompt += "指标业务定义=" + json.dumps({k: {"name": v.name, "definition": v.definition, "unit": v.unit}
         for k, v in c.metrics.items() if k in request.allowed_metrics}, ensure_ascii=False)
     prompt += "分析基准日=" + str(anchor) + "。根据完整用户原文理解否定、修饰和条件作用范围。confirmed 为必须保留的明确条件，hints 仅供参考，不能覆盖原文含义：" + json.dumps(values, ensure_ascii=False) + "。禁止猜测或遗漏条件。金额为订单商品金额，不含运费。日期左闭右开。不支持新维度、关联、同比环比、归因和报告，不得删去不支持条件后返回部分计划。"
+    prompt += STATE_SCOPE_GUIDANCE
     if complete:
         prompt += "筛选已完整确定，不得新增筛选。"
     else:

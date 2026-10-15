@@ -17,6 +17,14 @@ OPERATORS = {"大于等于": "gte", "至少": "gte", ">=": "gte", "小于等于"
 STATUS = {"已创建": "created", "已批准": "approved", "已开票": "invoiced", "处理中": "processing", "已发货": "shipped",
     "已交付": "delivered", "已送达": "delivered", "不可履约": "unavailable", "已取消": "canceled"}
 
+# 首轮和追问共享范围定义，避免模型把扩大范围误解为排除原来的州。
+STATE_SCOPE_GUIDANCE = (
+    "州筛选语义：不看某州、排除某州表示 not_in；不要只看某州、别仅限某州不表示排除该州。"
+    "明确说其他州也算上、剩余州都算上或查看全部州，表示取消州限制并保留该州。"
+    "首轮只说不要只看某州但没有目标州范围时必须澄清，不能猜全部或排除；"
+    "只看 SP 但不要排除 RJ 是范围冲突，必须澄清。"
+)
+
 
 @dataclass(frozen=True)
 class Clause:

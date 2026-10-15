@@ -23,7 +23,7 @@ def gateway_env(monkeypatch):
         monkeypatch.delenv(name, raising=False)
 
 
-@pytest.mark.parametrize("limit", [256, 512])
+@pytest.mark.parametrize("limit", [256, 512, 2048])
 def test_gateway_request_preserves_logical_identity_and_minimal_body(monkeypatch, limit):
     monkeypatch.setenv("LLM_CONNECT_HOST", "host.docker.internal")
     transport = ModelTransport.from_env()
