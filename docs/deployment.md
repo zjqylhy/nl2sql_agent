@@ -98,11 +98,13 @@ PostgreSQL 最小运行授权示例（由管理员执行，替换实际 schema/�
 ```sql
 GRANT CONNECT ON DATABASE platform TO platform_runtime;
 GRANT USAGE ON SCHEMA public TO platform_runtime;
-GRANT SELECT, INSERT, UPDATE, DELETE ON tenants, users, sessions, tasks, task_events, task_outbox, task_attempts TO platform_runtime;
+GRANT SELECT, INSERT, UPDATE, DELETE ON tenants, users, sessions, tasks, task_events, task_outbox, task_attempts, conversations TO platform_runtime;
 -- 无 schema_migrations 权限，无 DDL；检查默认 PUBLIC schema 权限。
 ```
 
 容器以非 root、只读根文件系统运行，临时文件在 tmpfs。日志不记录请求体、Cookie、密钥或 DSN。
+
+受控多轮发布需要迁移 `003_conversations.sql`，再对 runtime 授予 conversations 的 DML 权限；001/002 不改写。先迁移并授权，再发布匹配的 Agent/API/web。2026-10-14 已完成私有 ECS [现场验收](multiturn-ecs-validation.md)。数据源映射支持 `context_revision`（默认 1）：授权视图或数据集语义改变时递增并重启 Agent；账号密码轮换不改变会话绑定。角色、分析日期、目录或绑定变化后，旧会话要求新建，不能静默复用旧计划。回退旧 Agent/Web 时保留新版 API 的会话所有权保护；若必须撤下新版 API，先进入维护状态。应用回滚不降级 schema、不删除会话数据。
 
 ECS 宿主入口配置见 `deploy/nginx.ecs.conf`，在 Nginx 的 `http {}` 内加载，替换域名与证书路径。证书文件由宿主续期；先 `nginx -t` 再 reload。默认只发布 80/443，8088 保持回环地址，安全组不开放数据库/API/agent。云模板默认 API/agent 各 512 MiB、web 128 MiB 与对应 CPU 上限，仅为起始配置，需结合 ECS/RDS 资源压测调整。Docker 日志每服务 3×10 MiB 轮换；SLS 采集需在实际云环境接入。
 

@@ -47,6 +47,10 @@ python3 /srv/olist/app/scripts/private_restore_check.py /srv/olist/backups/实�
 
 更新前创建并下载备份，核对新 schema 与旧应用兼容。加载新镜像，更新环境文件中的应用镜像引用；单独 run migrate，按新增业务表清单补充最小授权，再 up --wait --force-recreate agent api web。失败不记录成功发布，不自动降级数据库。保留此前镜像和成功身份供兼容回滚。
 
+多轮版的实际镜像、迁移、草稿重启恢复及备份指纹见 [2026-10-14 验收](multiturn-ecs-validation.md)。003 后的业务回退保留新版 API，仅回退 Agent/Web，避免旧 API 按旧权限规则读取新会话任务；需要撤下新版 API 时进入维护状态。源码入口现为指向提交目录的 `/srv/olist/app`，旧源码和环境副本保存在本次候选目录，回滚保留数据库新增结构。
+
+2026-10-15 已执行 [查询解析私有部署测试](query-parsing-ecs-validation.md)：Agent 更新为 `ac4b4f70266fc1b2cae4fbb91e03c9812ba8a8ed`，API/Web 保持 `d0de02ff44bb0afbf78384cefc949e6cf781c4a2`，迁移仍为 001–003。私有环境显式配置 `LLM_PLAN_MAX_TOKENS=2048`，Compose 缺省为 512。该次兼容回退仅需恢复 Agent、此前预算及源码入口，保持 API/Web 与数据库；执行前仍需排空活动任务并验证健康。完整备份仅保留服务器：本地下载因含敏感数据且缺少明确导出授权，被自动审批拒绝，未绕过；详情和备份摘要见测试记录。
+
 ```bash
 docker compose --env-file /srv/olist/.env.private -f /srv/olist/app/deploy/compose.private.yaml ps
 docker compose --env-file /srv/olist/.env.private -f /srv/olist/app/deploy/compose.private.yaml stop

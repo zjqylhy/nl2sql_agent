@@ -111,7 +111,7 @@ services:
       LLM_CONNECT_HOST: gateway
       LLM_CA_FILE: /run/secrets/gateway-ca.pem
       LLM_INTENT_MAX_TOKENS: "256"
-      LLM_PLAN_MAX_TOKENS: "512"
+      LLM_PLAN_MAX_TOKENS: ${LLM_PLAN_MAX_TOKENS:-512}
     volumes: ["${GATEWAY_CA_FILE:?required}:/run/secrets/gateway-ca.pem:ro"]
     depends_on:
       mysql: {condition: service_healthy}

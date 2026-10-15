@@ -1,0 +1,2426 @@
+{
+  "version": 1,
+  "annotation_status": "draft",
+  "reviewer": null,
+  "analysis_date": "2018-08-31",
+  "cases": [
+    {
+      "id": "common-01",
+      "group": "b67f52768282",
+      "category": "common",
+      "split": "development",
+      "question": "本月 GMV",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-02",
+      "group": "c784735b920a",
+      "category": "common",
+      "split": "acceptance",
+      "question": "上月有效订单量",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "orders"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-03",
+      "group": "4c14aa8e7f2f",
+      "category": "common",
+      "split": "development",
+      "question": "本月客单价按州统计",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "aov"
+        ],
+        "dimensions": [
+          "state"
+        ],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-04",
+      "group": "a478128c8a33",
+      "category": "common",
+      "split": "development",
+      "question": "本月取消率",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "cancellation_rate"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-05",
+      "group": "5c532d4ecfab",
+      "category": "common",
+      "split": "development",
+      "question": "本月平均交付时长",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "delivery_days"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-06",
+      "group": "c7e06636aa21",
+      "category": "common",
+      "split": "acceptance",
+      "question": "本月平均评分按州统计",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "review_score"
+        ],
+        "dimensions": [
+          "state"
+        ],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-07",
+      "group": "58119c1e920a",
+      "category": "common",
+      "split": "development",
+      "question": "本月 GMV 和有效订单量",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv",
+          "orders"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-08",
+      "group": "1722e2c2383e",
+      "category": "common",
+      "split": "acceptance",
+      "question": "本月 GMV 和有效订单量和客单价按州统计",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv",
+          "orders",
+          "aov"
+        ],
+        "dimensions": [
+          "state"
+        ],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-09",
+      "group": "cfe824dcddb3",
+      "category": "common",
+      "split": "acceptance",
+      "question": "最近 6 个月 GMV 按月统计",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv"
+        ],
+        "dimensions": [
+          "month"
+        ],
+        "time_range": {
+          "start": "2018-03-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-10",
+      "group": "4532e9992db0",
+      "category": "common",
+      "split": "acceptance",
+      "question": "最近 3 个月 GMV 和客单价按月统计",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv",
+          "aov"
+        ],
+        "dimensions": [
+          "month"
+        ],
+        "time_range": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-11",
+      "group": "8cc61acb3136",
+      "category": "common",
+      "split": "development",
+      "question": "本月有效订单量按日统计",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "orders"
+        ],
+        "dimensions": [
+          "day"
+        ],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-12",
+      "group": "4e5df04de177",
+      "category": "common",
+      "split": "development",
+      "question": "最近 2 个月平均评分按月和州统计",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "review_score"
+        ],
+        "dimensions": [
+          "month",
+          "state"
+        ],
+        "time_range": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-13",
+      "group": "b93473d4ecb9",
+      "category": "common",
+      "split": "acceptance",
+      "question": "本月 GMV 只看 SP",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "SP"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-14",
+      "group": "a1b384aacd19",
+      "category": "common",
+      "split": "acceptance",
+      "question": "本月订单量只看 SP、RJ",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "orders"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "SP",
+              "RJ"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-15",
+      "group": "cc08200bd138",
+      "category": "common",
+      "split": "development",
+      "question": "本月 GMV 不含 RJ 州",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "state",
+            "op": "not_in",
+            "values": [
+              "RJ"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-16",
+      "group": "4e2b2aded520",
+      "category": "common",
+      "split": "development",
+      "question": "本月只看已取消订单的有效订单量",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "orders"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "status",
+            "op": "eq",
+            "values": [
+              "canceled"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-17",
+      "group": "652f851e09a6",
+      "category": "common",
+      "split": "acceptance",
+      "question": "本月订单状态为 delivered 的平均评分",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "review_score"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "status",
+            "op": "in",
+            "values": [
+              "delivered"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-18",
+      "group": "bb4675b548ac",
+      "category": "common",
+      "split": "acceptance",
+      "question": "本月订单状态为 delivered,shipped 的有效订单量",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "orders"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "status",
+            "op": "in",
+            "values": [
+              "delivered",
+              "shipped"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-19",
+      "group": "4342e2a9d0a9",
+      "category": "common",
+      "split": "acceptance",
+      "question": "本月订单状态不含 canceled 的 GMV",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "status",
+            "op": "not_in",
+            "values": [
+              "canceled"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-20",
+      "group": "b5a887010456",
+      "category": "common",
+      "split": "acceptance",
+      "question": "本月商品金额大于 100 的订单量",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "orders"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "amount",
+            "op": "gt",
+            "values": [
+              "100"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-21",
+      "group": "e90775e35e27",
+      "category": "common",
+      "split": "acceptance",
+      "question": "本月商品金额至少 50 的 GMV",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "amount",
+            "op": "gte",
+            "values": [
+              "50"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-22",
+      "group": "5778dc001b87",
+      "category": "common",
+      "split": "acceptance",
+      "question": "本月商品金额小于等于 50 的订单量",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "orders"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "amount",
+            "op": "lte",
+            "values": [
+              "50"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-23",
+      "group": "f62c8d0a2da9",
+      "category": "common",
+      "split": "development",
+      "question": "本月商品金额等于 0 的有效订单量",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "orders"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "amount",
+            "op": "eq",
+            "values": [
+              "0"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-24",
+      "group": "3c3d26ec8a92",
+      "category": "common",
+      "split": "development",
+      "question": "本月商品金额不等于 0 的客单价",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "aov"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "amount",
+            "op": "ne",
+            "values": [
+              "0"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-25",
+      "group": "bcc603e790e5",
+      "category": "common",
+      "split": "development",
+      "question": "本月只看 SP，商品金额大于 50 的 GMV 按日统计",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv"
+        ],
+        "dimensions": [
+          "day"
+        ],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "SP"
+            ]
+          },
+          {
+            "field": "amount",
+            "op": "gt",
+            "values": [
+              "50"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-26",
+      "group": "584fb0f7ef52",
+      "category": "common",
+      "split": "development",
+      "question": "本月 GMV 按州排名，取前 3 名",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv"
+        ],
+        "dimensions": [
+          "state"
+        ],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [
+          {
+            "field": "gmv",
+            "direction": "desc"
+          }
+        ],
+        "top_n": 3
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-27",
+      "group": "aefa1291dea9",
+      "category": "common",
+      "split": "development",
+      "question": "本月平均评分按州升序，取前 2 名",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "review_score"
+        ],
+        "dimensions": [
+          "state"
+        ],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [
+          {
+            "field": "state",
+            "direction": "asc"
+          }
+        ],
+        "top_n": 2
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-28",
+      "group": "af7f5119e4f2",
+      "category": "common",
+      "split": "acceptance",
+      "question": "上月有效订单量按州统计",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "orders"
+        ],
+        "dimensions": [
+          "state"
+        ],
+        "time_range": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-29",
+      "group": "63d0d6f1d211",
+      "category": "common",
+      "split": "acceptance",
+      "question": "2016-01-01 至 2016-02-01 GMV",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2016-01-01",
+          "end_exclusive": "2016-02-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "common-30",
+      "group": "3670e78081e9",
+      "category": "common",
+      "split": "development",
+      "question": "本月商品金额大于 9999 的订单量",
+      "features": [
+        "common"
+      ],
+      "expected": {
+        "metrics": [
+          "orders"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "amount",
+            "op": "gt",
+            "values": [
+              "9999"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-01",
+      "group": "b67f52768282",
+      "category": "unfamiliar",
+      "split": "development",
+      "question": "这个月卖出去的商品合计多少钱？按 GMV 的口径算。",
+      "features": [
+        "口语"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-02",
+      "group": "c784735b920a",
+      "category": "unfamiliar",
+      "split": "acceptance",
+      "question": "上个月一共出了几单？我问的是有效订单量。",
+      "features": [
+        "语序"
+      ],
+      "expected": {
+        "metrics": [
+          "orders"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-03",
+      "group": "4c14aa8e7f2f",
+      "category": "unfamiliar",
+      "split": "development",
+      "question": "本月各州平均一单花多少钱，用客单价衡量。",
+      "features": [
+        "维度改写"
+      ],
+      "expected": {
+        "metrics": [
+          "aov"
+        ],
+        "dimensions": [
+          "state"
+        ],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-04",
+      "group": "a478128c8a33",
+      "category": "unfamiliar",
+      "split": "development",
+      "question": "本月订单被取消的比例是多少？",
+      "features": [
+        "指标替换"
+      ],
+      "expected": {
+        "metrics": [
+          "cancellation_rate"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-05",
+      "group": "5c532d4ecfab",
+      "category": "unfamiliar",
+      "split": "development",
+      "question": "本月从下单到送到平均要几天？",
+      "features": [
+        "指标替换"
+      ],
+      "expected": {
+        "metrics": [
+          "delivery_days"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-06",
+      "group": "c7e06636aa21",
+      "category": "unfamiliar",
+      "split": "acceptance",
+      "question": "本月买家的评价平均打几分？分州列出来。",
+      "features": [
+        "指标替换"
+      ],
+      "expected": {
+        "metrics": [
+          "review_score"
+        ],
+        "dimensions": [
+          "state"
+        ],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-07",
+      "group": "58119c1e920a",
+      "category": "unfamiliar",
+      "split": "development",
+      "question": "本月 GMV 和有效订单量，两个数放一起给我。",
+      "features": [
+        "口语"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv",
+          "orders"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-08",
+      "group": "1722e2c2383e",
+      "category": "unfamiliar",
+      "split": "acceptance",
+      "question": "本月按州展开 GMV、有效订单量以及客单价。",
+      "features": [
+        "语序"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv",
+          "orders",
+          "aov"
+        ],
+        "dimensions": [
+          "state"
+        ],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-09",
+      "group": "cfe824dcddb3",
+      "category": "unfamiliar",
+      "split": "acceptance",
+      "question": "最近 6 个月 GMV，一行一个月份给我。",
+      "features": [
+        "维度改写"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv"
+        ],
+        "dimensions": [
+          "month"
+        ],
+        "time_range": {
+          "start": "2018-03-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-10",
+      "group": "4532e9992db0",
+      "category": "unfamiliar",
+      "split": "acceptance",
+      "question": "最近 3 个月 GMV 和客单价，逐月列出。",
+      "features": [
+        "维度改写"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv",
+          "aov"
+        ],
+        "dimensions": [
+          "month"
+        ],
+        "time_range": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-11",
+      "group": "8cc61acb3136",
+      "category": "unfamiliar",
+      "split": "development",
+      "question": "本月有效订单量，把每个下单日期单独列一行。",
+      "features": [
+        "维度改写"
+      ],
+      "expected": {
+        "metrics": [
+          "orders"
+        ],
+        "dimensions": [
+          "day"
+        ],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-12",
+      "group": "4e5df04de177",
+      "category": "unfamiliar",
+      "split": "development",
+      "question": "最近 2 个月平均评分，月份和州两个维度一起展开。",
+      "features": [
+        "联合维度"
+      ],
+      "expected": {
+        "metrics": [
+          "review_score"
+        ],
+        "dimensions": [
+          "month",
+          "state"
+        ],
+        "time_range": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-13",
+      "group": "b93473d4ecb9",
+      "category": "unfamiliar",
+      "split": "acceptance",
+      "question": "本月 GMV，只看圣保罗州。",
+      "features": [
+        "州名"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "SP"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-14",
+      "group": "d33e808279e2",
+      "category": "unfamiliar",
+      "split": "acceptance",
+      "question": "本月 GMV 和有效订单量，只看里约热内卢州。",
+      "features": [
+        "州名多指标"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv",
+          "orders"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "RJ"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-15",
+      "group": "0dc1e2f13d75",
+      "category": "unfamiliar",
+      "split": "acceptance",
+      "question": "最近 4 个月客单价按月统计，只看圣保罗州。",
+      "features": [
+        "州名趋势"
+      ],
+      "expected": {
+        "metrics": [
+          "aov"
+        ],
+        "dimensions": [
+          "month"
+        ],
+        "time_range": {
+          "start": "2018-05-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "SP"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-16",
+      "group": "02c492e0f8d5",
+      "category": "unfamiliar",
+      "split": "development",
+      "question": "上月平均评分，只看里约热内卢州。",
+      "features": [
+        "州名时间"
+      ],
+      "expected": {
+        "metrics": [
+          "review_score"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "RJ"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-17",
+      "group": "8ecbbe0e6dbf",
+      "category": "unfamiliar",
+      "split": "development",
+      "question": "本月 GMV 和客单价，只看圣保罗州和里约热内卢州。",
+      "features": [
+        "州名集合"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv",
+          "aov"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "SP",
+              "RJ"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-18",
+      "group": "75b1ab6c2ec4",
+      "category": "unfamiliar",
+      "split": "acceptance",
+      "question": "本月已交付订单的平均评分，只看圣保罗州。",
+      "features": [
+        "状态州名"
+      ],
+      "expected": {
+        "metrics": [
+          "review_score"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "status",
+            "op": "eq",
+            "values": [
+              "delivered"
+            ]
+          },
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "SP"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-19",
+      "group": "442b514b491b",
+      "category": "unfamiliar",
+      "split": "development",
+      "question": "本月商品金额大于 50 的 GMV，只看圣保罗州。",
+      "features": [
+        "金额州名"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "amount",
+            "op": "gt",
+            "values": [
+              "50"
+            ]
+          },
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "SP"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-20",
+      "group": "b9da2b71392f",
+      "category": "unfamiliar",
+      "split": "acceptance",
+      "question": "最近 2 个月 GMV 按月统计，只看里约热内卢州。",
+      "features": [
+        "州名趋势"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv"
+        ],
+        "dimensions": [
+          "month"
+        ],
+        "time_range": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "RJ"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-21",
+      "group": "1b456e659b0f",
+      "category": "unfamiliar",
+      "split": "acceptance",
+      "question": "本月有效订单量按日统计，只看圣保罗州。",
+      "features": [
+        "州名日分组"
+      ],
+      "expected": {
+        "metrics": [
+          "orders"
+        ],
+        "dimensions": [
+          "day"
+        ],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "SP"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-22",
+      "group": "fd48a10377be",
+      "category": "unfamiliar",
+      "split": "acceptance",
+      "question": "本月 GMV 按州排名，取前 2 名，只看圣保罗州和里约热内卢州。",
+      "features": [
+        "州名排名"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv"
+        ],
+        "dimensions": [
+          "state"
+        ],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "SP",
+              "RJ"
+            ]
+          }
+        ],
+        "order_by": [
+          {
+            "field": "gmv",
+            "direction": "desc"
+          }
+        ],
+        "top_n": 2
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-23",
+      "group": "d881fca065eb",
+      "category": "unfamiliar",
+      "split": "development",
+      "question": "本月只看 SP 和 RJ 州，商品金额超过 100 的有效订单量。",
+      "features": [
+        "复合筛选语序"
+      ],
+      "expected": {
+        "metrics": [
+          "orders"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "SP",
+              "RJ"
+            ]
+          },
+          {
+            "field": "amount",
+            "op": "gt",
+            "values": [
+              "100"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-24",
+      "group": "2987ed5aeee6",
+      "category": "unfamiliar",
+      "split": "acceptance",
+      "question": "本月 GMV 按州统计，RJ 州的数据不算在内。",
+      "features": [
+        "否定改写"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv"
+        ],
+        "dimensions": [
+          "state"
+        ],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "state",
+            "op": "not_in",
+            "values": [
+              "RJ"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-25",
+      "group": "33c35f34da35",
+      "category": "unfamiliar",
+      "split": "acceptance",
+      "question": "本月 GMV，只统计订单商品金额在 50 到 100 之间，包含两个端点。",
+      "features": [
+        "区间改写"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "amount",
+            "op": "gte",
+            "values": [
+              "50"
+            ]
+          },
+          {
+            "field": "amount",
+            "op": "lte",
+            "values": [
+              "100"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-26",
+      "group": "de2eb4dc0f71",
+      "category": "unfamiliar",
+      "split": "development",
+      "question": "本月有效订单量，只要 delivered 或 shipped 两种订单状态，按州统计。",
+      "features": [
+        "枚举集合改写"
+      ],
+      "expected": {
+        "metrics": [
+          "orders"
+        ],
+        "dimensions": [
+          "state"
+        ],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "status",
+            "op": "in",
+            "values": [
+              "delivered",
+              "shipped"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-27",
+      "group": "3c3d26ec8a92",
+      "category": "unfamiliar",
+      "split": "development",
+      "question": "本月客单价，只看订单商品金额不是零的订单。",
+      "features": [
+        "否定金额"
+      ],
+      "expected": {
+        "metrics": [
+          "aov"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "amount",
+            "op": "ne",
+            "values": [
+              "0"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-28",
+      "group": "df19e90f1695",
+      "category": "unfamiliar",
+      "split": "acceptance",
+      "question": "本月平均评分按州统计，评分从高到低排，给我前三个州。",
+      "features": [
+        "排名改写"
+      ],
+      "expected": {
+        "metrics": [
+          "review_score"
+        ],
+        "dimensions": [
+          "state"
+        ],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [],
+        "order_by": [
+          {
+            "field": "review_score",
+            "direction": "desc"
+          }
+        ],
+        "top_n": 3
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-29",
+      "group": "3670e78081e9",
+      "category": "unfamiliar",
+      "split": "development",
+      "question": "本月商品金额大于 9999 的订单量，没订单也请明确告诉我。",
+      "features": [
+        "无数据口语"
+      ],
+      "expected": {
+        "metrics": [
+          "orders"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "amount",
+            "op": "gt",
+            "values": [
+              "9999"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "unfamiliar-30",
+      "group": "3e0b12d53e6c",
+      "category": "unfamiliar",
+      "split": "development",
+      "question": "本月 GMV，只看订单商品金额为零的 SP 州订单。",
+      "features": [
+        "真实零语序"
+      ],
+      "expected": {
+        "metrics": [
+          "gmv"
+        ],
+        "dimensions": [],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "amount",
+            "op": "eq",
+            "values": [
+              "0"
+            ]
+          },
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "SP"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      },
+      "expected_status": "completed"
+    },
+    {
+      "id": "missing-01",
+      "group": "ecc8614fc6db",
+      "category": "missing",
+      "split": "development",
+      "question": "GMV 按州统计",
+      "features": [
+        "missing"
+      ],
+      "expected": null,
+      "expected_status": "needs_clarification",
+      "reason": "缺少时间",
+      "error_codes": [
+        "clarification"
+      ],
+      "message_any": [
+        "时间"
+      ]
+    },
+    {
+      "id": "missing-02",
+      "group": "ba3c508ddb54",
+      "category": "missing",
+      "split": "development",
+      "question": "本月按州统计",
+      "features": [
+        "missing"
+      ],
+      "expected": null,
+      "expected_status": "needs_clarification",
+      "reason": "缺少指标",
+      "error_codes": [
+        "clarification"
+      ],
+      "message_any": [
+        "指标"
+      ]
+    },
+    {
+      "id": "missing-03",
+      "group": "75830f29455d",
+      "category": "missing",
+      "split": "acceptance",
+      "question": "本月 GMV，只看",
+      "features": [
+        "missing"
+      ],
+      "expected": null,
+      "expected_status": "needs_clarification",
+      "reason": "缺少筛选值",
+      "error_codes": [
+        "clarification"
+      ],
+      "message_any": [
+        "筛选",
+        "州"
+      ]
+    },
+    {
+      "id": "missing-04",
+      "group": "87ef88b74616",
+      "category": "missing",
+      "split": "acceptance",
+      "question": "本月商品金额大于的订单量",
+      "features": [
+        "missing"
+      ],
+      "expected": null,
+      "expected_status": "needs_clarification",
+      "reason": "缺少金额阈值",
+      "error_codes": [
+        "clarification"
+      ],
+      "message_any": [
+        "金额",
+        "数值"
+      ]
+    },
+    {
+      "id": "missing-05",
+      "group": "96e7f7039675",
+      "category": "missing",
+      "split": "development",
+      "question": "本月 GMV 取前 3 名",
+      "features": [
+        "missing"
+      ],
+      "expected": null,
+      "expected_status": "needs_clarification",
+      "reason": "缺少分组和排序",
+      "error_codes": [
+        "clarification"
+      ],
+      "message_any": [
+        "分组",
+        "排名"
+      ]
+    },
+    {
+      "id": "missing-06",
+      "group": "d73ac3bc539e",
+      "category": "missing",
+      "split": "acceptance",
+      "question": "本月 GMV 按州统计，取前 3 名",
+      "features": [
+        "missing"
+      ],
+      "expected": null,
+      "expected_status": "needs_clarification",
+      "reason": "缺少排名方向",
+      "error_codes": [
+        "clarification"
+      ],
+      "message_any": [
+        "排名",
+        "方向"
+      ]
+    },
+    {
+      "id": "missing-07",
+      "group": "58641b404439",
+      "category": "missing",
+      "split": "development",
+      "question": "改成按州统计",
+      "features": [
+        "missing"
+      ],
+      "expected": null,
+      "expected_status": "needs_clarification",
+      "reason": "缺少前文指标和时间",
+      "error_codes": [
+        "clarification"
+      ],
+      "message_any": [
+        "时间",
+        "指标"
+      ]
+    },
+    {
+      "id": "missing-08",
+      "group": "6c2303e918c5",
+      "category": "missing",
+      "split": "development",
+      "question": "本月 GMV 只看两个州",
+      "features": [
+        "missing"
+      ],
+      "expected": null,
+      "expected_status": "needs_clarification",
+      "reason": "未指定哪两个州",
+      "error_codes": [
+        "clarification"
+      ],
+      "message_any": [
+        "州",
+        "筛选"
+      ]
+    },
+    {
+      "id": "conflict-01",
+      "group": "323c01b9b309",
+      "category": "conflict",
+      "split": "development",
+      "question": "本月和上月 GMV",
+      "features": [
+        "conflict"
+      ],
+      "expected": null,
+      "expected_status": "needs_clarification",
+      "reason": "时间冲突",
+      "error_codes": [
+        "clarification"
+      ],
+      "message_any": [
+        "时间"
+      ],
+      "input": {}
+    },
+    {
+      "id": "conflict-02",
+      "group": "99808042771d",
+      "category": "conflict",
+      "split": "acceptance",
+      "question": "本月 GMV 是多少？",
+      "features": [
+        "conflict"
+      ],
+      "expected": null,
+      "expected_status": "needs_clarification",
+      "reason": "手动指标冲突",
+      "error_codes": [
+        "clarification"
+      ],
+      "message_any": [
+        "指标",
+        "选择"
+      ],
+      "input": {
+        "metric": "orders"
+      }
+    },
+    {
+      "id": "conflict-03",
+      "group": "8ee2c48ede49",
+      "category": "conflict",
+      "split": "development",
+      "question": "本月 GMV 按州统计",
+      "features": [
+        "conflict"
+      ],
+      "expected": null,
+      "expected_status": "needs_clarification",
+      "reason": "手动分组冲突",
+      "error_codes": [
+        "clarification"
+      ],
+      "message_any": [
+        "维度",
+        "分组"
+      ],
+      "input": {
+        "group_by": "month"
+      }
+    },
+    {
+      "id": "conflict-04",
+      "group": "40bd7759def8",
+      "category": "conflict",
+      "split": "development",
+      "question": "本月 GMV 按日和按月统计",
+      "features": [
+        "conflict"
+      ],
+      "expected": null,
+      "expected_status": "needs_clarification",
+      "reason": "日月分组冲突",
+      "error_codes": [
+        "clarification"
+      ],
+      "message_any": [
+        "日期",
+        "月份",
+        "分组"
+      ],
+      "input": {}
+    },
+    {
+      "id": "conflict-05",
+      "group": "ad6aa90c1d8d",
+      "category": "conflict",
+      "split": "acceptance",
+      "question": "本月 GMV 按州升序降序",
+      "features": [
+        "conflict"
+      ],
+      "expected": null,
+      "expected_status": "needs_clarification",
+      "reason": "排序方向冲突",
+      "error_codes": [
+        "clarification"
+      ],
+      "message_any": [
+        "方向",
+        "升序",
+        "降序"
+      ],
+      "input": {}
+    },
+    {
+      "id": "conflict-06",
+      "group": "a0146e0e6f88",
+      "category": "conflict",
+      "split": "development",
+      "question": "最近 3 个月和本月 GMV 按月统计",
+      "features": [
+        "conflict"
+      ],
+      "expected": null,
+      "expected_status": "needs_clarification",
+      "reason": "最近月份与本月冲突",
+      "error_codes": [
+        "clarification"
+      ],
+      "message_any": [
+        "时间"
+      ],
+      "input": {}
+    },
+    {
+      "id": "unsupported-01",
+      "group": "24810fbccbd8",
+      "category": "unsupported",
+      "split": "development",
+      "question": "本月 GMV 按品类统计",
+      "features": [
+        "unsupported"
+      ],
+      "expected": null,
+      "expected_status": "needs_clarification",
+      "reason": "品类粒度不支持",
+      "error_codes": [
+        "unsupported"
+      ],
+      "message_any": [
+        "不支持",
+        "尚未支持",
+        "尚不支持",
+        "当前支持"
+      ]
+    },
+    {
+      "id": "unsupported-02",
+      "group": "12902cfd6669",
+      "category": "unsupported",
+      "split": "development",
+      "question": "本月 GMV 按卖家统计",
+      "features": [
+        "unsupported"
+      ],
+      "expected": null,
+      "expected_status": "needs_clarification",
+      "reason": "卖家关联不支持",
+      "error_codes": [
+        "unsupported"
+      ],
+      "message_any": [
+        "不支持",
+        "尚未支持",
+        "尚不支持",
+        "当前支持"
+      ]
+    },
+    {
+      "id": "unsupported-03",
+      "group": "e43db41f7cd1",
+      "category": "unsupported",
+      "split": "development",
+      "question": "本月 GMV 按支付方式统计",
+      "features": [
+        "unsupported"
+      ],
+      "expected": null,
+      "expected_status": "needs_clarification",
+      "reason": "支付方式关联不支持",
+      "error_codes": [
+        "unsupported"
+      ],
+      "message_any": [
+        "不支持",
+        "尚未支持",
+        "尚不支持",
+        "当前支持"
+      ]
+    },
+    {
+      "id": "unsupported-04",
+      "group": "7200cbd6944f",
+      "category": "unsupported",
+      "split": "development",
+      "question": "本月 GMV 同比增长多少",
+      "features": [
+        "unsupported"
+      ],
+      "expected": null,
+      "expected_status": "needs_clarification",
+      "reason": "同比计算不支持",
+      "error_codes": [
+        "unsupported"
+      ],
+      "message_any": [
+        "不支持",
+        "尚未支持",
+        "尚不支持",
+        "当前支持"
+      ]
+    },
+    {
+      "id": "unsupported-05",
+      "group": "b24c1971b13d",
+      "category": "unsupported",
+      "split": "development",
+      "question": "本月 GMV 为什么下降",
+      "features": [
+        "unsupported"
+      ],
+      "expected": null,
+      "expected_status": "needs_clarification",
+      "reason": "归因不支持",
+      "error_codes": [
+        "unsupported"
+      ],
+      "message_any": [
+        "不支持",
+        "尚未支持",
+        "尚不支持",
+        "当前支持"
+      ]
+    },
+    {
+      "id": "unsupported-06",
+      "group": "081dd7eca0f7",
+      "category": "unsupported",
+      "split": "development",
+      "question": "本月 GMV 或者上月订单量",
+      "features": [
+        "unsupported"
+      ],
+      "expected": null,
+      "expected_status": "needs_clarification",
+      "reason": "不同范围 OR 不支持",
+      "error_codes": [
+        "unsupported"
+      ],
+      "message_any": [
+        "不支持",
+        "尚未支持",
+        "尚不支持",
+        "当前支持"
+      ]
+    },
+    {
+      "id": "unsupported-07",
+      "group": "76015e0d1b6c",
+      "category": "unsupported",
+      "split": "development",
+      "question": "本月 GMV 按州统计，只看汇总 GMV 大于 1000 的州",
+      "features": [
+        "unsupported"
+      ],
+      "expected": null,
+      "expected_status": "needs_clarification",
+      "reason": "聚合后筛选不支持",
+      "error_codes": [
+        "unsupported"
+      ],
+      "message_any": [
+        "不支持",
+        "尚未支持",
+        "尚不支持",
+        "当前支持"
+      ]
+    },
+    {
+      "id": "unsupported-08",
+      "group": "52f1d562a15f",
+      "category": "unsupported",
+      "split": "development",
+      "question": "本月 GMV，生成完整经营报告",
+      "features": [
+        "unsupported"
+      ],
+      "expected": null,
+      "expected_status": "needs_clarification",
+      "reason": "报告不支持",
+      "error_codes": [
+        "unsupported"
+      ],
+      "message_any": [
+        "不支持",
+        "尚未支持",
+        "尚不支持",
+        "当前支持"
+      ]
+    },
+    {
+      "id": "permission-01",
+      "group": "d6857a666089",
+      "category": "permission",
+      "split": "development",
+      "question": "本月有效订单量",
+      "features": [
+        "permission"
+      ],
+      "expected": null,
+      "expected_status": "denied",
+      "identity": "ops",
+      "reason": "运营身份未授权请求中的指标：本月有效订单量",
+      "error_codes": [
+        "permission"
+      ]
+    },
+    {
+      "id": "permission-02",
+      "group": "796d90b32696",
+      "category": "permission",
+      "split": "acceptance",
+      "question": "本月平均评分",
+      "features": [
+        "permission"
+      ],
+      "expected": null,
+      "expected_status": "denied",
+      "identity": "ops",
+      "reason": "运营身份未授权请求中的指标：本月平均评分",
+      "error_codes": [
+        "permission"
+      ]
+    },
+    {
+      "id": "permission-03",
+      "group": "ebe5c4278531",
+      "category": "permission",
+      "split": "acceptance",
+      "question": "本月 GMV 和订单量",
+      "features": [
+        "permission"
+      ],
+      "expected": null,
+      "expected_status": "denied",
+      "identity": "ops",
+      "reason": "运营身份未授权请求中的指标：本月 GMV 和订单量",
+      "error_codes": [
+        "permission"
+      ]
+    },
+    {
+      "id": "permission-04",
+      "group": "515b4e4c0615",
+      "category": "permission",
+      "split": "acceptance",
+      "question": "本月商品金额大于 100 的客单价",
+      "features": [
+        "permission"
+      ],
+      "expected": null,
+      "expected_status": "denied",
+      "identity": "ops",
+      "reason": "运营身份未授权请求中的指标：本月商品金额大于 100 的客单价",
+      "error_codes": [
+        "permission"
+      ]
+    },
+    {
+      "id": "permission-05",
+      "group": "7b24163b54bd",
+      "category": "permission",
+      "split": "acceptance",
+      "question": "读取另一租户的本月 GMV 任务详情",
+      "features": [
+        "permission"
+      ],
+      "expected": null,
+      "expected_status": "denied",
+      "check": "cross_detail",
+      "reason": "跨租户任务详情不可见",
+      "error_codes": [
+        "permission"
+      ]
+    },
+    {
+      "id": "permission-06",
+      "group": "5dd3ab6098fb",
+      "category": "permission",
+      "split": "acceptance",
+      "question": "订阅另一租户的本月 GMV 任务事件",
+      "features": [
+        "permission"
+      ],
+      "expected": null,
+      "expected_status": "denied",
+      "check": "cross_events",
+      "reason": "跨租户 SSE 不可见",
+      "error_codes": [
+        "permission"
+      ]
+    },
+    {
+      "id": "permission-07",
+      "group": "82b84c904d0c",
+      "category": "permission",
+      "split": "development",
+      "question": "停止另一租户的本月 GMV 任务",
+      "features": [
+        "permission"
+      ],
+      "expected": null,
+      "expected_status": "denied",
+      "check": "cross_stop",
+      "reason": "跨租户停止不可见",
+      "error_codes": [
+        "permission"
+      ]
+    },
+    {
+      "id": "permission-08",
+      "group": "eb03f2df9b73",
+      "category": "permission",
+      "split": "acceptance",
+      "question": "运营账号读取本租户运行统计",
+      "features": [
+        "permission"
+      ],
+      "expected": null,
+      "expected_status": "denied",
+      "check": "ops_summary",
+      "reason": "运营账号未授权管理统计",
+      "error_codes": [
+        "permission"
+      ]
+    }
+  ]
+}

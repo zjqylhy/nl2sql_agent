@@ -1,0 +1,329 @@
+{
+  "$defs": {
+    "Case": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "group": {
+          "title": "Group",
+          "type": "string"
+        },
+        "category": {
+          "enum": [
+            "common",
+            "unfamiliar",
+            "missing",
+            "conflict",
+            "unsupported",
+            "permission"
+          ],
+          "title": "Category",
+          "type": "string"
+        },
+        "split": {
+          "enum": [
+            "development",
+            "acceptance"
+          ],
+          "title": "Split",
+          "type": "string"
+        },
+        "question": {
+          "title": "Question",
+          "type": "string"
+        },
+        "features": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Features",
+          "type": "array"
+        },
+        "input": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "title": "Input",
+          "type": "object"
+        },
+        "identity": {
+          "default": "admin",
+          "enum": [
+            "admin",
+            "ops"
+          ],
+          "title": "Identity",
+          "type": "string"
+        },
+        "expected": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExpectedPlan"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "expected_status": {
+          "enum": [
+            "completed",
+            "needs_clarification",
+            "denied"
+          ],
+          "title": "Expected Status",
+          "type": "string"
+        },
+        "reason": {
+          "default": "",
+          "title": "Reason",
+          "type": "string"
+        },
+        "error_codes": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Error Codes",
+          "type": "array"
+        },
+        "message_any": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Message Any",
+          "type": "array"
+        },
+        "check": {
+          "default": "query",
+          "enum": [
+            "query",
+            "cross_detail",
+            "cross_events",
+            "cross_stop",
+            "ops_summary"
+          ],
+          "title": "Check",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "group",
+        "category",
+        "split",
+        "question",
+        "features",
+        "expected_status"
+      ],
+      "title": "Case",
+      "type": "object"
+    },
+    "ExpectedPlan": {
+      "additionalProperties": false,
+      "properties": {
+        "metrics": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 3,
+          "minItems": 1,
+          "title": "Metrics",
+          "type": "array"
+        },
+        "dimensions": {
+          "items": {
+            "enum": [
+              "state",
+              "day",
+              "month"
+            ],
+            "type": "string"
+          },
+          "maxItems": 2,
+          "title": "Dimensions",
+          "type": "array"
+        },
+        "time_range": {
+          "$ref": "#/$defs/Window"
+        },
+        "filters": {
+          "items": {
+            "$ref": "#/$defs/Filter"
+          },
+          "maxItems": 8,
+          "title": "Filters",
+          "type": "array"
+        },
+        "order_by": {
+          "items": {
+            "$ref": "#/$defs/Ordering"
+          },
+          "maxItems": 3,
+          "title": "Order By",
+          "type": "array"
+        },
+        "top_n": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Top N"
+        }
+      },
+      "required": [
+        "metrics",
+        "dimensions",
+        "time_range",
+        "filters",
+        "order_by",
+        "top_n"
+      ],
+      "title": "ExpectedPlan",
+      "type": "object"
+    },
+    "Filter": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "enum": [
+            "state",
+            "status",
+            "amount"
+          ],
+          "title": "Field",
+          "type": "string"
+        },
+        "op": {
+          "enum": [
+            "eq",
+            "ne",
+            "in",
+            "not_in",
+            "gt",
+            "gte",
+            "lt",
+            "lte"
+          ],
+          "title": "Op",
+          "type": "string"
+        },
+        "values": {
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Values",
+          "type": "array"
+        }
+      },
+      "required": [
+        "field",
+        "op",
+        "values"
+      ],
+      "title": "Filter",
+      "type": "object"
+    },
+    "Ordering": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "title": "Field",
+          "type": "string"
+        },
+        "direction": {
+          "enum": [
+            "asc",
+            "desc"
+          ],
+          "title": "Direction",
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "direction"
+      ],
+      "title": "Ordering",
+      "type": "object"
+    },
+    "Window": {
+      "additionalProperties": false,
+      "properties": {
+        "start": {
+          "title": "Start",
+          "type": "string"
+        },
+        "end_exclusive": {
+          "title": "End Exclusive",
+          "type": "string"
+        }
+      },
+      "required": [
+        "start",
+        "end_exclusive"
+      ],
+      "title": "Window",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1,
+      "title": "Version",
+      "type": "integer"
+    },
+    "annotation_status": {
+      "enum": [
+        "draft",
+        "human_reviewed"
+      ],
+      "title": "Annotation Status",
+      "type": "string"
+    },
+    "reviewer": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Reviewer"
+    },
+    "analysis_date": {
+      "const": "2018-08-31",
+      "title": "Analysis Date",
+      "type": "string"
+    },
+    "cases": {
+      "items": {
+        "$ref": "#/$defs/Case"
+      },
+      "title": "Cases",
+      "type": "array"
+    }
+  },
+  "required": [
+    "version",
+    "annotation_status",
+    "reviewer",
+    "analysis_date",
+    "cases"
+  ],
+  "title": "Dataset",
+  "type": "object"
+}
