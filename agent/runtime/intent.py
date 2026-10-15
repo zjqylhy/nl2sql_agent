@@ -214,7 +214,7 @@ def unconsumed_terms(question: str) -> str:
 def rule_remainder(question: str) -> str:
     # 完整消费受限表达，未知维度、筛选和否定条件不能静默变成整体查询。
     remainder = unconsumed_terms(question)
-    remainder = re.sub(r"帮我|给我|请问|请|查询|查一下|查看|统计|计算|有效|巴西|整体|总体|合计|是多少|有多少|多少|如何|怎么样|分组|指定时间|指标|的|为|是|和|与|及|或|州|从|到|至|起|止|不包含|结束日", "", remainder)
+    remainder = re.sub(r"帮我|给我|请问|请|查询|查一下|查看|统计|计算|有效|巴西|整体|总体|合计|是多少|有多少|多少|如何|怎么样|分组|指定时间|指标|的|为|是|和|与|及|或|州|从|到|至|起|止|结束日", "", remainder)
     return re.sub(r"[\s，,。；;？?！!、：:（）()]+", "", remainder)
 
 

@@ -15,11 +15,11 @@ from . import telemetry
 from . import readiness
 from .model_transport import ModelTransport, ModelConfigurationError
 
-from .intent import Clarification, Intent, RuleMiss, question_constraints, rules_intent, period_bounds
+from .intent import Clarification, RuleMiss
 from .security import UnsafeSQL, validate_sql
 from .catalog import catalog
-from .plan import QueryPlan, from_intent, compile_plan, normalize_result
-from .plan_parser import requires_plan, plan_constraints
+from .plan import QueryPlan, compile_plan, normalize_result
+from .plan_parser import plan_constraints
 from .multiturn import QueryContext, source_metadata, resolve_followup
 
 
@@ -75,82 +75,15 @@ def authenticated(x_service_key: str = Header(default="")):
         raise HTTPException(401, "内部服务鉴权失败")
 
 
-def checked_window(intent: Intent, anchor: date) -> tuple[date, date]:
-    start, end = period_bounds(intent, anchor)
-    if (end - start).days > 3660 or end > anchor + timedelta(days=1):
-        raise HTTPException(422, "时间范围超出已配置分析基准，请缩小范围")
-    return start, end
-
-
-def parse_intent(request: QueryRequest, anchor: date) -> tuple[Intent, dict]:
-    overrides = request.input.model_dump(exclude={"question"}, exclude_defaults=True)
-    constraints = question_constraints(request.input.question, overrides)
-    if not request.allowed_metrics or (constraints.metric and constraints.metric not in request.allowed_metrics):
-        raise HTTPException(403, "没有该指标权限")
-    if constraints.period:
-        # 时间约束可独立检查；占位指标仅用于复用日期模型，不参与查询或权限判断。
-        checked_window(Intent(metric="gmv", period=constraints.period, start=constraints.start, end=constraints.end), anchor)
-    try:
-        with telemetry.stage("rules"):
-            intent = rules_intent(request.input.question, overrides, constraints)
-        telemetry.update(parser="rules", input_tokens=0, output_tokens=0, total_tokens=0)
-        return intent, {"parser": "rules", "tokens": 0}
-    except RuleMiss:
-        if not os.getenv("LLM_API_KEY"):
-            raise
-    try:
-        transport = ModelTransport.from_env()
-    except ModelConfigurationError:
-        telemetry.update(error_code="model_config")
-        raise HTTPException(503, "模型配置不完整")
-    model = transport.model
-    prompt = "你是 Olist 电商单指标查询意图解析器。只输出 JSON，不生成 SQL。metric 必须是 " + ",".join(request.allowed_metrics) + "; period 为 today/yesterday/this_week/last_week/this_month/last_month/custom；group_by 只允许空字符串或 state（巴西州）；states 为巴西州代码数组；custom 的 start/end 为 YYYY-MM-DD 左闭右开区间，其余 start/end 为 null。不要猜测缺失时间，不支持归因/对比/报告/渠道/品类。无法明确解析时返回 {\"clarification\":\"简洁澄清问题\"}。"
-    prompt += "成功时仅返回 metric、period、group_by、start、end、states 六个字段，禁止增加其他字段。分析基准日期为 " + str(anchor) + "。以下已确定条件必须保留：" + json.dumps(constraints.prompt_values(), ensure_ascii=False) + "。只补齐未识别字段，不得忽略任何筛选、分组或否定表达；条件无法用允许的字段表达时必须澄清。"
-    if constraints.states_complete:
-        prompt += "州筛选已经完整确定，states 必须与约束数组完全一致，不得新增州。"
-    else:
-        prompt += "请解析问题中的州名并补齐 states，同时保留约束中已有的州代码。"
-    if constraints.requires_filter:
-        prompt += "问题有明确的州筛选要求，states 不得为空；无法识别州名时返回澄清。"
-    model_usage = {"parser": "llm", "model": model, "tokens": None}
-    try:
-        with telemetry.stage("model"), transport.client() as client:
-            telemetry.update(parser="llm", model=model[:100], model_calls=1, input_tokens=None, output_tokens=None, total_tokens=None)
-            response = transport.post(client, prompt, request.input.question, transport.intent_max_tokens)
-            response.raise_for_status()
-            data = response.json()
-        usage = data.get("usage") or {}
-        telemetry.usage(usage)
-        model_usage["tokens"] = usage.get("total_tokens")
-        if data["choices"][0].get("finish_reason") == "length":
-            raise ValueError("truncated intent")
-        content = json.loads(data["choices"][0]["message"]["content"])
-        if "clarification" in content:
-            if set(content) != {"clarification"} or not isinstance(content["clarification"], str) or not content["clarification"].strip():
-                raise ValueError("invalid clarification")
-            raise Clarification(content["clarification"][:200])
-        with telemetry.stage("plan_validation"):
-            intent = Intent.model_validate(content)
-            constraints.validate(intent)
-        return intent, model_usage
-    except Clarification as exc:
-        # 兜底后要求澄清同样消耗模型 Token，不能漏记这条路径的用量。
-        exc.usage = model_usage
-        raise
-    except (httpx.HTTPError, ValueError, KeyError, IndexError, TypeError, AttributeError) as exc:
-        telemetry.model_error(exc)
-        raise HTTPException(503, "模型解析失败，请使用明确的指标和时间重试") from exc
-
-
 def parse_query_plan(request: QueryRequest, anchor: date) -> tuple[QueryPlan, dict]:
     overrides = request.input.model_dump(exclude={"question"}, exclude_defaults=True)
-    if not requires_plan(request.input.question, overrides):
-        intent, usage = parse_intent(request, anchor)
-        return from_intent(intent, anchor), usage
+    if not request.allowed_metrics:
+        raise HTTPException(403, "没有已授权指标")
     constraints = plan_constraints(request.input.question, overrides, anchor)
+    telemetry.rule_decision(constraints.recognition, "initial")
     if not request.allowed_metrics or any(m not in request.allowed_metrics for m in constraints.metrics):
         raise HTTPException(403, "没有全部所请求指标的权限")
-    if constraints.time_range.end_exclusive > anchor + timedelta(days=1):
+    if constraints.time_range and constraints.time_range.end_exclusive > anchor + timedelta(days=1):
         raise HTTPException(422, "时间范围超出已配置分析基准，请缩小范围")
     try:
         with telemetry.stage("rules"):
@@ -171,8 +104,13 @@ def parse_query_plan(request: QueryRequest, anchor: date) -> tuple[QueryPlan, di
     requires_state, complete = values.pop("requires_state"), values.pop("filters_complete")
     prompt = "你是 Olist 查询计划解析器。仅输出 JSON，禁止 SQL、表达式、租户或数据源。无法完整表示问题时仅返回 {\"clarification\":\"简洁澄清问题\"}。成功响应必须符合以下 schema，禁止额外字段：" + json.dumps(QueryPlan.model_json_schema(), ensure_ascii=False)
     prompt += "仅允许指标 " + json.dumps(request.allowed_metrics) + "；维度 " + json.dumps(list(c.dimensions)) + "；筛选字段及值 " + json.dumps({k:v.model_dump(exclude={"column"}) for k,v in c.filters.items()}, ensure_ascii=False)
-    prompt += "以下明确条件必须保留，仅补齐未识别项：" + json.dumps(values, ensure_ascii=False) + "。禁止猜测或遗漏条件。金额为订单商品金额，不含运费。日期左闭右开。"
-    prompt += "筛选已完整确定，不得新增筛选。" if complete else "可补齐问题中的州名，不能新增未提及条件。"
+    prompt += "指标业务定义=" + json.dumps({k: {"name": v.name, "definition": v.definition, "unit": v.unit}
+        for k, v in c.metrics.items() if k in request.allowed_metrics}, ensure_ascii=False)
+    prompt += "分析基准日=" + str(anchor) + "。根据完整用户原文理解否定、修饰和条件作用范围。confirmed 为必须保留的明确条件，hints 仅供参考，不能覆盖原文含义：" + json.dumps(values, ensure_ascii=False) + "。禁止猜测或遗漏条件。金额为订单商品金额，不含运费。日期左闭右开。不支持新维度、关联、同比环比、归因和报告，不得删去不支持条件后返回部分计划。"
+    if complete:
+        prompt += "筛选已完整确定，不得新增筛选。"
+    else:
+        prompt += "根据完整原文确定未识别的筛选及其包含、排除或取消含义，不能新增未提及条件。"
     if requires_state:
         prompt += "必须保留州筛选，州名无法确定则澄清。"
     usage = {"parser": "llm", "model": model, "tokens": None}
@@ -194,6 +132,8 @@ def parse_query_plan(request: QueryRequest, anchor: date) -> tuple[QueryPlan, di
             plan = QueryPlan.model_validate(content)
             constraints.validate(plan)
             plan.check_anchor(anchor)
+            if any(m not in request.allowed_metrics for m in plan.metrics):
+                raise HTTPException(403, "没有全部所请求指标的权限")
         return plan, usage
     except Clarification as exc:
         exc.usage = usage

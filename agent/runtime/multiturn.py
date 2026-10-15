@@ -4,7 +4,6 @@ import json
 import os
 import re
 from datetime import date, timedelta
-from decimal import Decimal
 from typing import Annotated, Literal, Union
 
 import httpx
@@ -15,7 +14,8 @@ from . import telemetry
 from .catalog import StrictModel, catalog
 from .intent import ALIASES, PERIODS, STATES, Clarification, Unsupported, Intent, period_bounds
 from .model_transport import ModelTransport, ModelConfigurationError
-from .plan import QueryPlan, TimeRange, Filter, Ordering
+from .plan import QueryPlan, TimeRange, Filter, Ordering, validate_filters
+from .query_grammar import recognize, canonical_followup
 
 
 class SetMetrics(StrictModel):
@@ -176,26 +176,10 @@ def apply_operations(base, operations, anchor):
                 notes.append("改为整体，移除了排名和 Top N")
             data.update(top_n=None, order_by=[])
     seed = Seed.model_validate({k:v for k,v in data.items() if k != "version"})
-    # 筛选以 AND 组合；空枚举交集与矛盾金额区间应澄清，不能伪装成无数据。
-    for field in ("state", "status"):
-        possible = set(catalog().filters[field].values)
-        for condition in seed.filters:
-            if condition.field != field: continue
-            if condition.op in ("eq", "in"): possible &= set(condition.values)
-            else: possible -= set(condition.values)
-        if not possible: raise Clarification("筛选条件相互矛盾，请明确保留哪些条件。")
-    low, high, excluded = Decimal(0), None, set()
-    for condition in seed.filters:
-        if condition.field != "amount": continue
-        value = Decimal(condition.values[0])
-        if condition.op == "ne": excluded.add(value)
-        if condition.op in ("eq", "gt", "gte"):
-            low = max(low, value + (Decimal("0.01") if condition.op == "gt" else 0))
-        if condition.op in ("eq", "lt", "lte"):
-            ceiling = value - (Decimal("0.01") if condition.op == "lt" else 0)
-            high = ceiling if high is None else min(high, ceiling)
-    if high is not None and (low > high or low == high and low in excluded):
-        raise Clarification("商品金额筛选相互矛盾，请明确区间。")
+    try:
+        validate_filters(seed.filters)
+    except ValueError as exc:
+        raise Clarification(str(exc)) from exc
     missing = []
     if not seed.metrics: missing.append("metrics")
     if seed.time_range is None: missing.append("time_range")
@@ -234,7 +218,7 @@ def normalize_question(question):
     return re.sub(r"(?:最近|近)半年", "最近 6 个月", question)
 
 
-def rule_delta(question, base, pending, anchor, overrides):
+def _extract_rule_delta(question, base, pending, anchor, overrides, reset_state=False):
     q = normalize_question(question)
     if re.search(r"品类|卖家|支付方式|同比|环比|归因|为什么|为何|报告|利润|营收|城市|或|(?i:\bOR\b)|再往前", q):
         raise Unsupported("当前多轮支持修改指标、时间、州和日/月分组及筛选；该分析尚未支持。")
@@ -321,7 +305,7 @@ def rule_delta(question, base, pending, anchor, overrides):
                 positive = [f for f in working.filters if f.field == "state" and f.op in ("eq", "in")]
                 if len(positive) != 1: raise Clarification("增加州需要一个明确的现有州集合。")
                 states = list(dict.fromkeys(positive[0].values + states))
-            ops.append(field_operation(Filter(field="state", op="not_in" if negative else "in", values=states), not negative))
+            ops.append(field_operation(Filter(field="state", op="not_in" if negative else "in", values=states), not negative or reset_state))
             q = re.sub(r"(?<![a-zA-Z])[A-Z]{2}(?![a-zA-Z])", "", q)
         elif not named or re.search(r"[一二两三四五六七八九十\d]+个?州|几个州", q):
             missing.append("states"); q = re.sub(r"[一二两三四五六七八九十\d]+个?州|几个州", "", q)
@@ -360,6 +344,27 @@ def rule_delta(question, base, pending, anchor, overrides):
     return Delta(operations=ops), list(dict.fromkeys(missing)), allowed, q
 
 
+ALL_TARGETS = {"set_metrics", "set_dimensions", "set_time_range", "set_order_by", "set_top_n",
+    "filters:state", "filters:status", "filters:amount"}
+
+
+def rule_delta(question, base, pending, anchor, overrides):
+    parsed = recognize(question)
+    telemetry.rule_decision(parsed, "followup")
+    if parsed.unknown:
+        # 未覆盖子句可能改变局部匹配的操作，只有手动选择可以锁定模型。
+        delta, _, _, _ = _extract_rule_delta("", base, pending, anchor, overrides)
+        return delta, [], set(ALL_TARGETS), "unknown_clause"
+    canonical = canonical_followup(parsed)
+    reset = any(c.kind == "state" and "看其他州" in c.text for c in parsed.clauses)
+    delta, missing, allowed, remainder = _extract_rule_delta(canonical, base, pending, anchor, overrides, reset)
+    if any(c.kind in ("state", "named_state") and re.search("圣保罗|里约", c.text) for c in parsed.clauses):
+        delta = Delta(operations=[op for op in delta.operations if operation_target(op, {}) != "filters:state"])
+    if not parsed.complete and not missing:
+        remainder = remainder or "unresolved_clause"
+    return delta, missing, allowed | parsed.targets, remainder
+
+
 def merge_operations(previous, current, filters):
     changed = {operation_target(o, filters) for o in current}
     return [o for o in previous if operation_target(o, filters) not in changed] + current
@@ -372,7 +377,7 @@ def resolve_followup(request, anchor, parse_initial):
     if pending and pending.base_hash != plan_hash(base): raise HTTPException(409, "草稿上下文已变化，请新建问数")
     if any(m not in request.allowed_metrics for m in (base.metrics if base else [])):
         raise HTTPException(403, "上下文指标权限已变化，请新建问数")
-    question = normalize_question(request.input.question)
+    question = request.input.question
     restart = bool(re.match(r"(?:重新开始|新查询|新的查询|另一个问题)[，,:：\s]*", question))
     if restart:
         question = re.sub(r"^(?:重新开始|新查询|新的查询|另一个问题)[，,:：\s]*", "", question)
@@ -394,13 +399,13 @@ def resolve_followup(request, anchor, parse_initial):
     usage = initial_usage or {"parser": "rules", "tokens": 0}
     complete_expression = not remainder
     if remainder and not missing:
-        if initial_usage or not os.getenv("LLM_API_KEY") or not allowed:
+        if initial_usage or not os.getenv("LLM_API_KEY"):
             missing.append("expression")
         else:
             try: transport = ModelTransport.from_env()
             except ModelConfigurationError: raise HTTPException(503, "模型配置不完整") from None
             prompt = "你是受控追问解析器。仅返回 operations JSON 或 {clarification:简短问题}，禁止完整计划、SQL、租户和数据源。操作必须完整表达用户修改，未涉及字段不能修改。schema=" + json.dumps(Delta.model_json_schema(), ensure_ascii=False)
-            prompt += "允许的修改目标=" + json.dumps(sorted(allowed)) + "；当前计划=" + json.dumps(parsing_base.model_dump(mode="json") if parsing_base else None)
+            prompt += "根据完整原文解释否定及修改范围；无法完整理解或表达时必须澄清。不得忽略不支持的关联、比较、归因或报告请求。允许的修改目标=" + json.dumps(sorted(allowed or ALL_TARGETS)) + "；分析基准日=" + str(anchor) + "；当前计划=" + json.dumps(parsing_base.model_dump(mode="json") if parsing_base else None)
             prompt += "当前草稿=" + json.dumps(pending.model_dump(mode="json") if pending else None) + "；筛选 ID=" + json.dumps(filters) + "；明确操作必须保留=" + json.dumps(delta.model_dump(mode="json"))
             prompt += "授权指标=" + json.dumps(request.allowed_metrics) + "；维度=" + json.dumps(list(catalog().dimensions)) + "；筛选枚举=" + json.dumps({k:v.model_dump(exclude={"column"}) for k,v in catalog().filters.items()}, ensure_ascii=False)
             try:
@@ -413,11 +418,13 @@ def resolve_followup(request, anchor, parse_initial):
                 choice = body["choices"][0]
                 if choice.get("finish_reason") == "length": raise ValueError("truncated delta")
                 content = json.loads(choice["message"]["content"])
-                if isinstance(content, dict) and set(content) == {"clarification"} and isinstance(content["clarification"], str):
+                if isinstance(content, dict) and set(content) == {"clarification"} and isinstance(content["clarification"], str) and content["clarification"].strip():
                     missing.append("expression")
                 else:
                     proposal = Delta.model_validate(content)
-                    if any(operation_target(o, filters) not in allowed for o in proposal.operations): raise Clarification("解析修改了未提出的条件，请明确追问。")
+                    if not proposal.operations:
+                        raise ValueError("empty model delta")
+                    if any(operation_target(o, filters) not in (allowed or ALL_TARGETS) for o in proposal.operations): raise Clarification("解析修改了未提出的条件，请明确追问。")
                     # 确认的操作不可被模型覆盖；枚举等价的完整核对由候选计划完成。
                     for op in known:
                         if op.model_dump(mode="json") not in [o.model_dump(mode="json") for o in proposal.operations]:

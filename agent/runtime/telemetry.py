@@ -33,6 +33,15 @@ def update(**values):
         value.update(values)
 
 
+def rule_decision(recognition, mode):
+    # 只记录语法标识和区间，既能定位错误直出，也不记录用户原文及筛选值。
+    logger.info(json.dumps({"event": "rule_decision", "mode": mode,
+        "status": "complete" if recognition.complete else "uncovered",
+        "reason": "unknown_clause" if recognition.unknown else "full_grammar" if recognition.complete else "unbound_entity",
+        "clauses": [{"kind": c.kind, "start": c.start, "end": c.end} for c in recognition.clauses],
+        "unknown_spans": recognition.unknown}, ensure_ascii=False))
+
+
 def usage(data):
     # 提供商未报告用量时保持未知，不能从输出长度推算成真实账单。
     def token(name):

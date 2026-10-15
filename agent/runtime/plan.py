@@ -9,6 +9,29 @@ from .catalog import StrictModel, catalog
 from .intent import Intent, period_bounds
 
 
+def validate_filters(filters):
+    """AND 筛选不能形成空枚举集合或矛盾金额区间，首轮和追问共用检查。"""
+    for name in ("state", "status"):
+        possible = set(catalog().filters[name].values)
+        for condition in filters:
+            if condition.field != name: continue
+            if condition.op in ("eq", "in"): possible &= set(condition.values)
+            else: possible -= set(condition.values)
+        if not possible: raise ValueError("筛选条件相互矛盾，请明确保留哪些条件")
+    low, high, excluded = Decimal(0), None, set()
+    for condition in filters:
+        if condition.field != "amount": continue
+        value = Decimal(condition.values[0])
+        if condition.op == "ne": excluded.add(value)
+        if condition.op in ("eq", "gt", "gte"):
+            low = max(low, value + (Decimal("0.01") if condition.op == "gt" else 0))
+        if condition.op in ("eq", "lt", "lte"):
+            ceiling = value - (Decimal("0.01") if condition.op == "lt" else 0)
+            high = ceiling if high is None else min(high, ceiling)
+    if high is not None and (low > high or low == high and low in excluded):
+        raise ValueError("商品金额筛选相互矛盾，请明确区间")
+
+
 class TimeRange(StrictModel):
     start: date
     end_exclusive: date
@@ -59,6 +82,7 @@ class QueryPlan(StrictModel):
     @model_validator(mode="after")
     def valid_combinations(self):
         c = catalog()
+        validate_filters(self.filters)
         if len(set(self.metrics)) != len(self.metrics) or any(m not in c.metrics for m in self.metrics):
             raise ValueError("指标无效或重复")
         if len(set(self.dimensions)) != len(self.dimensions) or any(d not in c.dimensions for d in self.dimensions):

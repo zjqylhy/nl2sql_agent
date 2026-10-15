@@ -81,6 +81,18 @@ def test_clarification_does_not_execute(client, monkeypatch):
 
 
 def mock_model(monkeypatch, content, status=200):
+    # 保留原测试的业务条件变异，模型夹具改为统一 QueryPlan 协议。
+    if "metric" in content:
+        legacy = dict(content)
+        period = legacy.pop("period", "this_month")
+        start, end = {"this_month": ("2018-08-01", "2018-09-01"),
+            "last_month": ("2018-07-01", "2018-08-01")}.get(period, (legacy.get("start"), legacy.get("end")))
+        content = {"metrics": [legacy.pop("metric")], "dimensions": [legacy["group_by"]] if legacy.get("group_by") else [],
+            "time_range": {"start": legacy.pop("start", None) or start, "end_exclusive": legacy.pop("end", None) or end},
+            "filters": [{"field": "state", "op": "in", "values": legacy["states"]}] if legacy.get("states") else []}
+        legacy.pop("states", None)
+        legacy.pop("group_by", None)
+        content.update(legacy)
     monkeypatch.setenv("LLM_API_KEY", "test-key-no-production")
     monkeypatch.setenv("LLM_BASE_URL", "https://provider.example")
     monkeypatch.setenv("LLM_MODEL", "test-model")
@@ -93,7 +105,7 @@ def mock_model(monkeypatch, content, status=200):
     return requests
 
 
-def test_model_intent_contract(client, monkeypatch):
+def test_model_plan_contract(client, monkeypatch):
     calls = mock_model(monkeypatch, {"metric": "gmv", "period": "this_month", "group_by": "state", "states": ["SP"]})
     executions = []
     def execute(source, sql, params):
@@ -103,7 +115,7 @@ def test_model_intent_contract(client, monkeypatch):
     response = client.post("/internal/query", headers={"X-Service-Key": "s" * 40}, json=request(question="本月圣保罗州销售额，按州统计"))
     assert response.status_code == 200 and response.json()["usage"]["parser"] == "llm"
     assert executions == [["2018-08-01", "2018-09-01", "SP"]]
-    assert set(calls[0]) == {"model", "messages", "max_tokens"} and calls[0]["max_tokens"] == 256
+    assert set(calls[0]) == {"model", "messages", "max_tokens"} and calls[0]["max_tokens"] == 512
     assert "test-key-no-production" not in response.text
 
 
@@ -177,7 +189,7 @@ def test_rule_miss_without_model_needs_clarification(client, monkeypatch):
 
 @pytest.mark.parametrize("question", [
     "GMV", "本月", "本月上月 GMV", "本月 GMV 只看", "本月 GMV 只看 ZZ 州",
-    "本月 GMV 按渠道", "本月 GMV 按支付方式和州统计", "本月 GMV 按未知分类", "本月 GMV 只看金额超过 100 的订单",
+    "本月 GMV 按渠道", "本月 GMV 按支付方式和州统计", "本月 GMV 只看金额超过 100 的订单",
     "2018-02-30 至 2018-03-01 GMV", "2018-08-31 至 2018-08-01 GMV",
 ])
 def test_ambiguous_or_unsupported_queries_skip_model_and_database(client, monkeypatch, question):
@@ -186,6 +198,13 @@ def test_ambiguous_or_unsupported_queries_skip_model_and_database(client, monkey
     response = client.post("/internal/query", headers={"X-Service-Key": "s" * 40}, json=request(question=question))
     assert response.json()["status"] == "needs_clarification"
     assert calls == []
+
+
+def test_unknown_group_is_interpreted_by_model_before_clarifying(client, monkeypatch):
+    calls = mock_model(monkeypatch, {"clarification": "请明确分组维度"})
+    monkeypatch.setattr(runtime, "execute", lambda *args: pytest.fail("unknown group executed"))
+    response = client.post("/internal/query", headers={"X-Service-Key": "s" * 40}, json=request(question="本月 GMV 按未知分类"))
+    assert response.json()["status"] == "needs_clarification" and len(calls) == 1
 
 
 @pytest.mark.parametrize("body", [

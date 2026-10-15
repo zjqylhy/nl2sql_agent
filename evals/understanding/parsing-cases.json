@@ -1,0 +1,1005 @@
+{
+  "version": 1,
+  "annotation_status": "draft",
+  "reviewer": null,
+  "analysis_date": "2018-08-31",
+  "cases": [
+    {
+      "case": {
+        "id": "parsing-01",
+        "group": "state-in-SP",
+        "category": "common",
+        "split": "development",
+        "question": "本月 GMV，只看 SP",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": {
+          "metrics": [
+            "gmv"
+          ],
+          "dimensions": [],
+          "time_range": {
+            "start": "2018-08-01",
+            "end_exclusive": "2018-09-01"
+          },
+          "filters": [
+            {
+              "field": "state",
+              "op": "in",
+              "values": [
+                "SP"
+              ]
+            }
+          ],
+          "order_by": [],
+          "top_n": null
+        },
+        "expected_status": "completed"
+      },
+      "base": null
+    },
+    {
+      "case": {
+        "id": "parsing-02",
+        "group": "state-in-SP",
+        "category": "common",
+        "split": "development",
+        "question": "本月 GMV，只看 sp",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": {
+          "metrics": [
+            "gmv"
+          ],
+          "dimensions": [],
+          "time_range": {
+            "start": "2018-08-01",
+            "end_exclusive": "2018-09-01"
+          },
+          "filters": [
+            {
+              "field": "state",
+              "op": "in",
+              "values": [
+                "SP"
+              ]
+            }
+          ],
+          "order_by": [],
+          "top_n": null
+        },
+        "expected_status": "completed"
+      },
+      "base": null
+    },
+    {
+      "case": {
+        "id": "parsing-03",
+        "group": "state-not_in-SP",
+        "category": "common",
+        "split": "development",
+        "question": "本月 GMV，不包含 SP",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": {
+          "metrics": [
+            "gmv"
+          ],
+          "dimensions": [],
+          "time_range": {
+            "start": "2018-08-01",
+            "end_exclusive": "2018-09-01"
+          },
+          "filters": [
+            {
+              "field": "state",
+              "op": "not_in",
+              "values": [
+                "SP"
+              ]
+            }
+          ],
+          "order_by": [],
+          "top_n": null
+        },
+        "expected_status": "completed"
+      },
+      "base": null
+    },
+    {
+      "case": {
+        "id": "parsing-04",
+        "group": "state-not_in-SP",
+        "category": "common",
+        "split": "development",
+        "question": "本月 GMV，排除 SP",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": {
+          "metrics": [
+            "gmv"
+          ],
+          "dimensions": [],
+          "time_range": {
+            "start": "2018-08-01",
+            "end_exclusive": "2018-09-01"
+          },
+          "filters": [
+            {
+              "field": "state",
+              "op": "not_in",
+              "values": [
+                "SP"
+              ]
+            }
+          ],
+          "order_by": [],
+          "top_n": null
+        },
+        "expected_status": "completed"
+      },
+      "base": null
+    },
+    {
+      "case": {
+        "id": "parsing-05",
+        "group": "state-not_in-SP",
+        "category": "common",
+        "split": "development",
+        "question": "本月 GMV，不看 sp，看其他州",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": {
+          "metrics": [
+            "gmv"
+          ],
+          "dimensions": [],
+          "time_range": {
+            "start": "2018-08-01",
+            "end_exclusive": "2018-09-01"
+          },
+          "filters": [
+            {
+              "field": "state",
+              "op": "not_in",
+              "values": [
+                "SP"
+              ]
+            }
+          ],
+          "order_by": [],
+          "top_n": null
+        },
+        "expected_status": "completed"
+      },
+      "base": null
+    },
+    {
+      "case": {
+        "id": "parsing-06",
+        "group": "state-in-SP-RJ",
+        "category": "common",
+        "split": "development",
+        "question": "本月 GMV，只看 SP 和 RJ",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": {
+          "metrics": [
+            "gmv"
+          ],
+          "dimensions": [],
+          "time_range": {
+            "start": "2018-08-01",
+            "end_exclusive": "2018-09-01"
+          },
+          "filters": [
+            {
+              "field": "state",
+              "op": "in",
+              "values": [
+                "SP",
+                "RJ"
+              ]
+            }
+          ],
+          "order_by": [],
+          "top_n": null
+        },
+        "expected_status": "completed"
+      },
+      "base": null
+    },
+    {
+      "case": {
+        "id": "parsing-07",
+        "group": "state-not_in-SP-RJ",
+        "category": "common",
+        "split": "development",
+        "question": "本月 GMV，不包含 SP 和 RJ",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": {
+          "metrics": [
+            "gmv"
+          ],
+          "dimensions": [],
+          "time_range": {
+            "start": "2018-08-01",
+            "end_exclusive": "2018-09-01"
+          },
+          "filters": [
+            {
+              "field": "state",
+              "op": "not_in",
+              "values": [
+                "SP",
+                "RJ"
+              ]
+            }
+          ],
+          "order_by": [],
+          "top_n": null
+        },
+        "expected_status": "completed"
+      },
+      "base": null
+    },
+    {
+      "case": {
+        "id": "parsing-08",
+        "group": "all-states",
+        "category": "common",
+        "split": "development",
+        "question": "本月 GMV，不要只看 SP，查看全部州",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": {
+          "metrics": [
+            "gmv"
+          ],
+          "dimensions": [],
+          "time_range": {
+            "start": "2018-08-01",
+            "end_exclusive": "2018-09-01"
+          },
+          "filters": [],
+          "order_by": [],
+          "top_n": null
+        },
+        "expected_status": "completed"
+      },
+      "base": null
+    },
+    {
+      "case": {
+        "id": "parsing-09",
+        "group": "all-states",
+        "category": "common",
+        "split": "development",
+        "question": "本月 GMV，只看 SP，查看全部州",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": {
+          "metrics": [
+            "gmv"
+          ],
+          "dimensions": [],
+          "time_range": {
+            "start": "2018-08-01",
+            "end_exclusive": "2018-09-01"
+          },
+          "filters": [],
+          "order_by": [],
+          "top_n": null
+        },
+        "expected_status": "completed"
+      },
+      "base": null
+    },
+    {
+      "case": {
+        "id": "parsing-10",
+        "group": "all-states",
+        "category": "unfamiliar",
+        "split": "development",
+        "question": "本月 GMV，千万别只看 sp，剩余州都算上",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": {
+          "metrics": [
+            "gmv"
+          ],
+          "dimensions": [],
+          "time_range": {
+            "start": "2018-08-01",
+            "end_exclusive": "2018-09-01"
+          },
+          "filters": [],
+          "order_by": [],
+          "top_n": null
+        },
+        "expected_status": "completed"
+      },
+      "base": null
+    },
+    {
+      "case": {
+        "id": "parsing-11",
+        "group": "state-not_in-SP",
+        "category": "unfamiliar",
+        "split": "development",
+        "question": "本月 GMV，不是只看 SP，而是排除 SP",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": {
+          "metrics": [
+            "gmv"
+          ],
+          "dimensions": [],
+          "time_range": {
+            "start": "2018-08-01",
+            "end_exclusive": "2018-09-01"
+          },
+          "filters": [
+            {
+              "field": "state",
+              "op": "not_in",
+              "values": [
+                "SP"
+              ]
+            }
+          ],
+          "order_by": [],
+          "top_n": null
+        },
+        "expected_status": "completed"
+      },
+      "base": null
+    },
+    {
+      "case": {
+        "id": "parsing-12",
+        "group": "month",
+        "category": "unfamiliar",
+        "split": "development",
+        "question": "本月 GMV，别仅按州汇总，按月给我",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": {
+          "metrics": [
+            "gmv"
+          ],
+          "dimensions": [
+            "month"
+          ],
+          "time_range": {
+            "start": "2018-08-01",
+            "end_exclusive": "2018-09-01"
+          },
+          "filters": [],
+          "order_by": [],
+          "top_n": null
+        },
+        "expected_status": "completed"
+      },
+      "base": null
+    },
+    {
+      "case": {
+        "id": "parsing-13",
+        "group": "scalar",
+        "category": "unfamiliar",
+        "split": "development",
+        "question": "本月 GMV，别把订单量也算进来",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": {
+          "metrics": [
+            "gmv"
+          ],
+          "dimensions": [],
+          "time_range": {
+            "start": "2018-08-01",
+            "end_exclusive": "2018-09-01"
+          },
+          "filters": [],
+          "order_by": [],
+          "top_n": null
+        },
+        "expected_status": "completed"
+      },
+      "base": null
+    },
+    {
+      "case": {
+        "id": "parsing-14",
+        "group": "state-not_in-SP",
+        "category": "unfamiliar",
+        "split": "development",
+        "question": "本月 GMV，排除圣保罗州",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": {
+          "metrics": [
+            "gmv"
+          ],
+          "dimensions": [],
+          "time_range": {
+            "start": "2018-08-01",
+            "end_exclusive": "2018-09-01"
+          },
+          "filters": [
+            {
+              "field": "state",
+              "op": "not_in",
+              "values": [
+                "SP"
+              ]
+            }
+          ],
+          "order_by": [],
+          "top_n": null
+        },
+        "expected_status": "completed"
+      },
+      "base": null
+    },
+    {
+      "case": {
+        "id": "parsing-15",
+        "group": "followup-取消州筛选",
+        "category": "common",
+        "split": "development",
+        "question": "取消州筛选",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": {
+          "metrics": [
+            "gmv"
+          ],
+          "dimensions": [
+            "month"
+          ],
+          "time_range": {
+            "start": "2018-08-01",
+            "end_exclusive": "2018-09-01"
+          },
+          "filters": [],
+          "order_by": [],
+          "top_n": null
+        },
+        "expected_status": "completed"
+      },
+      "base": {
+        "metrics": [
+          "gmv"
+        ],
+        "dimensions": [
+          "month"
+        ],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "SP"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      }
+    },
+    {
+      "case": {
+        "id": "parsing-16",
+        "group": "followup-不要只看 SP，查看全部州",
+        "category": "common",
+        "split": "development",
+        "question": "不要只看 SP，查看全部州",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": {
+          "metrics": [
+            "gmv"
+          ],
+          "dimensions": [
+            "month"
+          ],
+          "time_range": {
+            "start": "2018-08-01",
+            "end_exclusive": "2018-09-01"
+          },
+          "filters": [],
+          "order_by": [],
+          "top_n": null
+        },
+        "expected_status": "completed"
+      },
+      "base": {
+        "metrics": [
+          "gmv"
+        ],
+        "dimensions": [
+          "month"
+        ],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "SP"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      }
+    },
+    {
+      "case": {
+        "id": "parsing-17",
+        "group": "followup-不看 sp，看其他州",
+        "category": "common",
+        "split": "development",
+        "question": "不看 sp，看其他州",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": {
+          "metrics": [
+            "gmv"
+          ],
+          "dimensions": [
+            "month"
+          ],
+          "time_range": {
+            "start": "2018-08-01",
+            "end_exclusive": "2018-09-01"
+          },
+          "filters": [
+            {
+              "field": "state",
+              "op": "not_in",
+              "values": [
+                "SP"
+              ]
+            }
+          ],
+          "order_by": [],
+          "top_n": null
+        },
+        "expected_status": "completed"
+      },
+      "base": {
+        "metrics": [
+          "gmv"
+        ],
+        "dimensions": [
+          "month"
+        ],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "SP"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      }
+    },
+    {
+      "case": {
+        "id": "parsing-18",
+        "group": "preserve-amount",
+        "category": "common",
+        "split": "development",
+        "question": "不要只看 SP，查看全部州",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": {
+          "metrics": [
+            "gmv"
+          ],
+          "dimensions": [
+            "month"
+          ],
+          "time_range": {
+            "start": "2018-08-01",
+            "end_exclusive": "2018-09-01"
+          },
+          "filters": [
+            {
+              "field": "amount",
+              "op": "gt",
+              "values": [
+                "100"
+              ]
+            }
+          ],
+          "order_by": [],
+          "top_n": null
+        },
+        "expected_status": "completed"
+      },
+      "base": {
+        "metrics": [
+          "gmv"
+        ],
+        "dimensions": [
+          "month"
+        ],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "SP"
+            ]
+          },
+          {
+            "field": "amount",
+            "op": "gt",
+            "values": [
+              "100"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      }
+    },
+    {
+      "case": {
+        "id": "parsing-19",
+        "group": "unknown-dimension-followup",
+        "category": "unfamiliar",
+        "split": "development",
+        "question": "换个角度，用一张州别汇总给我",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": {
+          "metrics": [
+            "gmv"
+          ],
+          "dimensions": [
+            "state"
+          ],
+          "time_range": {
+            "start": "2018-08-01",
+            "end_exclusive": "2018-09-01"
+          },
+          "filters": [
+            {
+              "field": "state",
+              "op": "in",
+              "values": [
+                "SP"
+              ]
+            }
+          ],
+          "order_by": [],
+          "top_n": null
+        },
+        "expected_status": "completed"
+      },
+      "base": {
+        "metrics": [
+          "gmv"
+        ],
+        "dimensions": [
+          "month"
+        ],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "SP"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      }
+    },
+    {
+      "case": {
+        "id": "parsing-20",
+        "group": "unknown-clear-followup",
+        "category": "unfamiliar",
+        "split": "development",
+        "question": "千万不要只看 SP",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": {
+          "metrics": [
+            "gmv"
+          ],
+          "dimensions": [
+            "month"
+          ],
+          "time_range": {
+            "start": "2018-08-01",
+            "end_exclusive": "2018-09-01"
+          },
+          "filters": [],
+          "order_by": [],
+          "top_n": null
+        },
+        "expected_status": "completed"
+      },
+      "base": {
+        "metrics": [
+          "gmv"
+        ],
+        "dimensions": [
+          "month"
+        ],
+        "time_range": {
+          "start": "2018-08-01",
+          "end_exclusive": "2018-09-01"
+        },
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "SP"
+            ]
+          }
+        ],
+        "order_by": [],
+        "top_n": null
+      }
+    },
+    {
+      "case": {
+        "id": "parsing-21",
+        "group": "boundary-GMV，只看 SP",
+        "category": "missing",
+        "split": "development",
+        "question": "GMV，只看 SP",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": null,
+        "expected_status": "needs_clarification",
+        "reason": "缺少时间",
+        "error_codes": [
+          "clarification"
+        ],
+        "message_any": [
+          "时间"
+        ]
+      },
+      "base": null
+    },
+    {
+      "case": {
+        "id": "parsing-22",
+        "group": "boundary-GMV，只看圣保罗州",
+        "category": "missing",
+        "split": "development",
+        "question": "GMV，只看圣保罗州",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": null,
+        "expected_status": "needs_clarification",
+        "reason": "缺少时间",
+        "error_codes": [
+          "clarification"
+        ],
+        "message_any": [
+          "时间"
+        ]
+      },
+      "base": null
+    },
+    {
+      "case": {
+        "id": "parsing-23",
+        "group": "boundary-本月上月 GMV",
+        "category": "conflict",
+        "split": "development",
+        "question": "本月上月 GMV",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": null,
+        "expected_status": "needs_clarification",
+        "reason": "时间冲突",
+        "error_codes": [
+          "clarification"
+        ],
+        "message_any": [
+          "时间"
+        ]
+      },
+      "base": null
+    },
+    {
+      "case": {
+        "id": "parsing-24",
+        "group": "boundary-本月 GMV，不要只看 SP",
+        "category": "missing",
+        "split": "development",
+        "question": "本月 GMV，不要只看 SP",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": null,
+        "expected_status": "needs_clarification",
+        "reason": "首轮范围不明确",
+        "error_codes": [
+          "clarification"
+        ],
+        "message_any": [
+          "识别",
+          "范围"
+        ]
+      },
+      "base": null
+    },
+    {
+      "case": {
+        "id": "parsing-25",
+        "group": "boundary-本月 GMV，只看 SP，但不要排除 RJ",
+        "category": "conflict",
+        "split": "development",
+        "question": "本月 GMV，只看 SP，但不要排除 RJ",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": null,
+        "expected_status": "needs_clarification",
+        "reason": "包含范围矛盾",
+        "error_codes": [
+          "clarification"
+        ],
+        "message_any": [
+          "识别",
+          "冲突",
+          "范围"
+        ]
+      },
+      "base": null
+    },
+    {
+      "case": {
+        "id": "parsing-26",
+        "group": "boundary-本月 GMV 按品类统计",
+        "category": "unsupported",
+        "split": "development",
+        "question": "本月 GMV 按品类统计",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": null,
+        "expected_status": "needs_clarification",
+        "reason": "品类未支持",
+        "error_codes": [
+          "unsupported"
+        ],
+        "message_any": [
+          "支持"
+        ]
+      },
+      "base": null
+    },
+    {
+      "case": {
+        "id": "parsing-27",
+        "group": "boundary-本月 GMV 同比",
+        "category": "unsupported",
+        "split": "development",
+        "question": "本月 GMV 同比",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": null,
+        "expected_status": "needs_clarification",
+        "reason": "比较未支持",
+        "error_codes": [
+          "unsupported"
+        ],
+        "message_any": [
+          "支持"
+        ]
+      },
+      "base": null
+    },
+    {
+      "case": {
+        "id": "parsing-28",
+        "group": "permission",
+        "category": "permission",
+        "split": "development",
+        "question": "本月平均评分",
+        "features": [
+          "scope",
+          "negation"
+        ],
+        "expected": null,
+        "expected_status": "denied",
+        "reason": "评分未授权",
+        "error_codes": [
+          "permission"
+        ],
+        "message_any": [],
+        "identity": "ops"
+      },
+      "base": null
+    }
+  ]
+}
