@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "4f369d65-181e-4c18-a57f-8ac953c3f5c8",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "C:\\Users\\LHY95\\Documents\\Codex\\nl2sql_agent\\.archify\\architecture-python-agent-target-20261017-041515\\candidate.json",
+  "output": "C:\\Users\\LHY95\\Documents\\Codex\\nl2sql_agent\\.archify\\architecture-python-agent-target-20261017-041515\\python-agent-target.html",
+  "specification": {
+    "sha256": "bfa58fab9078ec431e3e58654cc088afde496fcdde51dd5a95c3f5a6744a9b77",
+    "bytes": 4805
+  },
+  "artifact": {
+    "sha256": "b2c820d0d7b7af2a1f8b10bcf2ed11e3418ff6c4b2e1d66f6fd079d05f636eb0",
+    "bytes": 763162
+  }
+}

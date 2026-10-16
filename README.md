@@ -16,6 +16,8 @@
 
 [有限经营分析助手](docs/business-analysis-implementation.md)已完成首版代码与本地验证，支持逐步选择工具、两期下降核查、Top N 合计、确定性计算、澄清与中断恢复。功能默认关闭；真实模型 A/B/C 评测、题集人工复核和发布验收尚未完成。[技术方案](docs/business-analysis-assistant-design.md)保留扩展前已有能力与新增能力的划分及流程图。
 
+面向 AI / Agent 应用后端的[Python 单栈目标方案](docs/python-agent-target-spec.md)已重新按业务约束选型：FastAPI + LangGraph + PostgreSQL + React，包含替代方案、目标架构图、失败恢复和分阶段验收。该方案待技术确认、尚未实现；下文启动方式及上述首版验证仍对应当前 Go/Python 基线。
+
 ## Windows 本地启动
 
 需要 Docker Desktop（Linux containers）、Docker Compose。源码调试另需 Go 1.27、Python 3.12、Node.js 24。数据库和数据均存本地，不提交 Git。
