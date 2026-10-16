@@ -135,6 +135,10 @@ def compile_plan(plan: QueryPlan, *, dialect="mysql") -> tuple[str, list]:
         clauses = []
         for o in order:
             alias = f"d_{o.field}" if o.field in plan.dimensions else f"m{plan.metrics.index(o.field)}_value"
+            if o.field in plan.metrics and dialect == "postgres":
+                # PG 只允许排序项直接引用输出别名，不能将别名用于 IS NULL 表达式。
+                clauses.append(alias + " " + o.direction.upper() + " NULLS LAST")
+                continue
             if o.field in plan.metrics:
                 clauses.append(alias + " IS NULL ASC")
             clauses.append(alias + " " + o.direction.upper())

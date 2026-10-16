@@ -189,6 +189,7 @@ def decision_prompt(request, anchor):
 SPEC: {goal:compare_declines|top_n_total,current:{start:YYYY-MM-DD,end_exclusive:YYYY-MM-DD},baseline:period|null,ranking:absolute|rate|null,n:1..10,filters:[],checks:[]}.
 For top_n_total baseline and ranking MUST both be null. ranking=absolute|rate applies only to compare_declines.
 checks may contain orders,aov,share when explicitly requested with top_n_total. For aov sum gmv/orders over the same selected states then divide; for share sum selected GMV and whole-scope GMV then divide. Never average aov.
+If share is requested, query complete state groups with top_n=null, sum scope=top_n for selected GMV/orders and scope=returned_groups for whole-scope GMV. This avoids a second SQL query. Include orders in the query when orders or aov is requested.
 Do not guess missing dates, N, or whether decline means absolute amount or rate. For missing conditions ask request_clarification. Preserve all user filters. Dates use the supplied historical anchor, not today's date. State means Brazilian state. GMV excludes freight and canceled/unavailable; aov=GMV/valid orders. No causality, new dimensions, SQL, code or data sources.
 Tools (exact argument keys):
 lookup_metrics {metrics:[gmv,orders,aov]}

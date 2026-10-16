@@ -734,6 +734,28 @@ def test_completed_history_survives_code_upgrade_but_cannot_resume(platform, mon
     assert repo.claim(True) is None
 
 
+@pytest.mark.parametrize("direction", ["asc", "desc"])
+@pytest.mark.parametrize("top_n", [None, 3])
+def test_postgres_metric_sort_keeps_nulls_last_and_stable_ties(platform, direction, top_n):
+    _, repo, source = platform
+    from agent.runtime.plan import QueryPlan
+    from decimal import Decimal
+    with repo.db.transaction() as conn:
+        conn.execute("DELETE FROM analytics_fixture.order_facts")
+        for state, amount in [("SP", None), ("RJ", "10.01"), ("MG", "10.01"), ("AC", "0.00"), ("BA", "20.02")]:
+            conn.execute("INSERT INTO analytics_fixture.order_facts VALUES(%s,'2018-07-01',%s,'delivered',%s,NULL,NULL)", (state, state, amount))
+    plan = QueryPlan.model_validate({"metrics": ["orders", "gmv", "aov"], "dimensions": ["state"],
+        "time_range": {"start": "2018-07-01", "end_exclusive": "2018-08-01"},
+        "order_by": [{"field": "gmv", "direction": direction}], "top_n": top_n})
+    result = runtime.execute_plan(source, plan, ["gmv", "orders", "aov"], {})
+    expected = ["BA", "MG", "RJ", "AC", "SP"] if direction == "desc" else ["AC", "MG", "RJ", "BA", "SP"]
+    assert [r["dimensions"]["state"] for r in result["rows"]] == expected[:top_n]
+    values = {r["dimensions"]["state"]: r["values"]["gmv"]["value"] for r in result["rows"]}
+    assert Decimal(values["MG"]) == Decimal("10.01")
+    if top_n is None:
+        assert values["SP"] is None and Decimal(values["AC"]) == 0
+
+
 def test_retention_advances_across_multiple_batches(platform):
     _, repo, _ = platform
     from agent.platform_app.repository import new_state
