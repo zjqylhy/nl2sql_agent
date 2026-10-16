@@ -57,7 +57,7 @@ class Ledger:
             key = hashlib.sha256(canonical([run["binding"], snapshot.get("spec"), payload]).encode()).hexdigest()
             cached = conn.execute("SELECT output FROM analysis_steps WHERE run_id=%s AND action_key=%s AND status='completed' ORDER BY sequence DESC LIMIT 1", (run["id"], key)).fetchone() if phase == "tool" else None
             if phase == "decide":
-                if state["model_calls"] >= 10 or state["tokens"] + policy.reserved_tokens > 30000 or state["cost"] + policy.reserved_cost > policy.max_cost:
+                if state["model_calls"] >= 10 or state["tokens"] + policy.reserved_tokens > policy.max_tokens or state["cost"] + policy.reserved_cost > policy.max_cost:
                     raise BudgetExceeded("模型调用、Token 或费用预算已耗尽")
                 state["model_calls"] += 1
                 state["tokens"] += policy.reserved_tokens

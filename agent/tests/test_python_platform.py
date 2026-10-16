@@ -248,7 +248,7 @@ def test_unknown_model_never_resent(platform, monkeypatch, unknown_after_crash, 
 def test_reasoning_output_limit_is_frozen_reserved_and_settled(platform, monkeypatch):
     client, repo, _ = platform
     from agent.platform_app import graph
-    client.app.state.policy = POLICY.model_copy(update={"max_output_tokens": 4096, "model_timeout_seconds": 45})
+    client.app.state.policy = POLICY.model_copy(update={"max_output_tokens": 4096, "model_timeout_seconds": 45, "max_tokens": 50000})
     calls = []
     def decide(request):
         assert request.max_output_tokens == 4096
@@ -256,7 +256,7 @@ def test_reasoning_output_limit_is_frozen_reserved_and_settled(platform, monkeyp
         calls.append(request)
         current = request.spec or Spec.model_validate(spec())
         return {"status": "completed", "model_sent": True,
-            "usage": {"prompt_tokens": 100, "completion_tokens": 2048},
+            "usage": {"prompt_tokens": 100, "completion_tokens": 3500},
             "decision": next_action(current, request.artifacts)}
     monkeypatch.setattr(graph, "decide", decide)
     run_id = client.post("/api/analysis-runs", json={"question": "含推理 Token 的决策", "request_id": str(uuid4())}).json()["id"]
@@ -264,13 +264,15 @@ def test_reasoning_output_limit_is_frozen_reserved_and_settled(platform, monkeyp
     client.app.state.policy = POLICY
     monkeypatch.setenv("ANALYSIS_MODEL_MAX_OUTPUT_TOKENS", "1024")
     monkeypatch.setenv("ANALYSIS_MODEL_TIMEOUT_SECONDS", "20")
+    monkeypatch.setenv("ANALYSIS_MAX_TOKENS", "30000")
     run_once(repo)
     run = client.get("/api/analysis-runs/"+run_id).json()
     assert run["status"] == "completed", run
-    assert run["usage"]["known_tokens"] == 2148 * len(calls) and run["usage"]["unknown_calls"] == 0
+    assert run["usage"]["known_tokens"] == 3600 * len(calls) and run["usage"]["unknown_calls"] == 0
+    assert run["policy"]["max_tokens"] == 50000
     with repo.db.transaction() as conn:
         rows = conn.execute("SELECT reserved_tokens,actual_tokens,status FROM analysis_budget_ledger WHERE run_id=%s", (run_id,)).fetchall()
-        assert rows and all(r == {"reserved_tokens": 10096, "actual_tokens": 2148, "status": "settled"} for r in rows)
+        assert rows and all(r == {"reserved_tokens": 10096, "actual_tokens": 3600, "status": "settled"} for r in rows)
 
 
 @pytest.mark.parametrize("always_timeout", [False, True])
