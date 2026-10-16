@@ -109,3 +109,42 @@ def test_mysql_semantic_plan_preserves_grain_and_recalculates_ratios(mysql_sourc
     plan = plan_constraints("本月商品金额大于100的订单量", {}, mysql_source.analysis_date).rules_plan()
     sql, params = compile_plan(plan)
     assert execute(mysql_source,sql,params)[0]["m0_value"] == "1"
+
+
+def test_analysis_fixed_pipeline_uses_real_authorized_view(mysql_source, monkeypatch):
+    """同一真实只读视图贯穿查询、合计、客单价和报告，不替换 SQL 执行器。"""
+    from fastapi.testclient import TestClient
+    from runtime import app as runtime
+    from runtime.analysis import Spec
+    from runtime.analysis_api import Identity, context
+    from runtime.analysis_fixed import next_action
+
+    source = mysql_source.model_copy(update={"dataset_revision": "d" * 64})
+    monkeypatch.setattr(runtime, "sources", lambda: {"alpha:ops": source})
+    monkeypatch.setenv("SERVICE_KEY", "s" * 40)
+    identity = {"tenant_id": "alpha", "role": "ops", "allowed_metrics": ["gmv", "orders", "aov"]}
+    binding = context(Identity.model_validate(identity))["binding"]
+    spec = Spec.model_validate({"goal": "top_n_total", "current": {"start": "2018-08-01", "end_exclusive": "2018-09-01"},
+                                "n": 1, "checks": ["orders", "aov", "share"]})
+    artifacts, actions = [], []
+    with TestClient(runtime.app) as client:
+        for _ in range(10):
+            decision = next_action(spec, artifacts)
+            actions.append(decision["action"]["action"])
+            response = client.post("/internal/analysis/tool", headers={"X-Service-Key": "s" * 40}, json={
+                **identity, "binding": binding, "question": "GMV 第一州的合计、订单、客单价及占比", "spec": decision["spec"],
+                "artifacts": artifacts, "action": decision["action"]})
+            assert response.status_code == 200
+            body = response.json()
+            assert body["status"] == "completed", body
+            artifacts.append(body["artifact"])
+            if artifacts[-1]["kind"] == "report":
+                break
+    report = artifacts[-1]["data"]
+    assert artifacts[-1]["kind"] == "report" and report["complete"]
+    assert report["total"]["states"] == ["SP"]
+    assert float(report["total"]["value"]) == 150
+    assert float(report["extras"]["orders"]["value"]) == 2
+    assert float(report["extras"]["aov"]["value"]) == 75
+    assert float(report["extras"]["share"]["value"]) == 1
+    assert actions.count("query_metrics") == 1

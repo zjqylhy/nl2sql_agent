@@ -16,17 +16,22 @@ func (s *Server) RunWorker(ctx context.Context) {
 	ticker := time.NewTicker(250 * time.Millisecond)
 	defer ticker.Stop()
 	slots := make(chan struct{}, 50)
+	lastAnalysisCleanup := time.Time{}
 	for {
 		select {
 		case <-ctx.Done():
 			return
 		case <-ticker.C:
+			if s.Config.Analysis != nil && time.Since(lastAnalysisCleanup) >= time.Minute {
+				_ = s.DB.ExpireAnalysisInputs(ctx)
+				lastAnalysisCleanup = time.Now()
+			}
 			select {
 			case slots <- struct{}{}:
 			default:
 				continue
 			}
-			t, err := s.DB.Claim(ctx)
+			t, err := s.DB.ClaimWithAnalysis(ctx, s.Config.Analysis != nil)
 			if err != nil {
 				if !errors.Is(err, store.ErrMissing) {
 					slog.Error("task claim failed")
@@ -40,6 +45,10 @@ func (s *Server) RunWorker(ctx context.Context) {
 }
 
 func (s *Server) execute(ctx context.Context, t store.Task) {
+	if t.Kind == "analysis" {
+		s.executeAnalysis(ctx, t)
+		return
+	}
 	started := time.Now()
 	zeroCalls, zeroTokens := 0, int64(0)
 	trace := &store.Telemetry{Version: 1, TaskID: t.ID, ExecutionVersion: t.Version, Parser: "unknown", ModelCalls: &zeroCalls, InputTokens: &zeroTokens, OutputTokens: &zeroTokens, TotalTokens: &zeroTokens, Stages: map[string]float64{}}

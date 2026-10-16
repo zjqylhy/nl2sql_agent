@@ -31,10 +31,13 @@ class Spec(StrictModel):
     ranking: Literal["absolute", "rate"] | None = None
     n: int = Field(default=3, ge=1, le=10, strict=True)
     filters: list[Filter] = Field(default_factory=list, max_length=7)
+    checks: list[Literal["orders", "aov", "share"]] = Field(default_factory=list, max_length=3)
 
     @model_validator(mode="after")
     def valid(self):
         validate_filters(self.filters)
+        if len(set(self.checks)) != len(self.checks):
+            raise ValueError("附加核查不能重复")
         for period in [self.current, self.baseline]:
             if period and (period.end_exclusive - period.start).days > 366:
                 raise ValueError("每期不得超过 366 天")
@@ -119,8 +122,15 @@ class Clarify(StrictModel):
     arguments: ClarifyArgs
 
 
+class Finding(StrictModel):
+    kind: str = Field(min_length=1, max_length=40)
+    result_ref: str = Field(min_length=1, max_length=64)
+    state: str | None = Field(default=None, max_length=2)
+
+
 class FinishArgs(StrictModel):
     evidence_refs: list[str] = Field(min_length=1, max_length=12)
+    findings: list[Finding] = Field(default_factory=list, max_length=9)
 
 
 class Finish(StrictModel):
@@ -145,7 +155,9 @@ def filters_key(filters):
 
 
 def metric_ids(spec):
-    return ["gmv", "orders", "aov"] if spec and spec.goal == "compare_declines" else ["gmv"]
+    if spec and (spec.goal == "compare_declines" or "aov" in spec.checks):
+        return ["gmv", "orders", "aov"]
+    return ["gmv", "orders"] if spec and "orders" in spec.checks else ["gmv"]
 
 
 def artifact(kind, data, metrics, binding):
@@ -173,6 +185,11 @@ def validate_query(plan, spec, artifacts, binding):
     base, actual = filters_key(spec.filters), filters_key(plan.filters)
     if actual != base:
         choices = [a["data"]["states"] for a in artifacts if a["kind"] == "selection" and a["binding"] == binding]
+        if spec.goal == "top_n_total":
+            for a in artifacts:
+                if a["kind"] == "query" and a["binding"] == binding and "gmv" in a["data"]["plan"]["metrics"] and a["data"].get("quality_complete"):
+                    if sorted(canonical(f) for f in a["data"]["plan"]["filters"]) == base:
+                        choices.append([r["dimensions"]["state"] for r in sorted_gmv(a["data"]["candidate_rows"])[:spec.n]])
         if not any(actual == filters_key(spec.filters + [Filter(field="state", op="in", values=states)]) for states in choices if states):
             reject(message="补查只能在原筛选上收窄到已选州")
     if spec.goal == "compare_declines" and plan.top_n is not None:
@@ -225,7 +242,7 @@ def compare(args, artifacts, spec, binding):
     a, b = [evidence(ref, artifacts, binding, "query")["data"] for ref in [args.baseline_ref, args.current_ref]]
     if a["plan"]["time_range"] != spec.baseline.model_dump(mode="json") or b["plan"]["time_range"] != spec.current.model_dump(mode="json"):
         reject(message="基期和报告期引用顺序错误")
-    if a["plan"]["filters"] != b["plan"]["filters"] or a["coverage"] != "complete" or b["coverage"] != "complete":
+    if sorted(a["plan"]["filters"], key=canonical) != sorted(b["plan"]["filters"], key=canonical) or a["coverage"] != "complete" or b["coverage"] != "complete":
         reject(message="比较需要同筛选且未裁剪的两期结果")
     if not set(args.metrics) <= set(a["plan"]["metrics"]) & set(b["plan"]["metrics"]):
         reject(message="引用缺少请求比较的指标")
@@ -276,7 +293,7 @@ def calculate(args, artifacts, spec, binding):
         # 未知金额不能被跳过，否则会把已知小计冒充完整合计。
         value = sum(values, Decimal(0)) if values and all(v is not None for v in values) else None
         payload = {"op": "sum", "value": str(value) if value is not None else None, "unit": catalog().metrics[metric].unit,
-                   "metric": metric, "states": sorted(r["dimensions"]["state"] for r in rows), "cohort": cohort(data["plan"]),
+                   "metric": metric, "states": sorted(r["dimensions"]["state"] for r in rows), "cohort": {"period": data["plan"]["time_range"], "filters": sorted([f.model_dump(mode="json") for f in spec.filters], key=canonical)},
                    "source_ref": src["result_ref"], "quality_complete": data.get("quality_complete", True)}
         return artifact("scalar", payload, [metric], binding)
     left, right = [evidence(ref, artifacts, binding, "scalar") for ref in [args.left_ref, args.right_ref]]
@@ -294,7 +311,8 @@ def calculate(args, artifacts, spec, binding):
         if args.op == "percent_change":
             unit, metric = "%", "change_rate"
     elif args.op == "divide":
-        if not same_scope or (a["metric"], b["metric"]) not in {("gmv", "orders"), ("gmv", "gmv")}:
+        ratio_scope = a["cohort"] == b["cohort"] and set(a["states"]) <= set(b["states"])
+        if (a["metric"], b["metric"]) not in {("gmv", "orders"), ("gmv", "gmv")} or not (same_scope if b["metric"] == "orders" else ratio_scope):
             reject(message="除法的分子、分母口径或单位不匹配")
         unit, metric = ("BRL/单", "aov") if b["metric"] == "orders" else ("ratio", "ratio")
     elif not same_scope or (a["metric"], b["metric"]) != ("aov", "orders"):
@@ -314,7 +332,53 @@ def calculate(args, artifacts, spec, binding):
     return artifact("scalar", {"op": args.op, "value": str(value) if value is not None else None, "unit": unit, "metric": metric,
                                "states": sorted(set(a["states"]) | set(b["states"])), "cohort": a["cohort"], "flags": flags,
                                "inputs": [args.left_ref, args.right_ref], "quality_complete": a["quality_complete"] and b["quality_complete"]},
-                    left["metrics_used"] + right["metrics_used"], binding)
+                    left["metrics_used"] + right["metrics_used"] + ([metric] if metric in METRICS else []), binding)
+
+
+def completed_report(args, data, metrics, artifacts, spec, binding):
+    """模型选择陈述类型和顺序；代码核对方向，再从已验证单元格填数字。"""
+    choices = []
+    names = {"gmv": "GMV", "orders": "有效订单量", "aov": "客单价"}
+    if spec.goal == "top_n_total":
+        total = data["total"]
+        for a in artifacts:
+            if a["kind"] == "scalar" and a["data"] == total:
+                choices.append({"kind": "gmv_total", "result_ref": a["result_ref"], "state": None,
+                                "text": f"所选州 {', '.join(total['states'])} 的 GMV 合计为 {decimal(total['value']):.2f} BRL。"})
+    else:
+        for row in data["rows"]:
+            for metric, cells in row["values"].items():
+                delta = decimal(cells["delta"])
+                direction, text = ("declined", "下降") if delta < 0 else ("increased", "上升") if delta > 0 else ("unchanged", "持平")
+                for a in artifacts:
+                    if a["kind"] not in {"comparison", "selection"} or a["kind"] == "selection" and metric != "gmv":
+                        continue
+                    if any(r["state"] == row["state"] and r["values"].get(metric) == cells for r in a["data"]["rows"]):
+                        choices.append({"kind": metric + "_" + direction, "result_ref": a["result_ref"], "state": row["state"],
+                                        "text": f"{row['state']} 州{names[metric]}由 {decimal(cells['baseline']):.2f} 变为 {decimal(cells['current']):.2f}，{text}，差值 {delta:.2f}。"})
+    selected = []
+    for finding in args.findings:
+        match = next((c for c in choices if all(c[k] == v for k, v in finding.model_dump().items())), None)
+        if match is None:
+            selected = []
+            break
+        selected.append(match)
+    fallback = not bool(selected)
+    if fallback:
+        # 无效因果类型、错误方向或无效引用只影响说明质量，不伪造数字，也不重查。
+        seen = set()
+        for item in choices:
+            key = (item["kind"], item["state"])
+            if key not in seen:
+                seen.add(key)
+                selected.append(item)
+    data.update(narrative=selected, narrative_fallback=fallback, ranking=spec.ranking,
+                current=spec.current.model_dump(mode="json"), baseline=spec.baseline.model_dump(mode="json") if spec.baseline else None,
+                current_days=(spec.current.end_exclusive-spec.current.start).days,
+                baseline_days=(spec.baseline.end_exclusive-spec.baseline.start).days if spec.baseline else None)
+    if spec.baseline and data["current_days"] != data["baseline_days"]:
+        data["summary"] += " 两期天数不同，本次比较原始总量，未换算日均。"
+    return artifact("report", data, metrics, binding)
 
 
 def finish(args, artifacts, spec, binding):
@@ -330,13 +394,32 @@ def finish(args, artifacts, spec, binding):
             expected = sorted(r["dimensions"]["state"] for r in sorted_gmv(source["candidate_rows"])[:spec.n])
             if d["states"] != expected:
                 continue
-            return artifact("report", {"complete": True, "goal": spec.goal, "summary": "所选州 GMV 合计，不代表全州总额。",
-                                       "total": d, "rows": source["rows"], "evidence_refs": args.evidence_refs}, ["gmv"], binding)
+            extras = {}
+            for check in spec.checks:
+                match = next((a for a in selected if a["kind"] == "scalar" and a["data"]["metric"] == ({"share": "ratio"}.get(check, check)) and a["data"]["value"] is not None
+                              and a["data"]["states"] == (sorted(r["dimensions"]["state"] for r in source["candidate_rows"]) if check == "share" else expected)
+                              and a["data"]["quality_complete"] and a["data"]["cohort"] == d["cohort"]), None)
+                if not match:
+                    reject("missing_evidence", "所选州附加核查或占比依据不完整")
+                extra = match["data"]
+                if check == "orders" and extra["op"] != "sum":
+                    reject("missing_evidence", "订单合计必须来自所选州的求和")
+                if check in {"aov", "share"}:
+                    inputs = extra.get("inputs", [])
+                    if extra["op"] != "divide" or len(inputs) != 2 or inputs[0] != scalar["result_ref"]:
+                        reject("missing_evidence", "比值必须引用本次所选州 GMV 合计作为分子")
+                extras[check] = match["data"]
+            return completed_report(args, {"complete": True, "goal": spec.goal, "summary": "所选州 GMV 合计，不代表全州总额。",
+                                       "total": d, "extras": extras, "rows": [r for r in source["rows"] if r["dimensions"]["state"] in d["states"]], "evidence_refs": args.evidence_refs},
+                            [m for a in selected for m in a["metrics_used"]], artifacts, spec, binding)
         reject("missing_evidence", "缺少前 N 州的完整 GMV 合计依据")
     selection = next((a for a in selected if a["kind"] == "selection"), None)
     if not selection:
         reject("missing_evidence", "尚未完成 GMV 下降排名")
     ranks = selection["data"]
+    ranked_data = evidence(ranks["source_ref"], artifacts, binding, "comparison")["data"]
+    if not any(r["values"]["gmv"]["delta"] is not None for r in ranked_data["rows"]):
+        reject("missing_evidence", "没有两期可比较的 GMV 数据")
     comparisons = [a for a in artifacts if a["kind"] == "comparison" and a["binding"] == binding]
     rows = []
     for row in ranks["rows"]:
@@ -350,6 +433,10 @@ def finish(args, artifacts, spec, binding):
             if metric not in values:
                 reject("missing_evidence", "所选州的订单量或客单价核查尚不完整")
         rows.append({"state": row["state"], "values": values})
-    return artifact("report", {"complete": True, "goal": spec.goal, "rows": rows, "excluded_states": ranks["excluded_states"],
-                               "summary": "可比较州的描述性变化，不代表因果。" if ranks["excluded_states"] else "指标构成变化不代表因果。",
-                               "evidence_refs": [a["result_ref"] for a in comparisons] + [selection["result_ref"]]}, metric_ids(spec), binding)
+    summary = (f"可比较范围内未发现 GMV 下降州。" if not rows else f"列出 {len(rows)} 个 GMV 下降州" + (f"，少于请求的 {spec.n} 个。" if len(rows) < spec.n else "。"))
+    summary += " 指标构成变化不代表因果。"
+    if ranks["excluded_states"]:
+        summary += " 不可比较州：" + ", ".join(ranks["excluded_states"]) + "。"
+    return completed_report(args, {"complete": True, "goal": spec.goal, "rows": rows, "excluded_states": ranks["excluded_states"],
+                                  "summary": summary,
+                                  "evidence_refs": [a["result_ref"] for a in comparisons] + [selection["result_ref"]]}, metric_ids(spec), artifacts, spec, binding)

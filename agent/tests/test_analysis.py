@@ -44,6 +44,18 @@ def test_compare_rank_check_evidence_and_descriptive_report():
     report = finish(FinishArgs(evidence_refs=[chosen["result_ref"]]), artifacts, spec(), BINDING)
     assert report["data"]["rows"][0]["values"]["orders"]["rate"] == "-20.0"
     assert "不代表因果" in report["data"]["summary"]
+    assert "两期天数不同" in report["data"]["summary"]
+    explained = finish(FinishArgs(evidence_refs=[chosen["result_ref"]], findings=[
+        {"kind": "orders_declined", "state": "SP", "result_ref": c["result_ref"]},
+        {"kind": "gmv_declined", "state": "SP", "result_ref": chosen["result_ref"]}]), artifacts, spec(), BINDING)
+    assert not explained["data"]["narrative_fallback"]
+    assert explained["data"]["narrative"][0]["kind"] == "orders_declined"
+    assert "1000.00" in explained["data"]["narrative"][1]["text"]
+    for kind in ["marketing_caused_decline", "aov_increased"]:
+        unsafe = finish(FinishArgs(evidence_refs=[chosen["result_ref"]], findings=[
+            {"kind": kind, "state": "SP", "result_ref": c["result_ref"]}]), artifacts, spec(), BINDING)
+        assert unsafe["data"]["narrative_fallback"]
+        assert all(kind != p["kind"] for p in unsafe["data"]["narrative"])
     with pytest.raises(AnalysisError):
         compare(CompareArgs(baseline_ref=b["result_ref"], current_ref=a["result_ref"], metrics=["gmv"]), artifacts, spec(), BINDING)
 

@@ -25,6 +25,7 @@ type Config struct {
 	Origin, AgentURL, ServiceKey string
 	SecureCookie                 bool
 	TrustedProxies               []netip.Prefix
+	Analysis                     *store.AnalysisPolicy
 }
 type Server struct {
 	DB      *store.Store
@@ -51,6 +52,12 @@ func (s *Server) Handler() http.Handler {
 	mux.Handle("GET /api/me", s.auth(http.HandlerFunc(s.me)))
 	mux.Handle("GET /api/metrics", s.auth(http.HandlerFunc(s.metrics)))
 	mux.Handle("GET /api/operations/summary", s.auth(http.HandlerFunc(s.operations)))
+	mux.Handle("GET /api/analysis-capabilities", s.auth(http.HandlerFunc(s.analysisCapabilities)))
+	mux.Handle("POST /api/analysis-runs", s.auth(http.HandlerFunc(s.createAnalysis)))
+	mux.Handle("GET /api/analysis-runs", s.auth(http.HandlerFunc(s.analysisList)))
+	mux.Handle("GET /api/analysis-runs/{id}", s.auth(http.HandlerFunc(s.analysisDetail)))
+	mux.Handle("POST /api/analysis-runs/{id}/answers", s.auth(http.HandlerFunc(s.answerAnalysis)))
+	mux.Handle("POST /api/analysis-runs/{id}/resume", s.auth(http.HandlerFunc(s.resumeAnalysis)))
 	mux.Handle("POST /api/conversations", s.auth(http.HandlerFunc(s.createConversation)))
 	mux.Handle("GET /api/conversations", s.auth(http.HandlerFunc(s.conversations)))
 	mux.Handle("GET /api/conversations/{id}", s.auth(http.HandlerFunc(s.conversation)))
@@ -235,6 +242,17 @@ func (s *Server) create(w http.ResponseWriter, r *http.Request) {
 }
 
 func allowed(u store.User, t store.Task) bool {
+	if t.Kind == "analysis" {
+		if t.UserID != u.ID || t.TenantID != u.TenantID {
+			return false
+		}
+		for _, m := range t.AnalysisMetrics {
+			if !slices.Contains(store.Metrics, m) || !slices.Contains(u.AllowedMetrics, m) {
+				return false
+			}
+		}
+		return true
+	}
 	if !store.MetricsAllowed(t.Context, u.AllowedMetrics) {
 		return false
 	}
