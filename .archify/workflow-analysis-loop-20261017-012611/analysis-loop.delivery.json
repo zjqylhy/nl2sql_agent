@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "8edd1bb3-5160-4fd9-80a0-4893cffed8a9",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "C:\\Users\\LHY95\\Documents\\Codex\\nl2sql_agent\\.archify\\workflow-analysis-loop-20261017-012611\\candidate.json",
+  "output": "C:\\Users\\LHY95\\Documents\\Codex\\nl2sql_agent\\.archify\\workflow-analysis-loop-20261017-012611\\analysis-loop.html",
+  "specification": {
+    "sha256": "9456d6b3173b2071331195a626980b775999dc154db5a85029c40dab10b2f73b",
+    "bytes": 4159
+  },
+  "artifact": {
+    "sha256": "743436fe4fdf1134492239a7c0fc9881ef4548751bad9481539bf028559acb2b",
+    "bytes": 755193
+  }
+}

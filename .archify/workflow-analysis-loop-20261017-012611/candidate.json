@@ -1,0 +1,43 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "经营分析助手 正常执行主循环 待实现",
+    "locale": "zh-CN",
+    "output": ".archify/workflow-analysis-loop-20261017-012611/analysis-loop.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "git@github.com:zjqylhy/nl2sql_agent.git",
+      "revision": "f7c48b70f069938010af3bfc0881fda8c459b117",
+      "link_mode": "local-only"
+    }
+  },
+  "lanes": [
+    {"id": "loop", "label": "正常执行 从左往右看"},
+    {"id": "delivery", "label": "完成交付"}
+  ],
+  "mainPath": ["request", "load", "choose", "handle", "save", "check", "answer"],
+  "nodes": [
+    {"id": "request", "lane": "loop", "col": 0, "type": "external", "label": "接收任务", "sublabel": "保存目标和明确条件", "width": 150, "sources": [{"path": "docs/business-analysis-assistant-design.md", "line": 211, "end_line": 244}]},
+    {"id": "load", "lane": "loop", "col": 1, "type": "database", "label": "装载状态", "sublabel": "证据 权限 版本 预算", "width": 160, "sources": [{"path": "docs/business-analysis-assistant-design.md", "line": 211, "end_line": 244}]},
+    {"id": "choose", "lane": "loop", "col": 2, "type": "backend", "label": "模型选择一步", "sublabel": "查询 计算 澄清 结束", "width": 160, "sources": [{"path": "docs/business-analysis-assistant-design.md", "line": 98, "end_line": 110}]},
+    {"id": "handle", "lane": "loop", "col": 3, "type": "security", "label": "代码处理动作", "sublabel": "校验参数 调用受限工具", "width": 170, "sources": [{"path": "docs/business-analysis-assistant-design.md", "line": 143, "end_line": 171}]},
+    {"id": "save", "lane": "loop", "col": 4, "type": "database", "label": "保存观察", "sublabel": "结果 反馈 用量 检查点", "width": 170, "sources": [{"path": "docs/business-analysis-assistant-design.md", "line": 353, "end_line": 360}]},
+    {"id": "check", "lane": "loop", "col": 5, "type": "security", "label": "判断是否完成", "sublabel": "结束动作加完整证据", "width": 170, "sources": [{"path": "docs/business-analysis-assistant-design.md", "line": 211, "end_line": 244}]},
+    {"id": "answer", "lane": "delivery", "col": 5, "type": "frontend", "label": "组织答案并保存", "sublabel": "代码提供数字和依据", "width": 170, "sources": [{"path": "docs/business-analysis-assistant-design.md", "line": 298, "end_line": 310}]}
+  ],
+  "edges": [
+    {"id": "accept-load", "from": "request", "to": "load", "role": "main"},
+    {"id": "state-choose", "from": "load", "to": "choose", "role": "main"},
+    {"id": "choose-handle", "from": "choose", "to": "handle", "role": "main"},
+    {"id": "handle-save", "from": "handle", "to": "save", "role": "main"},
+    {"id": "save-check", "from": "save", "to": "check", "role": "main"},
+    {"id": "continue-loop", "from": "check", "to": "load", "label": "下一步已就绪", "role": "return", "variant": "dashed"},
+    {"id": "complete-answer", "from": "check", "to": "answer", "label": "结束且依据齐全", "role": "main", "variant": "emphasis"}
+  ],
+  "cards": [
+    {"dot": "cyan", "title": "只需记住这条主线", "items": ["模型选一步，代码执行并保存结果，再由模型决定下一步。", "Top N 合计示例：query_metrics → calculate(sum) → finish。", "query_metrics 复用 QueryPlan 和执行内核，新的工具入口待实现。"]},
+    {"dot": "amber", "title": "反馈规则单独查看", "items": ["缺条件：保存草稿并等待；收到有效补充后才装载状态继续。", "参数错误：返回字段反馈，最多一次模型修正；无数据不补零。", "查询超时：有额度且可安全重试时限一次；未知模型调用停止。", "停止、撤权、版本变化或预算耗尽：保存终态，不再进入模型。"]},
+    {"dot": "violet", "title": "恢复和完成", "items": ["中断恢复从装载状态进入，已持久完成的步骤直接复用。", "模型请求结束后，代码按任务类型检查范围、数值和证据。", "本图仅展示正常主循环；反馈分类详见方案第 5 节。"]}
+  ]
+}
