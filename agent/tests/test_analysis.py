@@ -168,6 +168,7 @@ def test_decision_request_sends_bounded_output_limit(client, monkeypatch, limit)
     monkeypatch.setenv('LLM_MODEL', 'fixture')
     monkeypatch.setenv('LLM_API_KEY', 'test-only-no-network')
     observed = []
+    deadlines = []
     def respond(request):
         observed.append(json.loads(request.content)['max_tokens'])
         decision = {'spec': None, 'action': {'action': 'request_clarification',
@@ -175,13 +176,16 @@ def test_decision_request_sends_bounded_output_limit(client, monkeypatch, limit)
         return httpx.Response(200, json={'choices': [{'finish_reason': 'stop',
             'message': {'content': json.dumps(decision)}}],
             'usage': {'prompt_tokens': 100, 'completion_tokens': 500}})
-    monkeypatch.setattr(ModelTransport, 'bounded_client', lambda self: httpx.Client(transport=httpx.MockTransport(respond)))
+    def bounded(self, timeout=20):
+        deadlines.append(timeout)
+        return httpx.Client(transport=httpx.MockTransport(respond))
+    monkeypatch.setattr(ModelTransport, 'bounded_client', bounded)
     identity = {'tenant_id': 'alpha', 'role': 'ops', 'allowed_metrics': ['gmv']}
     body = {**identity, 'binding': context(Identity.model_validate(identity))['binding'],
-        'question': '统计 GMV', 'max_output_tokens': limit}
+        'question': '统计 GMV', 'max_output_tokens': limit, 'model_timeout_seconds': 45}
     response = client.post('/internal/analysis/decide', headers={'X-Service-Key': 's'*40}, json=body)
     assert response.status_code == 200 and response.json()['status'] == 'completed'
-    assert observed == [limit]
+    assert observed == [limit] and deadlines == [45]
 
 
 def test_invalid_spec_feedback_explains_constraint_without_original_input():

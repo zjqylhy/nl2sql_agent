@@ -248,10 +248,11 @@ def test_unknown_model_never_resent(platform, monkeypatch, unknown_after_crash, 
 def test_reasoning_output_limit_is_frozen_reserved_and_settled(platform, monkeypatch):
     client, repo, _ = platform
     from agent.platform_app import graph
-    client.app.state.policy = POLICY.model_copy(update={"max_output_tokens": 4096})
+    client.app.state.policy = POLICY.model_copy(update={"max_output_tokens": 4096, "model_timeout_seconds": 45})
     calls = []
     def decide(request):
         assert request.max_output_tokens == 4096
+        assert request.model_timeout_seconds == 45
         calls.append(request)
         current = request.spec or Spec.model_validate(spec())
         return {"status": "completed", "model_sent": True,
@@ -262,6 +263,7 @@ def test_reasoning_output_limit_is_frozen_reserved_and_settled(platform, monkeyp
     # 接纳后的环境和 API 策略变化不得修改已冻结的任务上限。
     client.app.state.policy = POLICY
     monkeypatch.setenv("ANALYSIS_MODEL_MAX_OUTPUT_TOKENS", "1024")
+    monkeypatch.setenv("ANALYSIS_MODEL_TIMEOUT_SECONDS", "20")
     run_once(repo)
     run = client.get("/api/analysis-runs/"+run_id).json()
     assert run["status"] == "completed", run
@@ -754,6 +756,19 @@ def test_postgres_metric_sort_keeps_nulls_last_and_stable_ties(platform, directi
     assert Decimal(values["MG"]) == Decimal("10.01")
     if top_n is None:
         assert values["SP"] is None and Decimal(values["AC"]) == 0
+
+
+def test_longer_model_deadline_cannot_exceed_total_active_budget(platform, monkeypatch):
+    client, repo, _ = platform
+    from agent.platform_app import graph
+    client.app.state.policy = POLICY.model_copy(update={"model_timeout_seconds": 45})
+    run_id = client.post("/api/analysis-runs", json={"question": "有限时长", "request_id": str(uuid4())}).json()["id"]
+    with repo.db.transaction() as conn:
+        conn.execute("UPDATE analysis_runs SET state=jsonb_set(state,'{active_ms}','140000') WHERE id=%s", (run_id,))
+    monkeypatch.setattr(graph, "decide", lambda request: pytest.fail("活跃时长不足时不得调用供应商"))
+    run_once(repo)
+    run = client.get("/api/analysis-runs/"+run_id).json()
+    assert run["status"] == "failed" and run["state"]["model_calls"] == 0
 
 
 def test_retention_advances_across_multiple_batches(platform):

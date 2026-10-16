@@ -63,8 +63,8 @@ class ModelTransport:
     def client(self):
         return httpx.Client(verify=self.context, timeout=20, follow_redirects=False, trust_env=False)
 
-    def bounded_client(self):
-        return DeadlineClient(self.context)
+    def bounded_client(self, timeout=20):
+        return DeadlineClient(self.context, timeout=timeout)
 
     def post(self, client, prompt: str, question: str, max_tokens: int):
         # 网关当前没有支持强制 JSON 模式的路由，返回内容仍由业务层严格校验。

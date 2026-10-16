@@ -56,6 +56,7 @@ class Snapshot(Identity):
     feedback: dict = Field(default_factory=dict)
     answers: list[str] = Field(default_factory=list, max_length=2)
     max_output_tokens: int = Field(default=1024, ge=256, le=4096, strict=True)
+    model_timeout_seconds: int = Field(default=20, ge=5, le=60, strict=True)
 
 
 class ToolRequest(Snapshot):
@@ -218,7 +219,7 @@ def decide(request: Snapshot):
         if bound > 6000:
             reject("input_limit", "分析上下文超过输入预算，请缩短问题或新建任务")
         transport = ModelTransport.from_env()
-        with transport.bounded_client() as client:
+        with transport.bounded_client(timeout=request.model_timeout_seconds) as client:
             sent = True
             response = transport.post(client, prompt, question, request.max_output_tokens)
             response.raise_for_status()

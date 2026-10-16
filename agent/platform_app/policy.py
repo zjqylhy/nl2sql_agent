@@ -13,6 +13,7 @@ class Policy(StrictModel):
     output_price: int = Field(gt=0, le=10**9, strict=True)
     max_cost: int = Field(gt=0, le=10**9, strict=True)
     max_output_tokens: int = Field(default=1024, ge=256, le=4096, strict=True)
+    model_timeout_seconds: int = Field(default=20, ge=5, le=60, strict=True)
     strategy: str = "adaptive"
 
     @property
@@ -35,6 +36,7 @@ class Policy(StrictModel):
             input_price=int(os.environ["ANALYSIS_INPUT_PRICE_MICROS"]), output_price=int(os.environ["ANALYSIS_OUTPUT_PRICE_MICROS"]),
             max_cost=int(os.environ["ANALYSIS_MAX_COST_MICROS"]),
             max_output_tokens=int(os.getenv("ANALYSIS_MODEL_MAX_OUTPUT_TOKENS", "1024")),
+            model_timeout_seconds=int(os.getenv("ANALYSIS_MODEL_TIMEOUT_SECONDS", "20")),
             strategy=os.getenv("ANALYSIS_STRATEGY", "adaptive"))
         if value.tokenizer != "byte_bpe_upper_bound" or value.strategy not in {"adaptive", "fixed"}:
             raise ValueError("未确认的 Token 预算方式或执行策略")

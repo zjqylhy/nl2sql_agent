@@ -51,7 +51,8 @@ class Ledger:
                 return None
             if state["active_ms"] >= 180000 or state["sequence"] >= 40:
                 raise BudgetExceeded("分析活跃时长或步骤预算已耗尽")
-            if (phase == "decide" or payload.get("action") == "query_metrics") and state["active_ms"]+20000 > 180000:
+            call_bound = policy.model_timeout_seconds * 1000 if phase == "decide" else 20000
+            if (phase == "decide" or payload.get("action") == "query_metrics") and state["active_ms"]+call_bound > 180000:
                 raise BudgetExceeded("剩余活跃时长不足以安全发起外部调用")
             key = hashlib.sha256(canonical([run["binding"], snapshot.get("spec"), payload]).encode()).hexdigest()
             cached = conn.execute("SELECT output FROM analysis_steps WHERE run_id=%s AND action_key=%s AND status='completed' ORDER BY sequence DESC LIMIT 1", (run["id"], key)).fetchone() if phase == "tool" else None
