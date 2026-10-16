@@ -6,6 +6,7 @@ from typing import Literal
 
 import httpx
 import pymysql
+import psycopg
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import Field, ValidationError
 
@@ -152,6 +153,8 @@ def tool(request: ToolRequest):
         cause = exc.__cause__
         if isinstance(cause, pymysql.MySQLError) and cause.args:
             code = "sql_timeout" if cause.args[0] in (3024, 1317) else "sql_connection" if cause.args[0] in (2002, 2003) else "sql_unknown" if cause.args[0] in (2006, 2013) else "sql_error"
+        if isinstance(cause, psycopg.Error):
+            code = "sql_timeout" if isinstance(cause, psycopg.errors.QueryCanceled) else "sql_unknown" if isinstance(cause, psycopg.OperationalError) else "sql_error"
         # 既有内核已隐藏数据库错误正文；只对可确认的临时错误开放有限重试。
         return {"status": "error", "error_code": code, "message": exc.detail}
     except Exception:

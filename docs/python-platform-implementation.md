@@ -13,3 +13,13 @@
 ## 后续验收
 
 P1 平台与鉴权、P2 PG 数据、P3 Agent 闭环、P4 兼容部署、P5 独立评测依次推进；真实模型实验需使用确认的计价配置，不能用模拟模型结果声明完成率收益。
+
+## P1–P3：纵向闭环
+
+新增 `agent/platform_app`：FastAPI HTTP 接纳、独立 Worker、PG 队列与操作账本、LangGraph StateGraph 的模型/工具循环和 interrupt。运行时不调用 Go 或内部单步 HTTP。Alembic 管理平台迁移；新库三个权限域，旧库必须显式停止旧服务并接管，不能隐式移动数据。
+
+查询内核增加 PG 方言与 psycopg 只读连接；金额除法保持 NUMERIC，结果继续进入 Decimal 工具。`import_olist_postgres` 事务发布新 schema、先聚合商品再关联、评价取最新有效一条，只读角色仅获视图 SELECT；拒绝覆盖快照。
+
+真实 PG 集成 `test_python_platform.py`：17 passed，包含两类任务、原单步/多轮 API、SSE 补读、租户与私有历史、撤权、补充幂等、回执写入后图失败恢复、未知模型不重发、SQL 一次退避重试、取消迟到回执、30 天清理，以及六指标导入口径。两份 CSV 的 36 个显式规格组与独立 oracle 核对通过；模型由测试适配器确定性选择动作，不代表真实模型理解准确率。
+
+P4 的默认部署入口、备份恢复、真实完整 Olist 数据核对及 P5 新平台评测适配仍在进行。

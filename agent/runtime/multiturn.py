@@ -125,6 +125,8 @@ def filter_id(value):
 def source_metadata(source, tenant, role):
     directory = hashlib.sha256(json.dumps(catalog().model_dump(), sort_keys=True).encode()).hexdigest()
     values = [tenant, role, source.host, source.port, source.database, source.user, source.context_revision, str(source.analysis_date), directory]
+    if getattr(source, "driver", "mysql") == "postgresql":
+        values += [source.driver, source.schema_name]
     return {"binding": hashlib.sha256(json.dumps(values).encode()).hexdigest(), "analysis_date": str(source.analysis_date), "catalog_hash": directory}
 
 

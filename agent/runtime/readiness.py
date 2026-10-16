@@ -13,7 +13,11 @@ BUDGET = 5
 def probe(source):
     connection = None
     try:
-        connection = pymysql.connect(host=source.host, port=source.port, user=source.user,
+        if getattr(source, "driver", "mysql") == "postgresql":
+            from .app import connect
+            connection = connect(source)
+        else:
+            connection = pymysql.connect(host=source.host, port=source.port, user=source.user,
             password=source.password, database=source.database, charset="utf8mb4",
             connect_timeout=1, read_timeout=1, write_timeout=1, autocommit=True,
             ssl_ca=source.ssl_ca, ssl_verify_cert=bool(source.ssl_ca),

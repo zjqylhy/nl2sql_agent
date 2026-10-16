@@ -18,11 +18,11 @@ class UnsafeSQL(ValueError):
     pass
 
 
-def validate_sql(sql: str, parameters: list, *, overflow_probe: bool = False) -> None:
+def validate_sql(sql: str, parameters: list, *, overflow_probe: bool = False, dialect="mysql") -> None:
     if len(sql) > 12000:
         raise UnsafeSQL("SQL 长度超限")
     try:
-        statements = parse(sql, read="mysql")
+        statements = parse(sql, read=dialect)
     except ParseError as exc:
         raise UnsafeSQL("SQL 无法解析") from exc
     if len(statements) != 1 or not isinstance(statements[0], exp.Select):
