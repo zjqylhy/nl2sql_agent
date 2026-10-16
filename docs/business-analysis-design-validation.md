@@ -20,7 +20,7 @@ Archify `finalize architecture --repo-root . --quality showcase --json` 返回 e
 - [发布来源记录](../.archify/architecture-business-assistant-20261017-003203/business-assistant.delivery.json)
 - [浏览器检查](../.archify/architecture-business-assistant-20261017-003203/business-assistant.browser-check.json)
 
-文档检查包括本地链接存在性、JSON 示例可解析、Mermaid 代码块完整性、80 个规划任务的分类合计，以及合成示例中 GMV/订单量/客单价变化的一致性。Git diff 做空白检查。
+文档检查通过 26 个本地链接存在性、JSON 示例可解析、3 个 Mermaid 代码块完整性、80 个规划任务的分类合计，以及合成示例中 GMV/订单量/客单价变化的一致性。手写文档及候选 JSON 的 Git diff 空白检查通过；生成 HTML 的模板带有 15 行尾随空格，保留已校验制品字节及哈希，不将该生成器格式问题表述为全产物空白检查通过。
 
 ## 验证边界
 
