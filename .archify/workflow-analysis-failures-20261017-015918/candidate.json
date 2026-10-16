@@ -1,0 +1,413 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "经营分析助手 等待 修正 重试与终止 待实现",
+    "locale": "zh-CN",
+    "output": ".archify/workflow-analysis-failures-20261017-015918/analysis-failures.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "git@github.com:zjqylhy/nl2sql_agent.git",
+      "revision": "f8e36b3f9a476e3962b601b4be7e5a456b91eaee",
+      "link_mode": "local-only"
+    }
+  },
+  "lanes": [
+    {
+      "id": "wait",
+      "label": "01 缺少业务条件",
+      "variant": "exception"
+    },
+    {
+      "id": "repair",
+      "label": "02 模型参数或格式错误",
+      "variant": "exception"
+    },
+    {
+      "id": "sql",
+      "label": "03 SQL 超时或临时故障",
+      "variant": "exception"
+    },
+    {
+      "id": "stop",
+      "label": "04 必须停止的情况",
+      "variant": "exception"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "wait-case",
+      "lane": "wait",
+      "col": 0,
+      "type": "external",
+      "label": "日期或排名口径缺失",
+      "sublabel": "当前需求尚不完整",
+      "width": 220,
+      "sources": [
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 285
+        }
+      ]
+    },
+    {
+      "id": "wait-handle",
+      "lane": "wait",
+      "col": 1,
+      "type": "security",
+      "label": "保存草稿并等待",
+      "sublabel": "不执行 SQL，不占执行槽",
+      "width": 220,
+      "sources": [
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 285
+        }
+      ]
+    },
+    {
+      "id": "wait-yes",
+      "lane": "wait",
+      "col": 3,
+      "type": "backend",
+      "label": "回到装载状态",
+      "sublabel": "有效补充且版本一致",
+      "width": 220,
+      "sources": [
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 285
+        }
+      ],
+      "yOffset": -48
+    },
+    {
+      "id": "wait-no",
+      "lane": "wait",
+      "col": 3,
+      "type": "security",
+      "label": "终止等待",
+      "sublabel": "超轮次 failed；超时 canceled",
+      "width": 220,
+      "sources": [
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 285
+        }
+      ],
+      "yOffset": 48
+    },
+    {
+      "id": "repair-case",
+      "lane": "repair",
+      "col": 0,
+      "type": "external",
+      "label": "参数或 JSON 无效",
+      "sublabel": "尚未执行工具",
+      "width": 220,
+      "sources": [
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 286
+        }
+      ]
+    },
+    {
+      "id": "repair-handle",
+      "lane": "repair",
+      "col": 1,
+      "type": "security",
+      "label": "返回字段错误",
+      "sublabel": "检查全 run 修复额度",
+      "width": 220,
+      "sources": [
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 286
+        }
+      ]
+    },
+    {
+      "id": "repair-yes",
+      "lane": "repair",
+      "col": 3,
+      "type": "backend",
+      "label": "模型修正一次",
+      "sublabel": "保持原任务约束和已确认条件",
+      "width": 220,
+      "sources": [
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 286
+        }
+      ],
+      "yOffset": -48
+    },
+    {
+      "id": "repair-no",
+      "lane": "repair",
+      "col": 3,
+      "type": "security",
+      "label": "执行失败 failed",
+      "sublabel": "名额已用或再次无效",
+      "width": 220,
+      "sources": [
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 286
+        }
+      ],
+      "yOffset": 48
+    },
+    {
+      "id": "sql-case",
+      "lane": "sql",
+      "col": 0,
+      "type": "external",
+      "label": "SQL 超时或连接故障",
+      "sublabel": "先区分可重试与配置错误",
+      "width": 220,
+      "sources": [
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 287
+        }
+      ]
+    },
+    {
+      "id": "sql-handle",
+      "lane": "sql",
+      "col": 1,
+      "type": "security",
+      "label": "代码判断重试安全",
+      "sublabel": "同参数只读，版本与预算有效",
+      "width": 220,
+      "sources": [
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 287
+        }
+      ]
+    },
+    {
+      "id": "sql-yes",
+      "lane": "sql",
+      "col": 3,
+      "type": "backend",
+      "label": "原工具重试一次",
+      "sublabel": "重新预留，短暂退避",
+      "width": 220,
+      "sources": [
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 287
+        }
+      ],
+      "yOffset": -48
+    },
+    {
+      "id": "sql-no",
+      "lane": "sql",
+      "col": 3,
+      "type": "security",
+      "label": "执行失败 failed",
+      "sublabel": "不可安全重试或重试仍失败",
+      "width": 220,
+      "sources": [
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 287
+        }
+      ],
+      "yOffset": 48
+    },
+    {
+      "id": "stop-case",
+      "lane": "stop",
+      "col": 0,
+      "type": "external",
+      "label": "未知模型或准入失效",
+      "sublabel": "模型响应未知、撤权、预算等",
+      "width": 220,
+      "sources": [
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 289
+        },
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 288
+        }
+      ]
+    },
+    {
+      "id": "stop-handle",
+      "lane": "stop",
+      "col": 1,
+      "type": "security",
+      "label": "停止新调用",
+      "sublabel": "取消当前 HTTP，记录安全原因",
+      "width": 220,
+      "sources": [
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 289
+        },
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 288
+        }
+      ]
+    },
+    {
+      "id": "stop-yes",
+      "lane": "stop",
+      "col": 3,
+      "type": "security",
+      "label": "执行失败 failed",
+      "sublabel": "模型未知保留费用预留",
+      "width": 220,
+      "sources": [
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 289
+        },
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 288
+        }
+      ],
+      "yOffset": -48
+    },
+    {
+      "id": "stop-no",
+      "lane": "stop",
+      "col": 3,
+      "type": "security",
+      "label": "用户停止 canceled",
+      "sublabel": "迟到结果不能推进任务",
+      "width": 220,
+      "sources": [
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 289
+        },
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 288
+        }
+      ],
+      "yOffset": 48
+    }
+  ],
+  "edges": [
+    {
+      "id": "wait-classify",
+      "from": "wait-case",
+      "to": "wait-handle",
+      "variant": "default"
+    },
+    {
+      "id": "wait-allow",
+      "from": "wait-handle",
+      "to": "wait-yes",
+      "variant": "emphasis",
+      "label": "收到有效补充"
+    },
+    {
+      "id": "wait-deny",
+      "from": "wait-handle",
+      "to": "wait-no",
+      "variant": "security",
+      "label": "轮次或等待超限"
+    },
+    {
+      "id": "repair-classify",
+      "from": "repair-case",
+      "to": "repair-handle",
+      "variant": "default"
+    },
+    {
+      "id": "repair-allow",
+      "from": "repair-handle",
+      "to": "repair-yes",
+      "variant": "emphasis",
+      "label": "有修复额度"
+    },
+    {
+      "id": "repair-deny",
+      "from": "repair-handle",
+      "to": "repair-no",
+      "variant": "security",
+      "label": "无额度或再次无效"
+    },
+    {
+      "id": "sql-classify",
+      "from": "sql-case",
+      "to": "sql-handle",
+      "variant": "default"
+    },
+    {
+      "id": "sql-allow",
+      "from": "sql-handle",
+      "to": "sql-yes",
+      "variant": "emphasis",
+      "label": "安全且尚有额度"
+    },
+    {
+      "id": "sql-deny",
+      "from": "sql-handle",
+      "to": "sql-no",
+      "variant": "security",
+      "label": "不安全或额度已用"
+    },
+    {
+      "id": "stop-classify",
+      "from": "stop-case",
+      "to": "stop-handle",
+      "variant": "default"
+    },
+    {
+      "id": "stop-allow",
+      "from": "stop-handle",
+      "to": "stop-yes",
+      "variant": "security",
+      "label": "未知模型或准入失效"
+    },
+    {
+      "id": "stop-deny",
+      "from": "stop-handle",
+      "to": "stop-no",
+      "variant": "security",
+      "label": "用户主动停止"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "按失败类型逐行看",
+      "items": [
+        "每行是一种反馈的处理方式，按箭头条件查找去向；必须停止的情况两条分支均为终态。",
+        "补充后回到装载状态；SQL 重试由代码执行，参数修正才再次请求模型。"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "所有重试跨恢复累计",
+      "items": [
+        "整个 run 最多一次模型修复、一次 SQL 重试，仍受步数、时间和费用预算限制。",
+        "已发送但没有结果的模型调用不自动重发；只读查询 unknown 需等待旧执行上界失效后再核对安全。",
+        "保存失败时不继续工具、不发布成功；存储不可用时不能声称终态已经保存。"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "部分完成也要说清楚",
+      "items": [
+        "例如 GMV 排名已完成，orders/aov 补查两次超时：结果为 failed，并标记核查未完成。",
+        "已存结果恢复后复用；撤权的依据整体不可见；未完成不得显示完整分析成功。",
+        "本图是待实现方案，不能作为现有业务功能已经上线的证据。"
+      ]
+    }
+  ]
+}

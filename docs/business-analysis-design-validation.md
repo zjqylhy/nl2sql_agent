@@ -7,6 +7,7 @@
 - [技术方案](business-analysis-assistant-design.md)：需求边界、已有/待实现清单、架构、执行流程、状态机、工具协议、计算口径、恢复语义、预算、接口、评测与分期验收。
 - [交互架构图](../.archify/architecture-business-assistant-20261017-003203/business-assistant.html)：静态默认展示，含节点来源和导出功能。
 - [新版交互主流程图](../.archify/workflow-analysis-loop-20261017-012611/analysis-loop.html)：将正常主循环与反馈规则分开，替代初版未通过的交互流程图。
+- [失败处理图](../.archify/workflow-analysis-failures-20261017-015918/analysis-failures.html)与[恢复和数据不足图](../.archify/workflow-analysis-recovery-20261017-015918/analysis-recovery.html)：补充成功路径以外的去向。
 - 架构、主流程、反馈分类和状态图共 4 个 Mermaid 代码块，可在支持 Mermaid 的 Markdown 阅读器查看。
 
 ## 已完成检查
@@ -32,6 +33,10 @@ Archify `finalize architecture --repo-root . --quality showcase --json` 返回 e
 额外执行 `visual-check --require-provenance`，1440×900 与 2048×1320 的明暗主题自动检查及四张截图均通过。已目视检查 1440×900 明暗两张截图，确认主路径从左向右、仅一条返回线、完成分支与说明卡片可分辨；未将截图捕获回执的 pending 字段改写为自动视觉判断。见[截图及检查记录](../.archify/workflow-analysis-loop-20261017-012611/visual-check/analysis-loop.visual-check.html)。
 
 ## 验证边界
+
+失败路径修订增加第 5.3 节，明确参数修复与 SQL 重试的累计额度、unknown 模型调用停止、数据保存失败后停止派发，以及 partial 结果的展示。两张补充图均引用 `f8e36b3f9a476e3962b601b4be7e5a456b91eaee` 的方案，不表示对应业务逻辑已经实现。
+
+两图均通过 showcase 的 validate、deliver、严格 check 和 browser-check，diagnostics 为空；失败图的当前回执为 [review-3](../.archify/workflow-analysis-failures-20261017-015918/review-3/analysis-failures.finalize-summary.json)，恢复图回执见[此处](../.archify/workflow-analysis-recovery-20261017-015918/analysis-recovery.finalize-summary.json)。额外截图检查均通过，已目视复核两图的 1440×900 浅色截图。失败图曾尝试将六类情形放在一页，现拆成四类失败与两类恢复/业务反馈；当前候选、HTML、发布记录和回执哈希已核对一致。
 
 交互架构图是初版快照，通过自动化制品与浏览器检查，未执行截图视觉复核；本轮 calculate 在正文架构图及第 4.4 节补充。初版交互流程图未通过布局检查，已由本轮通过并做截图复核的简化流程替代；详细反馈语义保留在正文第二张流程图与反馈表。Mermaid 代码块未单独渲染验收。
 

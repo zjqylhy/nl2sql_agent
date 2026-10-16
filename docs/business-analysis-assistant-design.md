@@ -212,7 +212,7 @@ LangGraph 的 checkpointer 可以持久化图运行状态，内存 saver 不能�
 
 先看正常执行主循环：**模型选一步 → 代码执行 → 保存观察 → 再决定下一步**。直到模型请求结束且代码确认依据齐全，才输出答案。图中的执行控制、计算工具和步骤存储均待实现；授权查询基础复用现有能力。
 
-[正常主流程图](../.archify/workflow-analysis-loop-20261017-012611/analysis-loop.html)展示成功与继续执行；[失败与恢复流程图](../.archify/workflow-analysis-failures-20261017-015918/analysis-failures.html)展示等待、修正、重试、终止及中断恢复。下图和反馈表说明各分支，交付检查见[方案验证记录](business-analysis-design-validation.md)。
+[正常主流程图](../.archify/workflow-analysis-loop-20261017-012611/analysis-loop.html)展示成功与继续执行；[失败处理图](../.archify/workflow-analysis-failures-20261017-015918/analysis-failures.html)展示等待、修正、重试、终止；[恢复与数据不足图](../.archify/workflow-analysis-recovery-20261017-015918/analysis-recovery.html)展示检查点复用、未知执行及未完成处理。下图和反馈表说明各分支，交付检查见[方案验证记录](business-analysis-design-validation.md)。
 
 ```mermaid
 flowchart TD
