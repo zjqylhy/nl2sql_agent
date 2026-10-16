@@ -242,8 +242,13 @@ def decide(request: Snapshot):
         return {**safe_error(exc), "usage": usage, "model_sent": sent}
     except ModelConfigurationError:
         return {"status": "error", "error_code": "model_config", "message": "模型尚未配置", "model_sent": False}
-    except httpx.HTTPError:
-        return {"status": "error", "error_code": "unknown_execution", "message": "模型调用结果未知，已停止", "model_sent": sent}
+    except httpx.HTTPError as exc:
+        # 区分 HTTP 拒绝、客户端截止与连接故障，保留诊断依据但不回显响应正文。
+        error = {"status": "error", "error_code": "unknown_execution", "message": "模型调用结果未知，已停止", "model_sent": sent,
+                 "transport_error": "http_status" if isinstance(exc, httpx.HTTPStatusError) else "timeout" if isinstance(exc, httpx.TimeoutException) else "connection"}
+        if isinstance(exc, httpx.HTTPStatusError):
+            error["http_status"] = exc.response.status_code
+        return error
     except (ValueError, KeyError, TypeError, IndexError):
         return {"status": "error", "error_code": "model_format", "message": "模型响应格式不正确", "usage": usage, "model_sent": sent}
 
