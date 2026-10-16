@@ -1,4 +1,5 @@
 import hmac
+import asyncio
 import json
 import os
 from datetime import date, timedelta
@@ -167,6 +168,13 @@ def connect(source: Datasource):
 def execute(source: Datasource, sql: str, params: list) -> list[dict]:
     with telemetry.stage("sql_validation"):
         validate_sql(sql, params, overflow_probe=sql.endswith(" LIMIT 1001"), dialect="postgres" if source.driver == "postgresql" else "mysql")
+    if source.driver == "postgresql":
+        # 服务端语句超时之外再限制客户端等待，断网不能永久占用 Worker。
+        with asyncio.Runner(loop_factory=asyncio.SelectorEventLoop if os.name == "nt" else asyncio.new_event_loop) as runner:
+            rows = runner.run(asyncio.wait_for(execute_postgres(source, sql, params), timeout=15))
+        if len(rows) > 1000:
+            raise ResultTooLarge("结果超过 1000 组，请缩小日期范围或明确 Top N")
+        return normalize_rows(rows)
     with telemetry.stage("db_connect"):
         connection = connect(source)
     try:
@@ -181,10 +189,30 @@ def execute(source: Datasource, sql: str, params: list) -> list[dict]:
                 rows = cursor.fetchmany(1001)
             if len(rows) > 1000:
                 raise ResultTooLarge("结果超过 1000 组，请缩小日期范围或明确 Top N")
-        counts = {"sample_size", "total_orders", "excluded_orders", "unavailable_orders"}
-        return [{key: int(value or 0) if key in counts or key.endswith("_sample") else str(value) if isinstance(value, Decimal) else str(value) if isinstance(value, date) else value for key, value in row.items()} for row in rows]
+        return normalize_rows(rows)
     finally:
         connection.close()
+
+
+async def execute_postgres(source, sql, params):
+    with telemetry.stage("db_connect"):
+        connection = await psycopg.AsyncConnection.connect(host=source.host, port=source.port,
+            user=source.user, password=source.password, dbname=source.database, connect_timeout=3,
+            sslmode="verify-full" if source.ssl_ca else "prefer", sslrootcert=source.ssl_ca,
+            options=f"-c search_path={source.schema_name},pg_catalog -c statement_timeout=10000 -c default_transaction_read_only=on",
+            autocommit=True, row_factory=dict_row)
+    try:
+        async with connection.cursor() as cursor:
+            with telemetry.stage("sql"):
+                await cursor.execute(sql.replace("%", "%%").replace("?", "%s"), params)
+                return await cursor.fetchmany(1001)
+    finally:
+        await connection.close()
+
+
+def normalize_rows(rows):
+    counts = {"sample_size", "total_orders", "excluded_orders", "unavailable_orders"}
+    return [{key: int(value or 0) if key in counts or key.endswith("_sample") else str(value) if isinstance(value, (Decimal, date)) else value for key, value in row.items()} for row in rows]
 
 
 app = FastAPI(title="Olist 受限分析执行服务", docs_url=None, redoc_url=None)
@@ -283,6 +311,7 @@ def execute_plan(source: Datasource, plan: QueryPlan, allowed_metrics: list[str]
     with telemetry.stage("compile"):
         sql, params = compile_plan(plan, dialect="postgres" if source.driver == "postgresql" else "mysql")
     try:
+        telemetry.update(sql_calls=1)
         rows = execute(source, sql, params)
     except ResultTooLarge as exc:
         telemetry.update(error_code="result_limit")
@@ -290,7 +319,7 @@ def execute_plan(source: Datasource, plan: QueryPlan, allowed_metrics: list[str]
     except UnsafeSQL as exc:
         telemetry.update(error_code="sql_safety")
         raise HTTPException(403, "查询未通过安全校验") from exc
-    except (pymysql.MySQLError, psycopg.Error) as exc:
+    except (pymysql.MySQLError, psycopg.Error, TimeoutError) as exc:
         timeout = isinstance(exc, psycopg.errors.QueryCanceled) or (exc.args and exc.args[0] in (3024, 1317))
         telemetry.update(error_code="sql_timeout" if timeout else "db_error")
         raise HTTPException(503, "分析数据暂时不可用或查询超时，请联系数据管理员") from exc

@@ -16,10 +16,10 @@ from .policy import Policy
 from .repository import Repository
 
 
-def provision_roles(dsn):
+def provision_roles(dsn, api_role="platform_api", worker_role="platform_worker"):
     """迁移身份独占 DDL；API 无图状态权限，查询账号由数据导入单独创建。"""
     with psycopg.connect(dsn) as conn:
-        for role, name in (("platform_api", "POSTGRES_API_PASSWORD"), ("platform_worker", "POSTGRES_WORKER_PASSWORD")):
+        for role, name in ((api_role, "POSTGRES_API_PASSWORD"), (worker_role, "POSTGRES_WORKER_PASSWORD")):
             password = os.environ[name]
             if len(password) < 16:
                 raise ValueError("运行账号密码至少 16 字符")
@@ -29,8 +29,8 @@ def provision_roles(dsn):
             conn.execute(sql.SQL("GRANT USAGE ON SCHEMA platform TO {};").format(sql.Identifier(role)))
             conn.execute(sql.SQL("GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA platform TO {}").format(sql.Identifier(role)))
         conn.execute("REVOKE ALL ON SCHEMA agent_checkpoint FROM PUBLIC")
-        conn.execute("GRANT USAGE ON SCHEMA agent_checkpoint TO platform_worker")
-        conn.execute("GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA agent_checkpoint TO platform_worker")
+        conn.execute(sql.SQL("GRANT USAGE ON SCHEMA agent_checkpoint TO {}").format(sql.Identifier(worker_role)))
+        conn.execute(sql.SQL("GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA agent_checkpoint TO {}").format(sql.Identifier(worker_role)))
         # 共享实例也不允许普通账号向 public 放置可被 search_path 劫持的对象。
         conn.execute("REVOKE CREATE ON SCHEMA public FROM PUBLIC")
 

@@ -155,6 +155,8 @@ def tool(request: ToolRequest):
             code = "sql_timeout" if cause.args[0] in (3024, 1317) else "sql_connection" if cause.args[0] in (2002, 2003) else "sql_unknown" if cause.args[0] in (2006, 2013) else "sql_error"
         if isinstance(cause, psycopg.Error):
             code = "sql_timeout" if isinstance(cause, psycopg.errors.QueryCanceled) else "sql_unknown" if isinstance(cause, psycopg.OperationalError) else "sql_error"
+        if isinstance(cause, TimeoutError):
+            code = "sql_unknown"
         # 既有内核已隐藏数据库错误正文；只对可确认的临时错误开放有限重试。
         return {"status": "error", "error_code": code, "message": exc.detail}
     except Exception:
@@ -210,7 +212,7 @@ def decide(request: Snapshot):
         if bound > 6000:
             reject("input_limit", "分析上下文超过输入预算，请缩短问题或新建任务")
         transport = ModelTransport.from_env()
-        with transport.client() as client:
+        with transport.bounded_client() as client:
             sent = True
             response = transport.post(client, prompt, question, 1024)
             response.raise_for_status()

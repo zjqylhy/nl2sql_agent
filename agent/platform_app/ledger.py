@@ -36,7 +36,7 @@ class Ledger:
                     retried = conn.execute("SELECT output FROM analysis_steps WHERE id=%s", (retry_id,)).fetchone()
                     if retried and retried["output"] is not None:
                         return retried["output"]
-                    if retried or state["sql_retries"] >= 1 or state["sql_calls"] >= 6:
+                    if retried or state["sql_retries"] >= 1 or state["sql_calls"] >= 6 or state["active_ms"]+35000 >= 180000 or state["sequence"] >= 40:
                         raise BudgetExceeded("只读查询结果未知，重试额度已耗尽")
                     if old["started_at"].timestamp() + 15 > datetime.now(timezone.utc).timestamp():
                         raise BudgetExceeded("旧只读查询执行上界尚未结束")
@@ -51,6 +51,10 @@ class Ledger:
                 return None
             if state["active_ms"] >= 180000 or state["sequence"] >= 40:
                 raise BudgetExceeded("分析活跃时长或步骤预算已耗尽")
+            if (phase == "decide" or payload.get("action") == "query_metrics") and state["active_ms"]+20000 > 180000:
+                raise BudgetExceeded("剩余活跃时长不足以安全发起外部调用")
+            key = hashlib.sha256(canonical([run["binding"], snapshot.get("spec"), payload]).encode()).hexdigest()
+            cached = conn.execute("SELECT output FROM analysis_steps WHERE run_id=%s AND action_key=%s AND status='completed' ORDER BY sequence DESC LIMIT 1", (run["id"], key)).fetchone() if phase == "tool" else None
             if phase == "decide":
                 if state["model_calls"] >= 10 or state["tokens"] + 7024 > 30000 or state["cost"] + policy.cost(6000, 1024) > policy.max_cost:
                     raise BudgetExceeded("模型调用、Token 或费用预算已耗尽")
@@ -61,7 +65,7 @@ class Ledger:
                 if state["actions"] >= 12:
                     raise BudgetExceeded("工具动作预算已耗尽")
                 state["actions"] += 1
-                if payload.get("action") == "query_metrics":
+                if payload.get("action") == "query_metrics" and not cached:
                     if snapshot.get("retry_sql"):
                         if state["sql_retries"] >= 1:
                             raise BudgetExceeded("全局 SQL 重试额度已耗尽")
@@ -69,12 +73,8 @@ class Ledger:
                     if state["sql_calls"] >= 6:
                         raise BudgetExceeded("SQL 调用预算已耗尽")
                     state["sql_calls"] += 1
-            key = hashlib.sha256(canonical([run["binding"], snapshot.get("spec"), payload]).encode()).hexdigest()
             if phase == "tool":
-                cached = conn.execute("SELECT output FROM analysis_steps WHERE run_id=%s AND action_key=%s AND status='completed' ORDER BY sequence DESC LIMIT 1", (run["id"], key)).fetchone()
                 if cached:
-                    if payload.get("action") == "query_metrics":
-                        state["sql_calls"] -= 1
                     self._insert(conn, op_id, phase, payload, run, state, policy, snapshot, key=key)
                     conn.execute("UPDATE analysis_steps SET status='completed',output=%s,ended_at=now() WHERE id=%s", (Jsonb(cached["output"]), op_id))
                     conn.execute("UPDATE analysis_step_attempts SET cached=true,status='completed' WHERE step_id=%s", (op_id,))
@@ -108,6 +108,9 @@ class Ledger:
                 return step["output"]
             state, policy = run["state"], Policy.model_validate(run["policy"])
             state["active_ms"] += max(0, int((datetime.now(timezone.utc) - step["started_at"]).total_seconds() * 1000))
+            if state["active_ms"] > 180000:
+                output = {**output, "status": "error", "error_code": "active_budget", "message": "活跃执行时长预算已耗尽"}
+                output.pop("artifact", None)
             if step["phase"] == "decide":
                 usage = output.get("usage") or {}
                 tokens = [usage.get("prompt_tokens"), usage.get("completion_tokens")]

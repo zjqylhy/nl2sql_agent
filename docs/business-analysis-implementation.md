@@ -1,6 +1,6 @@
 # 有限经营分析助手：实现与验证
 
-> 本记录对应现有 Go/Python 版本。新的[Python 单栈目标架构](python-agent-target-spec.md)尚未实现，下面测试结果不能作为新架构的验收证据。
+> 本记录对应历史 Go/Python 版本。新的 [Python 单栈实现](python-platform-implementation.md)已完成本地机制与数据验证；下面结果仍只属于旧平台，不能代替新架构的验收证据。旧平台评测复现入口为 `scripts/run_analysis_study_legacy.py`。
 
 2026-10-17。用户已确认方案并授权实现。代码已在隔离分支实现和验证，等待人工审阅；未推送、未部署。本记录对应[原技术方案](business-analysis-assistant-design.md)，历史图中的“待实现”表示当时的设计状态。
 

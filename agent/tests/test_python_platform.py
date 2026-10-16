@@ -75,8 +75,10 @@ def platform(monkeypatch):
         finally:
             database.close()
             with psycopg.connect(dsn, autocommit=True) as admin:
+                owned_roles = [r[0] for r in admin.execute("SELECT rolname FROM pg_roles WHERE left(rolname,length(%s))=%s", (name+"_", name+"_"))]
                 admin.execute(sql.SQL("DROP DATABASE {} WITH (FORCE)").format(sql.Identifier(name)))
-                admin.execute(sql.SQL("DROP ROLE {}").format(sql.Identifier(role)))
+                for owned_role in owned_roles:
+                    admin.execute(sql.SQL("DROP ROLE {}").format(sql.Identifier(owned_role)))
 
 
 def spec(goal="top_n_total"):
@@ -381,3 +383,342 @@ def test_postgres_all_explicit_specs_against_independent_csv(platform, monkeypat
                 break
         gold = expected(ROOT/"evals/analysis"/fixture, case["spec"])
         assert score(report, gold) if gold["complete"] else report is None, (case["id"], report, gold)
+
+
+def test_database_api_worker_role_boundaries(platform, monkeypatch):
+    _, repo, source = platform
+    from agent.platform_app.__main__ import provision_roles
+    api_role, worker_role = source.user+"_api", source.user+"_worker"
+    monkeypatch.setenv("POSTGRES_API_PASSWORD", "test-only-api-password")
+    monkeypatch.setenv("POSTGRES_WORKER_PASSWORD", "test-only-worker-password")
+    provision_roles(repo.db.dsn, api_role, worker_role)
+    for role, password in [(api_role, "test-only-api-password"), (worker_role, "test-only-worker-password")]:
+        with psycopg.connect(make_conninfo(repo.db.dsn, user=role, password=password), autocommit=True) as conn:
+            assert conn.execute("SELECT count(*) FROM platform.tasks").fetchone()[0] == 0
+            if role == api_role:
+                with pytest.raises(psycopg.errors.InsufficientPrivilege):
+                    conn.execute("SELECT * FROM agent_checkpoint.checkpoints")
+            else:
+                assert conn.execute("SELECT count(*) FROM agent_checkpoint.checkpoints").fetchone()[0] == 0
+            with pytest.raises(psycopg.errors.InsufficientPrivilege):
+                conn.execute("SELECT * FROM analytics_fixture.order_facts")
+
+
+@pytest.mark.parametrize("crash_after_receipt", [False, True])
+def test_backup_restore_full_platform_and_live_checkpoint(platform, monkeypatch, tmp_path, crash_after_receipt):
+    client, repo, _ = platform
+    from scripts.backup_python_platform import backup, restore
+    from scripts.python_analysis_stack import uri_for
+    tools = os.getenv("PG_TEST_BIN")
+    if not tools:
+        pytest.skip("PG_TEST_BIN requires actual pg_dump and pg_restore")
+    deterministic_model(monkeypatch)
+    if crash_after_receipt:
+        from agent.platform_app.ledger import Ledger
+        original = Ledger.complete
+        crashed = []
+        def crash(self, op_id, output):
+            result = original(self, op_id, output)
+            if not crashed and output.get("artifact", {}).get("kind") == "query":
+                crashed.append(True)
+                raise RuntimeError("crash before graph checkpoint")
+            return result
+        monkeypatch.setattr(Ledger, "complete", crash)
+    run_id = client.post("/api/analysis-runs", json={"question": "Top N 合计", "request_id": str(uuid4())}).json()["id"]
+    run_once(repo)
+    manifest = backup(repo.db.dsn, tmp_path/"backup", Path(tools)/"pg_dump.exe" if os.name == "nt" else Path(tools)/"pg_dump")
+    assert manifest["counts"]["platform.tasks"] == 1
+    assert manifest["counts"]["agent_checkpoint.checkpoints"] > 0
+    name = "test_restore_"+secrets.token_hex(6)
+    with psycopg.connect(os.environ["TEST_DATABASE_URL"], autocommit=True) as admin:
+        admin.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(name)))
+    dsn = uri_for(repo.db.dsn, name)
+    try:
+        binary = Path(tools)/("pg_restore.exe" if os.name == "nt" else "pg_restore")
+        restore(dsn, tmp_path/"backup", binary)
+        if crash_after_receipt:
+            restored_db = Database(dsn)
+            try:
+                restored_repo = Repository(restored_db)
+                with restored_db.transaction() as conn:
+                    conn.execute("UPDATE tasks SET lease_until=now()-interval '1 second' WHERE id=%s", (run_id,))
+                run_once(restored_repo)
+                with restored_db.transaction() as conn:
+                    state = conn.execute("SELECT state FROM platform.analysis_runs WHERE id=%s", (run_id,)).fetchone()["state"]
+                    assert state["sql_calls"] == 1
+            finally:
+                restored_db.close()
+        with psycopg.connect(dsn) as conn:
+            assert conn.execute("SELECT status FROM platform.tasks WHERE id=%s", (run_id,)).fetchone()[0] == "completed"
+            assert conn.execute("SELECT count(*) FROM analytics_fixture.metric_orders").fetchone()[0] > 0
+            assert conn.execute("SELECT count(*) FROM platform.analysis_artifacts WHERE body->>'kind'='report'").fetchone()[0] == 1
+        with pytest.raises(ValueError, match="不是空库"):
+            restore(dsn, tmp_path/"backup", binary)
+    finally:
+        with psycopg.connect(os.environ["TEST_DATABASE_URL"], autocommit=True) as admin:
+            admin.execute(sql.SQL("DROP DATABASE {} WITH (FORCE)").format(sql.Identifier(name)))
+
+
+def test_real_olist_postgres_against_independent_csv(platform):
+    _, repo, source = platform
+    folder = os.getenv("OLIST_TEST_CSV_DIR")
+    if not folder:
+        pytest.skip("OLIST_TEST_CSV_DIR requires the complete Olist CSV files")
+    from agent.tools.import_olist_postgres import provision
+    from scripts.verify_semantic import facts, calculate
+    from agent.runtime.plan import QueryPlan
+    from decimal import Decimal
+    with psycopg.connect(repo.db.dsn, autocommit=True) as conn:
+        digest = provision(conn, Path(folder), "analytics_real", source.user, "", create_role=False)
+        assert conn.execute("SELECT count(*) FROM analytics_real.order_facts").fetchone()[0] == 99441
+    imported = source.model_copy(update={"schema_name": "analytics_real", "dataset_revision": digest})
+    independent = facts(Path(folder))
+    for start, end in [("2018-06-01", "2018-07-01"), ("2018-07-01", "2018-08-01")]:
+        for metric in runtime.catalog().metrics:
+            result = runtime.execute_plan(imported, QueryPlan.model_validate({"metrics": [metric], "dimensions": ["state"], "time_range": {"start": start, "end_exclusive": end}}), list(runtime.catalog().metrics), {})
+            candidates = [r for r in independent if start <= r["date"] < end]
+            for row in result["rows"]:
+                selected = [r for r in candidates if r["state"] == row["dimensions"]["state"]]
+                expected, samples = calculate(selected)
+                actual = row["values"][metric]
+                assert actual["sample_size"] == samples[metric]
+                if expected[metric] is None:
+                    assert actual["value"] is None
+                else:
+                    assert abs(Decimal(str(actual["value"]))-expected[metric]) < Decimal("0.00000001"), (start, metric, row)
+
+
+def test_new_eval_stack_is_python_pg_and_zero_provider_calls(monkeypatch):
+    if not os.getenv("TEST_DATABASE_URL"):
+        pytest.skip("isolated TEST_DATABASE_URL required")
+    import httpx
+    from scripts.python_analysis_stack import stack
+    for key, value in {"ANALYSIS_CURRENCY": "test", "ANALYSIS_PRICE_VERSION": "fixture", "LLM_MODEL": "fixture", "ANALYSIS_TOKENIZER": "byte_bpe_upper_bound", "ANALYSIS_INPUT_PRICE_MICROS": "1000000", "ANALYSIS_OUTPUT_PRICE_MICROS": "1000000", "ANALYSIS_MAX_COST_MICROS": "1000000"}.items():
+        monkeypatch.setenv(key, value)
+    monkeypatch.delenv("LLM_API_KEY", raising=False)
+    with stack("orders.csv", "adaptive", 0) as (base, observer):
+        with httpx.Client(base_url=base, headers={"Origin": base}, trust_env=False, timeout=10) as client:
+            response = client.post("/api/login", json={"tenant": os.environ["ANALYSIS_EVAL_TENANT"], "username": "admin", "password": os.environ["ANALYSIS_EVAL_PASSWORD"]})
+            assert response.status_code == 200
+            assert client.get("/healthz").json()["runtime"] == "python-langgraph"
+            assert client.get("/api/analysis-capabilities").json()["enabled"] is False
+            task = client.post("/api/tasks", json={"question": "2018年7月 GMV 按州统计"}).json()
+            import time
+            deadline = time.monotonic()+10
+            while time.monotonic() < deadline:
+                task = client.get("/api/tasks/"+task["id"]).json()
+                if task["status"] not in {"pending", "querying"}:
+                    break
+                time.sleep(0.1)
+            assert task["status"] == "completed", task
+            observed = client.get("/evaluation/tasks/"+task["id"], headers={"X-Service-Key": os.environ["SERVICE_KEY"]}).json()
+            assert observed["sql_calls"] == 1 and observed["model_calls"] == 0 and observed["unknown_usage_calls"] == 0
+            result = client.get("/evaluation/stats", headers={"X-Service-Key": os.environ["SERVICE_KEY"]}).json()
+            assert result["issued_calls"] == 0
+
+
+def test_legacy_adoption_preserves_login_sessions_and_history(platform):
+    _, _, source = platform
+    from scripts.python_analysis_stack import uri_for
+    admin_dsn = os.environ["TEST_DATABASE_URL"]
+    name = "test_legacy_"+secrets.token_hex(6)
+    with psycopg.connect(admin_dsn, autocommit=True) as admin:
+        admin.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(name)))
+    dsn = uri_for(admin_dsn, name)
+    token = secrets.token_hex(24)
+    try:
+        with psycopg.connect(dsn) as conn:
+            conn.execute("CREATE TABLE schema_migrations(version text PRIMARY KEY,checksum text NOT NULL)")
+            for path in sorted((ROOT/"internal/store/migrations").glob("*.sql")):
+                conn.execute(path.read_text(encoding="utf-8"))
+                conn.execute("INSERT INTO schema_migrations VALUES(%s,%s)", ("migrations/"+path.name, hashlib.sha256(path.read_bytes()).hexdigest()))
+            conn.execute("INSERT INTO tenants VALUES('demo','legacy')")
+            conn.execute("INSERT INTO users(id,tenant_id,username,password_hash,role,allowed_metrics) VALUES('legacy','demo','admin',%s,'admin',ARRAY['gmv'])", (bcrypt.hashpw(b"legacy-password", bcrypt.gensalt(rounds=4)),))
+            conn.execute("INSERT INTO sessions VALUES(%s,'demo','legacy',now()+interval '1 hour')", (hashlib.sha256(token.encode()).hexdigest(),))
+            conn.execute("INSERT INTO tasks(id,tenant_id,user_id,input,status) VALUES('old','demo','legacy','{\"question\":\"旧问数\"}','pending')")
+        with pytest.raises(ValueError, match="未结束"):
+            migrate(dsn, adopt_legacy=True)
+        with psycopg.connect(dsn) as conn:
+            assert conn.execute("SELECT to_regclass('public.tasks')").fetchone()[0] == "tasks"
+            conn.execute("UPDATE tasks SET status='completed',result='{\"metric\":\"gmv\"}'")
+        migrate(dsn, adopt_legacy=True)
+        db = Database(dsn)
+        try:
+            with TestClient(create_app(db, None, origin=ORIGIN)) as client:
+                client.cookies["session"] = token
+                assert client.get("/api/me").json()["username"] == "admin"
+                assert client.get("/api/tasks/old").json()["status"] == "completed"
+                assert client.post("/api/login", headers={"Origin": ORIGIN}, json={"tenant": "demo", "username": "admin", "password": "legacy-password"}).status_code == 200
+        finally:
+            db.close()
+    finally:
+        with psycopg.connect(admin_dsn, autocommit=True) as admin:
+            admin.execute(sql.SQL("DROP DATABASE {} WITH (FORCE)").format(sql.Identifier(name)))
+
+
+@pytest.mark.parametrize("field,value", [("tokens", 30000), ("cost", 1000000), ("model_calls", 10), ("active_ms", 180000), ("sequence", 40)])
+def test_hard_budget_stops_before_provider(platform, monkeypatch, field, value):
+    client, repo, _ = platform
+    calls = deterministic_model(monkeypatch)
+    run_id = client.post("/api/analysis-runs", json={"question": "Top N 合计", "request_id": str(uuid4())}).json()["id"]
+    with repo.db.transaction() as conn:
+        from psycopg.types.json import Jsonb
+        run = conn.execute("SELECT state FROM analysis_runs WHERE id=%s", (run_id,)).fetchone()
+        state = run["state"]
+        state[field] = value
+        conn.execute("UPDATE analysis_runs SET state=%s WHERE id=%s", (Jsonb(state), run_id))
+    run_once(repo)
+    run = client.get("/api/analysis-runs/"+run_id).json()
+    assert run["status"] == "failed" and calls == [] and run["state"]["sql_calls"] == 0
+
+
+@pytest.mark.parametrize("always_invalid", [False, True])
+def test_invalid_arguments_repair_only_once(platform, monkeypatch, always_invalid):
+    client, repo, _ = platform
+    from agent.platform_app import graph
+    deterministic_model(monkeypatch)
+    normal = graph.decide
+    failures = []
+    def decide(request):
+        if not failures or always_invalid:
+            failures.append(1)
+            return {"status": "error", "error_code": "invalid_arguments", "message": "参数无效", "model_sent": True, "usage": {"prompt_tokens": 100, "completion_tokens": 50}}
+        assert request.feedback["error_code"] == "invalid_arguments"
+        return normal(request)
+    # 修正后的后续决策不需要继续携带历史错误。
+    def dispatch(request):
+        if not failures or always_invalid or request.feedback.get("error_code") == "invalid_arguments":
+            return decide(request)
+        return normal(request)
+    monkeypatch.setattr(graph, "decide", dispatch)
+    run_id = client.post("/api/analysis-runs", json={"question": "Top N 合计", "request_id": str(uuid4())}).json()["id"]
+    run_once(repo)
+    run = client.get("/api/analysis-runs/"+run_id).json()
+    assert run["status"] == ("failed" if always_invalid else "completed"), run
+    assert run["state"]["repairs"] == 1 and len(failures) == (2 if always_invalid else 1)
+    if always_invalid:
+        assert run["state"]["sql_calls"] == 0
+
+
+def test_no_data_is_incomplete_and_not_zero(platform, monkeypatch):
+    client, repo, _ = platform
+    from agent.platform_app import graph
+    missing = Spec.model_validate({**spec(), "current": {"start": "2010-07-01", "end_exclusive": "2010-08-01"}})
+    monkeypatch.setattr(graph, "decide", lambda request: {"status": "completed", "model_sent": True, "usage": {"prompt_tokens": 100, "completion_tokens": 50}, "decision": next_action(missing, request.artifacts)})
+    run_id = client.post("/api/analysis-runs", json={"question": "无数据场景", "request_id": str(uuid4())}).json()["id"]
+    run_once(repo)
+    run = client.get("/api/analysis-runs/"+run_id).json()
+    assert run["status"] == "failed", run
+    assert not any(a["kind"] == "report" for a in run["artifacts"])
+    assert next(a["data"]["outcome"] for a in run["artifacts"] if a["kind"] == "query") == "no_data"
+    assert all(a["data"]["value"] is None for a in run["artifacts"] if a["kind"] == "scalar")
+
+
+@pytest.mark.parametrize("crash_after_retry_receipt", [False, True])
+def test_unknown_readonly_query_retries_once_and_replays_retry_receipt(platform, monkeypatch, crash_after_retry_receipt):
+    client, repo, _ = platform
+    deterministic_model(monkeypatch)
+    from agent.platform_app.ledger import Ledger
+    original_complete = Ledger.complete
+    faults = []
+    def complete(self, op_id, output):
+        if output.get("artifact", {}).get("kind") == "query":
+            if not faults:
+                faults.append(1)
+                raise RuntimeError("query sent, no durable receipt")
+            if crash_after_retry_receipt and len(faults) == 1:
+                result = original_complete(self, op_id, output)
+                faults.append(2)
+                raise RuntimeError("retry receipt saved, graph write lost")
+        return original_complete(self, op_id, output)
+    monkeypatch.setattr(Ledger, "complete", complete)
+    run_id = client.post("/api/analysis-runs", json={"question": "查询未知恢复", "request_id": str(uuid4())}).json()["id"]
+    run_once(repo)
+    for _ in range(2 if crash_after_retry_receipt else 1):
+        with repo.db.transaction() as conn:
+            conn.execute("UPDATE tasks SET lease_until=now()-interval '1 second' WHERE id=%s", (run_id,))
+            conn.execute("UPDATE analysis_steps SET started_at=now()-interval '61 seconds' WHERE run_id=%s AND status='running'", (run_id,))
+        run_once(repo)
+    run = client.get("/api/analysis-runs/"+run_id).json()
+    assert run["status"] == "completed", run
+    assert run["state"]["sql_calls"] == 2 and run["state"]["sql_retries"] == 1
+
+
+@pytest.mark.parametrize("changed", ["data", "code", "disabled"])
+def test_changed_execution_binding_stops_before_call(platform, monkeypatch, changed):
+    client, repo, source = platform
+    calls = deterministic_model(monkeypatch)
+    run_id = client.post("/api/analysis-runs", json={"question": "绑定变化", "request_id": str(uuid4())}).json()["id"]
+    if changed == "data":
+        monkeypatch.setattr(source, "context_revision", source.context_revision+1)
+    elif changed == "code":
+        from agent.platform_app import repository
+        monkeypatch.setattr(repository, "code_digest", lambda: "d"*64)
+    else:
+        with repo.db.transaction() as conn:
+            conn.execute("UPDATE users SET enabled=false WHERE id='admin'")
+    run_once(repo)
+    with repo.db.transaction() as conn:
+        assert conn.execute("SELECT status FROM tasks WHERE id=%s", (run_id,)).fetchone()["status"] == "failed"
+    assert calls == []
+    assert client.get("/api/analysis-runs/"+run_id).status_code == (200 if changed == "code" else 401 if changed == "disabled" else 404)
+
+
+def test_multiple_workers_share_two_analysis_slots(platform):
+    _, repo, _ = platform
+    from concurrent.futures import ThreadPoolExecutor
+    with repo.db.transaction() as conn:
+        users = conn.execute("SELECT id,tenant_id,username,role,allowed_metrics FROM users ORDER BY id").fetchall()
+        for user in users:
+            repo.create_analysis(conn, user, str(uuid4()), "并发分析", None, POLICY)
+    with ThreadPoolExecutor(max_workers=3) as pool:
+        results = list(pool.map(lambda _: repo.claim(True), range(3)))
+    assert len([r for r in results if r]) == 2
+    with repo.db.transaction() as conn:
+        assert conn.execute("SELECT count(*) n FROM tasks WHERE status='querying' AND lease_until>now()").fetchone()["n"] == 2
+
+
+def test_fixed_strategy_ignores_initial_model_tool_choice(platform, monkeypatch):
+    client, repo, _ = platform
+    from agent.platform_app import graph
+    client.app.state.policy = POLICY.model_copy(update={"strategy": "fixed"})
+    monkeypatch.setattr(graph, "decide", lambda request: {"status": "completed", "model_sent": True, "usage": {"prompt_tokens": 100, "completion_tokens": 50},
+        "decision": {"spec": spec(), "action": {"action": "lookup_metrics", "arguments": {"metrics": ["gmv"]}}}})
+    run_id = client.post("/api/analysis-runs", json={"question": "固定流程对照", "request_id": str(uuid4())}).json()["id"]
+    run_once(repo)
+    run = client.get("/api/analysis-runs/"+run_id).json()
+    assert run["status"] == "completed", run
+    assert run["state"]["model_calls"] == 1
+    assert next(s["action"] for s in run["steps"] if s["phase"] == "tool") == "query_metrics"
+    assert run["state"]["actions"] == 7
+
+
+def test_completed_history_survives_code_upgrade_but_cannot_resume(platform, monkeypatch):
+    client, repo, _ = platform
+    deterministic_model(monkeypatch)
+    run_id = client.post("/api/analysis-runs", json={"question": "已完成历史", "request_id": str(uuid4())}).json()["id"]
+    run_once(repo)
+    from agent.platform_app import repository
+    monkeypatch.setattr(repository, "code_digest", lambda: "d"*64)
+    assert client.get("/api/analysis-runs/"+run_id).json()["status"] == "completed"
+    assert client.post(f"/api/analysis-runs/{run_id}/resume", json={}).status_code == 409
+    assert repo.claim(True) is None
+
+
+def test_retention_advances_across_multiple_batches(platform):
+    _, repo, _ = platform
+    from agent.platform_app.repository import new_state
+    from agent.platform_app.retention import prune
+    from psycopg.types.json import Jsonb
+    with repo.db.transaction() as conn:
+        user = repo.user(conn, "admin", "demo")
+        meta = binding(user, True)
+        with conn.cursor() as cur:
+            cur.executemany("INSERT INTO tasks(id,tenant_id,user_id,input,kind,status,updated_at) VALUES(%s,'demo','admin','{\"question\":\"expired\"}','analysis','completed',now()-interval '31 days')", [("expired_"+str(i),) for i in range(101)])
+            cur.executemany("INSERT INTO analysis_runs(id,tenant_id,user_id,role,binding,metadata,policy,state,request_id,request_hash) VALUES(%s,'demo','admin','admin',%s,%s,%s,%s,%s,%s)", [("expired_"+str(i), meta["binding"], Jsonb(meta), Jsonb(POLICY.model_dump()), Jsonb(new_state()), str(uuid4()), "d"*64) for i in range(101)])
+    prune(repo)
+    with repo.db.transaction() as conn:
+        assert conn.execute("SELECT count(*) n FROM analysis_runs WHERE graph_pruned_at IS NOT NULL").fetchone()["n"] == 100
+    prune(repo)
+    with repo.db.transaction() as conn:
+        assert conn.execute("SELECT count(*) n FROM analysis_runs WHERE graph_pruned_at IS NOT NULL").fetchone()["n"] == 101

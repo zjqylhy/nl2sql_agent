@@ -5,8 +5,10 @@ from typing import TypedDict
 from langgraph.graph import START, END, StateGraph
 from langgraph.types import interrupt
 
+# 共享查询模块先完成初始化，再加载保留的内部工具适配器。
+from agent.runtime import app as runtime
 from agent.runtime.analysis import canonical
-from agent.runtime.analysis_api import Snapshot, ToolRequest, decide, fixed_decide, tool
+from agent.runtime.analysis_api import Snapshot, ToolRequest, checked, decide, decision_prompt, fixed_decide, tool
 from .ledger import Ledger
 from .repository import identity
 
@@ -37,8 +39,10 @@ def build_graph(repo, task, saver):
             user = repo.execution(conn, task)
             run = conn.execute("SELECT * FROM analysis_runs WHERE id=%s", (task["id"],)).fetchone()
             artifacts = [r["body"] for r in conn.execute("SELECT body FROM analysis_artifacts WHERE run_id=%s ORDER BY created_at,result_ref", (task["id"],))]
-        return dict(**identity(user).model_dump(), binding=run["binding"], question=state["question"],
-            spec=state.get("spec"), artifacts=artifacts, answers=state.get("answers", []), feedback=state.get("feedback", {})), run
+        value = dict(**identity(user).model_dump(), binding=run["binding"], question=state["question"],
+            spec=state.get("spec"), artifacts=artifacts, answers=state.get("answers", []), feedback=state.get("feedback", {}))
+        checked(Snapshot.model_validate(value))
+        return value, run
 
     def prepare(state):
         seq = state.get("sequence", 0) + 1
@@ -48,7 +52,12 @@ def build_graph(repo, task, saver):
         request, run = snapshot(state)
         fixed = run["policy"]["strategy"] == "fixed" and state.get("spec") is not None
         phase = "fixed" if fixed else "decide"
-        output = ledger.call(state["op_id"], phase, {"spec": request["spec"], "answers": request["answers"], "feedback": request["feedback"]}, state,
+        payload = {"spec": request["spec"], "answers": request["answers"], "feedback": request["feedback"], "artifact_refs": state.get("refs", [])}
+        if not fixed:
+            from datetime import date
+            prompt, question = decision_prompt(Snapshot.model_validate(request), date.fromisoformat(run["metadata"]["analysis_date"]))
+            payload.update(prompt=prompt, question=question, model=run["metadata"]["model"])
+        output = ledger.call(state["op_id"], phase, payload, state,
             lambda: (fixed_decide if fixed else decide)(Snapshot.model_validate(request)))
         return {"output": output}
 
@@ -57,6 +66,14 @@ def build_graph(repo, task, saver):
         if output.get("status") != "completed":
             return failure(state, output)
         value = output["decision"]
+        with repo.db.transaction() as conn:
+            strategy = conn.execute("SELECT policy->>'strategy' strategy FROM analysis_runs WHERE id=%s", (task["id"],)).fetchone()["strategy"]
+        if strategy == "fixed" and value["spec"] is not None:
+            # C 组从第一个工具起即按固定依赖执行，不采纳模型附带的工具选择。
+            from agent.runtime.analysis import Spec
+            from agent.runtime.analysis_fixed import next_action
+            request, _ = snapshot({**state, "spec": value["spec"]})
+            value = next_action(Spec.model_validate(value["spec"]), request["artifacts"])
         return {"spec": value["spec"], "decision": value["action"], "status": "tool", "retry_sql": False}
 
     def execute_tool(state):
@@ -93,7 +110,7 @@ def build_graph(repo, task, saver):
     def wait_for_answer(state):
         # 此节点只执行 interrupt 和纯状态变换，恢复从开头执行也没有外部副作用。
         answer = interrupt({"kind": "clarification", "message": state["message"], "wait_id": state["op_id"]})
-        return {"answers": [*state.get("answers", []), answer], "status": "decide", "feedback": {}}
+        return {"answers": [*state.get("answers", []), answer], "status": "decide", "feedback": {}, "message": ""}
 
     def backoff(state):
         interrupt({"kind": "backoff", "wait_id": state["op_id"], "seconds": 15 if state["feedback"].get("error_code") == "sql_unknown" else 1})

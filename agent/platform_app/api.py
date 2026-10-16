@@ -1,6 +1,7 @@
 """HTTP 只负责接纳与读取持久任务；不在请求生命周期里执行 Agent。"""
 import asyncio
 import hashlib
+import ipaddress
 import json
 import secrets
 import time
@@ -91,10 +92,32 @@ def same_origin(value, expected):
         return False
 
 
-def create_app(db=None, policy=None, *, origin=None, secure_cookie=None):
+def client_address(request, trusted_proxies):
+    peer = request.client.host if request.client else "unknown"
+    try:
+        address = ipaddress.ip_address(peer)
+        trusted = lambda ip: any(ip in network for network in trusted_proxies)
+        if not trusted(address):
+            return peer
+        chain = request.headers.get("x-forwarded-for", "")
+        if not chain or len(chain) > 1024:
+            return peer
+        # 从连接的直接对端向左查找，攻击者伪造的前缀不能覆盖真实来源。
+        for item in reversed(chain.split(",")):
+            address = ipaddress.ip_address(item.strip())
+            if not trusted(address):
+                return str(address)
+        return str(address)
+    except ValueError:
+        return peer
+
+
+def create_app(db=None, policy=None, *, origin=None, secure_cookie=None, trusted_proxies=None):
     import os
     origin = origin or os.getenv("PUBLIC_ORIGIN", "http://localhost:8088")
     secure_cookie = secure_cookie if secure_cookie is not None else os.getenv("COOKIE_SECURE") == "true"
+    trusted_proxies = [ipaddress.ip_network(value.strip(), strict=False) for value in
+        (trusted_proxies if trusted_proxies is not None else os.getenv("TRUSTED_PROXY_CIDRS", "").split(",")) if value.strip()]
 
     @asynccontextmanager
     async def lifespan(app):
@@ -175,8 +198,8 @@ def create_app(db=None, policy=None, *, origin=None, secure_cookie=None):
 
     @app.post("/api/login")
     def login(body: Login, request: Request, repository=Depends(repo)):
-        # 不信任 X-Forwarded-For；多 API 实例共享数据库限流窗口。
-        ip_hash = hashlib.sha256((request.client.host if request.client else "unknown").encode()).hexdigest()
+        # 只信任显式代理链；多 API 实例共享数据库限流窗口。
+        ip_hash = hashlib.sha256(client_address(request, trusted_proxies).encode()).hexdigest()
         with repository.db.transaction() as conn:
             count = conn.execute("INSERT INTO login_windows(identity,started_at,attempts) VALUES(%s,now(),1) ON CONFLICT(identity) DO UPDATE SET started_at=CASE WHEN login_windows.started_at<now()-interval '1 minute' THEN now() ELSE login_windows.started_at END,attempts=CASE WHEN login_windows.started_at<now()-interval '1 minute' THEN 1 ELSE login_windows.attempts+1 END RETURNING attempts", (ip_hash,)).fetchone()["attempts"]
         if count > 10:
@@ -294,7 +317,7 @@ def create_app(db=None, policy=None, *, origin=None, secure_cookie=None):
                 enabled = analysis_context(identity(user))["model_ready"] and binding(user, True)["model"] == request.app.state.policy.model
             except HTTPException:
                 pass
-        return {"enabled": enabled, "runtime": "python-langgraph", "model_mode": "provider", "message": "需冻结数据版本、模型和预算价格配置"}
+        return {"enabled": enabled, "runtime": "python-langgraph", "model_mode": os.getenv("ANALYSIS_MODEL_MODE", "provider"), "message": "需冻结数据版本、模型和预算价格配置"}
 
     @app.post("/api/analysis-runs", status_code=202)
     def create_analysis(body: AnalysisInput, request: Request, user=Depends(current_user), repository=Depends(repo)):

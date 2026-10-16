@@ -1,8 +1,8 @@
 # Python 单栈经营分析助手：目标架构与实施规格
 
-日期：2026-10-17。目标岗位：**AI / Agent 应用后端**。状态：**用户已确认，按 P0–P5 实施中**。
+日期：2026-10-17。目标岗位：**AI / Agent 应用后端**。状态：**Python 单栈已实现并完成本地机制/数据验收；真实模型实验、题集人工复核和远端发布待验收**。
 
-本方案替代“Go 持有 Agent 状态机、Python 执行单步”的目标架构。现有实现保留为对照基线，不能将本方案的 LangGraph、Python 平台或 PostgreSQL 分析数据源写成已实现能力。当前工作台仍运行原实现，浏览器演示使用模拟模型。
+本方案替代“Go 持有 Agent 状态机、Python 执行单步”的架构。默认入口已切换到 Python API/Worker、LangGraph 和 PostgreSQL 分析数据源；旧 Go/MySQL 保留为历史基线。实施与验证见 [实施记录](python-platform-implementation.md)。本地浏览器演示使用完整 Olist 数据和模拟模型，现有远端服务没有切换。
 
 ## 1 从零设计的约束与结论
 
@@ -22,7 +22,7 @@
 | Web API | FastAPI / Pydantic | 请求与工具统一严格 schema，复用 Python 领域对象；API 只接纳和读取任务 | async 路由不能直接执行阻塞 SQL 或模型调用；不得把长任务放入无持久保障的进程内 BackgroundTasks |
 | 任务队列 | PostgreSQL task/outbox + SKIP LOCKED | 低并发持久任务的领取、幂等和预算需要事务；一个存储可满足首版 | 连接、锁等待和轮询需监控；实际积压和吞吐证据出现后再考虑消息中间件 |
 | 平台与业务数据 | 一套 PostgreSQL，独立 schema/账号 | 自持订单数据无需第二种数据库引擎；数据库权限仍可隔离只读视图与平台写入 | 隔离的是权限域，不是故障域；将来对接外部 MySQL 时再增加明确的数据源适配器 |
-| 数据访问 | SQLAlchemy 2 / Alembic，psycopg 3 | 常规平台表使用标准迁移与连接管理；领取、额度与版本围栏使用显式事务 SQL；图持久层通过 psycopg 接入 | ORM 不替代锁、唯一约束和条件更新；应用池和图检查点池分别计入连接预算 |
+| 数据访问 | psycopg 3 显式事务 / Alembic（SQLAlchemy 迁移引擎） | 领取、额度、权限和版本围栏在一个 repository 以参数化 SQL 表达；平台池和图连接共用 psycopg 事务语义 | 实施中明确不引入运行时 ORM 状态管理；SQLAlchemy 用于 Alembic。连接池与图连接分别计入预算，查询和索引仍需验证 |
 | 结果与界面 | React + 持久 SSE | 展示完整任务、依据、失败和恢复；SSE 断线可按事件序号补读 | 图事件需转为授权的业务事件，不能直接把内部图状态公开给浏览器 |
 
 Go 与 Python 都能实现权限、队列、预算和 SSE；本项目选择 Python，主要减少平台与 Agent 之间的运行协议和状态转换。并发模型可参考 [Python asyncio](https://docs.python.org/3.13/library/asyncio.html)、[Go concurrency](https://go.dev/doc/effective_go#concurrency)，多 worker 部署的内存边界见 [FastAPI deployment](https://fastapi.tiangolo.com/deployment/concepts/)。这些文档支持机制说明，不提供本项目语言性能结论。
@@ -39,24 +39,24 @@ LangGraph 的持久检查点记录图状态及后续节点；用户缺少条件�
 
 ## 4 已有部分与待实现部分
 
-代码基线：`866da61`。以下“已有”指本地已提交实现，不表示真实模型效果或线上验收通过。
+原代码基线：`866da61`。下表区分原有部分、当前新增实现和剩余验收；“已实现”不表示真实模型效果或远端发布通过。
 
-| 部分 | 已有部分与依据 | 待实现部分 |
+| 部分 | 扩展前已有部分与依据 | 当前新增实现与剩余验收 |
 | --- | --- | --- |
-| Agent 与数学 | `agent/runtime/analysis.py` 的严格协议、Decimal 计算、引用、覆盖和完成检查 | 接入 StateGraph 节点；保留领域工具，移除跨语言的单步 HTTP 控制 |
-| 目录与查询 | `catalog.json`、`plan.py`、`security.py`、`app.py` | PostgreSQL 方言、参数绑定、只读事务、视图导入及权限；原有六指标和样本语义需独立核对 |
-| 模型传输 | `model_transport.py`，现有 JSON 输出校验和超时 | 作为图节点适配器；决策预留、回执和未知执行接入统一操作账本 |
-| API 与任务 | `internal/api`、`internal/store` 的 Go 版本 | Python API、认证、账号、任务、会话、SSE、取消、预算和遥测；最终默认路径不运行 Go API/Worker |
-| 图持久化 | 当前 Go 手写阶段状态和步骤账本 | LangGraph PostgreSQL 检查点、稳定 thread 映射、重放及执行版本围栏；不保留第二套图控制器 |
-| 部署与数据 | Go/Python 双服务、PostgreSQL/MySQL 双引擎 | 同一 Python 镜像分 API/Worker 命令、一套 PostgreSQL、分域最小权限、初始化与备份恢复 |
-| 界面 | React 分析入口、历史、依据、步骤和补充 | 兼容新 API；明确显示图恢复状态、真实/模拟模型及部分结果 |
-| 评测 | `evals/analysis` 的 80 表达/40 组 draft、CSV oracle 和 A/B/C 脚本 | 新平台与 PG 数据源适配；人工复核、隐藏组扩充和真实模型实验；已有统计不能冒充新架构验证 |
+| Agent 与数学 | `agent/runtime/analysis.py` 的严格协议、Decimal 计算、引用、覆盖和完成检查 | 已接入 `platform_app/graph.py` StateGraph，复用领域工具；默认路径无跨语言单步 HTTP |
+| 目录与查询 | `catalog.json`、`plan.py`、`security.py`、`app.py` | 已实现 PG 方言、绑定、只读查询、事务导入与视图权限；完整 99441 单、两个月各州六指标与 CSV 独立核对通过 |
+| 模型传输 | `model_transport.py` 的 JSON 校验和分段超时 | 已接入操作账本与整体决策截止时间；真实模型效果与实际价格仍待单独验证 |
+| API 与任务 | `internal/api`、`internal/store` 的 Go 版本 | 已实现 `platform_app/api.py`、repository、独立 Worker；认证、账号、任务、会话、SSE、取消、预算和遥测走 Python |
+| 图持久化 | Go 手写阶段和步骤账本 | 已实现原生 PG saver 的事务围栏、稳定 thread 与操作 ID、interrupt、未知分类与回执重放；没有第二套图控制器 |
+| 部署与数据 | Go/Python、PG/MySQL 双引擎 | 默认 Compose 为同一 Python 镜像分 API/Worker、一套 PG、独立账号；真实备份恢复及旧账号/会话接管通过。容器构建/启动与远端发布尚未验收 |
+| 界面 | React 分析入口、历史、依据、步骤和补充 | 已兼容新 API，并增加模拟模型和未知用量提示；浏览器验证比较任务及刷新恢复 |
+| 评测 | 80 表达/40 组 draft、CSV oracle、A/B/C 统计 | 已迁移至同一 Python/PG 测试栈并验证零模型 HTTP 闭环；人工复核、隐藏组扩充和真实模型实验待完成 |
 
 迁移先做可验证的纵向闭环，再完成全部旧功能兼容；过渡运行只在隔离环境中存在。最终入口、部署模板与简历叙述必须一致，不把临时兼容层当作目标架构。
 
 ## 5 目标架构节点职责
 
-交互图：[Python 单栈目标架构（待实现）](../.archify/architecture-python-agent-target-20261017-041515/python-agent-target.html)。图表示下述目标，不能证明当前代码已实现。
+交互图：[方案确认时的 Python 单栈架构图](../.archify/architecture-python-agent-target-20261017-041515/python-agent-target.html)。保留其原始“待实现”标注及验证回执；该图是设计快照，当前实现与验证以本表和实施记录为准。
 
 ### 5.1 React 工作台
 

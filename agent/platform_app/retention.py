@@ -13,7 +13,7 @@ def prune(repo):
             conn.execute("UPDATE analysis_runs SET state=jsonb_set(jsonb_set(state,'{phase}','\"failed\"'),'{message}','\"等待补充已超过 24 小时\"'),version=version+1 WHERE id=%s", (row["id"],))
             conn.execute("UPDATE task_outbox SET delivered_at=now() WHERE task_id=%s", (row["id"],))
             repo.event(conn, row["id"], "error", {"status": "failed", "message": "等待补充已过期"})
-        values = conn.execute("SELECT t.id,r.state FROM tasks t JOIN analysis_runs r ON r.id=t.id WHERE t.status IN ('completed','failed','canceled') AND t.updated_at<now()-interval '30 days' LIMIT 100 FOR UPDATE OF t SKIP LOCKED").fetchall()
+        values = conn.execute("SELECT t.id,r.state FROM tasks t JOIN analysis_runs r ON r.id=t.id WHERE t.status IN ('completed','failed','canceled') AND t.updated_at<now()-interval '30 days' AND r.graph_pruned_at IS NULL ORDER BY t.updated_at,t.id LIMIT 100 FOR UPDATE OF t SKIP LOCKED").fetchall()
         for row in values:
             usage = conn.execute("SELECT coalesce(sum(actual_tokens),0) known_tokens,coalesce(sum(actual_cost),0) known_cost_micros,count(*) FILTER(WHERE status IN ('reserved','unknown')) unknown_calls FROM analysis_budget_ledger WHERE run_id=%s", (row["id"],)).fetchone()
             state = row["state"]
@@ -35,3 +35,5 @@ def prune(repo):
             for row in values:
                 for table in ("checkpoint_writes", "checkpoint_blobs", "checkpoints"):
                     conn.execute(f"DELETE FROM agent_checkpoint.{table} WHERE thread_id=%s", (row["id"],))
+        with repo.db.transaction() as conn:
+            conn.execute("UPDATE analysis_runs SET graph_pruned_at=now() WHERE id=ANY(%s)", ([row["id"] for row in values],))

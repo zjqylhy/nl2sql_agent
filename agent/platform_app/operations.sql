@@ -16,7 +16,7 @@ WITH a AS (
         'attempts',(SELECT COUNT(*) FROM a),'retries',(SELECT COUNT(*) FROM a WHERE state='retry'),
         'parsers',COALESCE((SELECT jsonb_object_agg(parser,n) FROM parsers),'{}'::jsonb),
         'errors',COALESCE((SELECT jsonb_object_agg(error_code,n) FROM errors),'{}'::jsonb),
-        'known_tokens',COALESCE((SELECT SUM((telemetry->>'total_tokens')::bigint) FROM a),0),
+        'known_tokens',COALESCE((SELECT SUM(COALESCE((telemetry->>'known_tokens')::bigint,(telemetry->>'total_tokens')::bigint)) FROM a),0),
         'unknown_usage_attempts',(SELECT COUNT(*) FROM a WHERE telemetry IS NULL OR ((telemetry->>'model_calls')::int>0 AND telemetry->>'total_tokens' IS NULL)),
         'missing_telemetry_attempts',(SELECT COUNT(*) FROM a WHERE telemetry IS NULL),
         'model_calls',(SELECT SUM((telemetry->>'model_calls')::int) FROM a),

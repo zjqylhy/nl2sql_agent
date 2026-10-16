@@ -1,106 +1,94 @@
-# Olist 经营分析工作台
+# Olist 经营分析助手
 
-分支协作遵循 [master 保护规则](docs/branch-policy.md)：新建分支 push 后提交 PR/MR 合入 `master`；本地拦截与 GitHub 远端规则分别配置。
+默认后端为 **Python + FastAPI + LangGraph + PostgreSQL**，前端 React。API 和 Worker 使用同一镜像、分进程运行；默认部署不启动 Go 或 MySQL 服务。
 
-已实现 M1：Go API、Python 受限查询服务、React 工作台，支持账号/租户、六项指标、历史任务、持久化 SSE、权限撤销、任务停止和受控 SQL。需求与分期见 [需求规格](docs/spec.md)，结构见 [技术方案](docs/architecture.md)。
+支持原单次/多轮问数，以及范围有限的经营分析：比较两个时间段各州 GMV、按下降金额或比例排名并核查订单量和客单价；汇总 GMV 前 N 州的金额、订单量、整体客单价和占比。模型选择下一步，数字由受限 SQL 与 Decimal 工具计算；指标变化只作描述性分析。
 
-规则优先解析常见问题，完整命中时不调用模型、Token 为 0；支持范围内的陌生表达在配置模型后由 LLM 兜底。两条路径生成统一 QueryPlan，由版本化语义目录编译参数化 SQL。已支持一次 1–3 个指标、州/日/月分组、筛选、排序、Top N 和月趋势，详见 [语义查询规格](docs/semantic-query-design.md)。未配置模型、条件缺失或冲突时要求澄清。受控多轮已实现并在隔离环境验证，归因、报告与完整线上运营验收属于后续范围。
+需求与边界见[实施规格](docs/python-agent-target-spec.md)，已验证内容与限制见[实施记录](docs/python-platform-implementation.md)。Go/Python/MySQL 首版保留作历史基线，相关实测不能当成新平台的模型效果证据。
 
-解析规则现仅接受完整受限句式，区分州包含、排除和取消筛选，支持小写州代码；未覆盖的否定或修饰表达交给模型理解完整原文，避免将“不包含 SP”反转成“只看 SP”。首轮和多轮的具体边界见 [解析可靠性方案](docs/query-parsing-reliability-spec.md)，独立题集、当前验证范围及复现命令见 [解析验证记录](docs/query-parsing-validation.md)。
+## 运行边界
 
-独立表达评测已增加 90 条问题、75 个意图组，并运行三轮真实模型同题对照：仅规则正确完成 30/60，模型加入后为 46/60、48/60、48/60，分别补足 16、18、18 道支持题。检查 QueryPlan、全部条件及独立 CSV 结果；保留拒答、失败和五道波动案例。题单仍待人工复核，统计不代表真实用户分布。详见 [实测证据与失败分析](docs/user-understanding-evidence.md)及[复现步骤](docs/user-understanding-evaluation.md)。
-
-受控多轮在同一会话保存成功 QueryPlan 和独立澄清草稿，可说“最近半年 GMV 按月统计”→“改成按州”→“只看两个州，取前三名”，再补充州与排序。独立 30 链/100 问三轮真实模型评测均通过 100/100 问、30/30 链；无上下文对照均为 39/100 问、1/30 链。相同多轮实现仅规则为 80/100 问、20/30 链，模型补足十个陌生追问及十个后续继承轮次。题单仍为 draft；首次失败和重跑用量均保留。详见 [多轮实测](docs/multiturn-evidence.md)与[复现说明](docs/multiturn-evaluation.md)。
-
-2026-10-14 已将多轮版部署到现有私有 ECS：迁移 003、最小运行授权、真实 HTTP/CSV 核对、重启后的草稿恢复及包含会话数据的双库恢复均通过，详见 [线上验收](docs/multiturn-ecs-validation.md)。
-
-[有限经营分析助手](docs/business-analysis-implementation.md)已完成首版代码与本地验证，支持逐步选择工具、两期下降核查、Top N 合计、确定性计算、澄清与中断恢复。功能默认关闭；真实模型 A/B/C 评测、题集人工复核和发布验收尚未完成。[技术方案](docs/business-analysis-assistant-design.md)保留扩展前已有能力与新增能力的划分及流程图。
-
-面向 AI / Agent 应用后端的[Python 单栈目标方案](docs/python-agent-target-spec.md)已重新按业务约束选型：FastAPI + LangGraph + PostgreSQL + React，包含替代方案、目标架构图、失败恢复和分阶段验收。该方案待技术确认、尚未实现；下文启动方式及上述首版验证仍对应当前 Go/Python 基线。
+- API 只做认证、授权、幂等接纳和结果读取。任务/outbox 在同一事务写入；Worker 领取后执行整张 StateGraph。
+- PostgreSQL 分 `platform`、`agent_checkpoint`、`analytics_*` 三个权限域。API 无图状态权限，分析查询账号仅能读取授权视图；schema 不提供 CPU/I/O 故障隔离。
+- 图保存下一节点和 interrupt；操作账本保存预算、执行回执和证据。恢复先核账，已完成操作复用回执，模型调用结果未知时停止。
+- 默认上限：模型 10 次、工具 12 次、SQL 6 次、全局参数修正 1 次、SQL 重试 1 次、活跃执行 180 秒、30000 Token、并行分析 2 个。价格和模型映射随任务冻结。
+- 两轮补充、等待最长 24 小时。详细证据与图线程保留 30 天，最终报告及已知/未知用量汇总保留。
 
 ## Windows 本地启动
 
-需要 Docker Desktop（Linux containers）、Docker Compose。源码调试另需 Go 1.27、Python 3.12、Node.js 24。数据库和数据均存本地，不提交 Git。
+需要 Python 3.12、Node.js，以及 PostgreSQL。容器启动需 Docker Desktop Linux containers；源码入口无需 Go。
 
 ```powershell
-Copy-Item .env.example .env
-# 编辑 .env，替换三个密码/服务密钥占位值；随机十六进制值无需 DSN 转义。
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
+# 已有 .env 时保留原配置，按新版字段补齐；也可另存并用 --env-file 指定。
+# 为各账号分别生成随机十六进制密码，替换 .env 占位值。
 docker compose config --quiet
 docker compose up -d --build
 ```
 
-访问 http://localhost:8088。首次还没有账号/数据源；完成下面步骤后才可问数。数据库仅在 Compose 内网开放，只有前端端口映射至本机。
+打开 [本地工作台](http://localhost:8088)。新栈名称 `olist-python-agent`、数据卷 `python_postgres_data`；不会复用或覆盖旧 Go/MySQL 栈的数据卷。首次启动后还需导入数据、配置映射并创建账号。
 
-生成随机值（每个变量分别生成）：
+### 初始化数据与账号
 
-```powershell
-$randomBytes = New-Object byte[] 32
-[Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($randomBytes)
-([BitConverter]::ToString($randomBytes)).Replace('-', '').ToLowerInvariant()
-```
-
-### 数据和账号初始化
-
-下载官方 [Olist 数据集](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)，按其许可使用。脚本仅提取四个必需 CSV，并记录下载包 SHA256；需要 Kaggle 登录的环境请手动下载。
+下载官方 [Olist 数据集](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)，按其许可使用，四份必需 CSV 放入 `data/olist`。
 
 ```powershell
 python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -r agent/requirements.lock
-.\.venv\Scripts\python.exe agent/tools/download_olist.py --output data/olist
-
-# 管理密码应与 .env 中 MySQL 密码一致，只读密码另行生成。
-$env:MYSQL_ADMIN_PASSWORD = [Net.NetworkCredential]::new('', (Read-Host 'MySQL 管理密码' -AsSecureString)).Password
-$env:MYSQL_READONLY_PASSWORD = [Net.NetworkCredential]::new('', (Read-Host '新只读账号密码' -AsSecureString)).Password
-docker compose run --rm -e MYSQL_HOST=mysql -e MYSQL_ADMIN_PASSWORD -e MYSQL_READONLY_PASSWORD -v "$((Get-Location).Path)/data/olist:/data:ro" agent python -m tools.import_olist --csv-dir /data --schema olist_alpha --readonly-user alpha_ro
-Remove-Item Env:MYSQL_ADMIN_PASSWORD, Env:MYSQL_READONLY_PASSWORD
+.venv/Scripts/python.exe -m pip install -r agent/requirements.lock
+.venv/Scripts/python.exe agent/tools/download_olist.py --output data/olist
+docker compose run --rm import
+docker compose run --rm seed
 ```
 
-导入只创建新 schema，拒绝覆盖已有数据库。生产数据仅来自下载 CSV；测试夹具从不进入生产导入。导入先聚合商品和去重评价，生成订单事实和受控视图；只读账号仅获得视图 SELECT，不能读原表或写数据库。
-
-将下面 JSON 作为 `TENANT_DATASOURCES` 的值写入本地 `.env`（单行）；每个启用的角色必须配置自己的可信映射：
+导入器输出实际 CSV 的 SHA256 版本摘要，拒绝覆盖已有 schema。将以下映射作为单行 `TENANT_DATASOURCES` 写入本地 `.env`，替换密码和版本；每个启用角色显式配置可信映射：
 
 ```json
 {
-  "alpha:admin": {"host":"mysql","database":"olist_alpha","user":"alpha_ro","password":"替换只读密码","analysis_date":"2018-08-31"},
-  "alpha:ops": {"host":"mysql","database":"olist_alpha","user":"alpha_ro","password":"替换只读密码","analysis_date":"2018-08-31"},
-  "alpha:data": {"host":"mysql","database":"olist_alpha","user":"alpha_ro","password":"替换只读密码","analysis_date":"2018-08-31"}
+  "alpha:admin": {
+    "driver": "postgresql",
+    "host": "postgres",
+    "port": 5432,
+    "database": "platform",
+    "schema_name": "analytics_alpha_v1",
+    "user": "alpha_ro",
+    "password": "替换为 OLIST_READONLY_PASSWORD",
+    "analysis_date": "2018-08-31",
+    "dataset_revision": "替换为导入器输出的64位摘要"
+  }
 }
 ```
 
-示例选择 2018-08-31 作为历史分析基准，结果始终显示该日期。不同租户使用独立 schema/账号；受限角色可使用另一个带州过滤的 schema，导入时加 `--states SP,RJ`。浏览器不能指定数据源、租户权限或角色。
-
 ```powershell
-docker compose up -d --force-recreate agent
-# stdin 提供密码，避免写入命令参数与终端历史。
-$bootstrapPassword = [Net.NetworkCredential]::new('', (Read-Host '管理员初始密码（12–72字节）' -AsSecureString)).Password
-$bootstrapPassword | docker compose run --rm -T --no-deps api -command bootstrap -tenant alpha -user admin -role admin
-$bootstrapPassword = $null
+docker compose up -d --force-recreate api worker
 ```
 
-管理员可创建本租户账号、启停账号；指标授权通过 `PATCH /api/users/{id}` 提供。六指标：GMV、有效订单量、客单价、取消率、平均交付时长、平均评分。示例：“本月 GMV 按州统计”“上周有效订单量是多少？”。
+使用 `alpha / admin` 和 `.env` 的 `BOOTSTRAP_PASSWORD` 登录。可查询六指标：GMV、有效订单量、客单价、取消率、平均交付时长、平均评分。`seed` 不会覆盖已有账号。数据库密码和 DSN 不进入浏览器；不要分享 `.env` 或完整 Compose 配置输出。
 
-### 规则解析与模型兜底
+数据发布先按订单聚合商品，再关联每单最新有效评价，避免重复累计。带州限制的数据源可用新的 schema/只读账号导入并指定 `--states SP RJ`。每个新快照使用新 schema 和版本；修改绑定后旧任务不能继续执行。
 
-“本月 GMV 和有效订单量按州统计”“最近 6 个月 GMV 和客单价按月统计”“本月商品金额大于 100 的订单量”“本月 GMV 按州排名，取前 5 名”等完整规则表达，即使配置了模型也走规则，Token 为 0。“本月 GMV 和订单量，只看圣保罗州”等陌生表达可由模型兜底。六指标最多组合三个，金额筛选不含运费；不支持品类、跨表关联、同比/环比和自由 SQL。缺少时间、手动指标冲突、非法州代码或越权时直接澄清或拒绝。
+### 模型与分析开关
 
-模型请求通过网关转发。应用 Key 使用 Windows 用户环境变量 `NL2SQL_AGENT_API_KEY`，Compose 注入容器的 `LLM_API_KEY`；不使用厂商 Key。当前服务器入口为 `https://localhost:9443/v1`、逻辑模型 `chat`，通过本机 SSH 隧道访问；Docker 的连接覆盖和公开 CA 挂载见 [网关操作说明](docs/model-gateway-operations.md)。修改配置后需重建 agent。手动选择的参数约束模型结果；模型失败或无效 JSON 不回退厂商，也不执行未完整识别的 SQL。
+原问数的完整规则表达不调用模型；陌生表达可以由配置的网关模型兜底。经营分析需配置 `NL2SQL_AGENT_API_KEY`、`LLM_BASE_URL`、`LLM_MODEL`，并确认 tokenizer 映射、真实价格与总预算后设置 `ANALYSIS_ENABLED=true`。
+
+`ANALYSIS_INPUT_PRICE_MICROS` / `OUTPUT_PRICE_MICROS` 表示每百万 Token 的微货币单位价格，1000000 微单位等于 1 货币单位。预留与已知用量不等于供应商最终账单。示例中的空价格不能当作免费价格使用。默认策略 `adaptive`，`fixed` 用于对照实验。
+
+模型网关默认示例为 `https://localhost:9443/v1`。容器中 `localhost` 指容器本身，需按实际网络配置可达地址、TLS CA 和连接覆盖；参见[网关手册](docs/model-gateway-operations.md)，其中旧 agent 服务名在新部署中对应 worker。不能关闭 TLS 校验绕过证书问题。
 
 ### 源码调试
 
-自行准备 PostgreSQL/MySQL，使用只读分析账号。在三个独立 PowerShell 终端设置环境变量。Compose 数据库不开放主机端口；混合调试需另加仅绑定 127.0.0.1 的开发 override。
+在项目根目录、分别设置环境变量的终端运行。API 使用平台 API 账号；Worker 使用平台 Worker 账号；`TENANT_DATASOURCES` 使用只读分析账号。管理员连接只用于迁移和初始化。
 
 ```powershell
-# Go 终端：另需设置 DATABASE_URL 和 SERVICE_KEY。
-$env:PUBLIC_ORIGIN = 'http://localhost:5173'
-$env:AGENT_URL = 'http://127.0.0.1:8000'
-$env:COOKIE_SECURE = 'false'
-$env:HTTP_ADDR = '127.0.0.1:8080'
-go run ./cmd/api -command migrate
-go run ./cmd/api
+# 维护终端：DATABASE_URL 为管理员 DSN。
+.venv/Scripts/python.exe -m agent.platform_app migrate
+.venv/Scripts/python.exe -m agent.platform_app provision-roles
 
-# Python 终端：配置相同 SERVICE_KEY 和 TENANT_DATASOURCES。
-Set-Location agent
-..\.venv\Scripts\python.exe -m uvicorn runtime.app:app --host 127.0.0.1 --port 8000 --reload
+# API 终端：DATABASE_URL 为 platform_api DSN。
+$env:PUBLIC_ORIGIN='http://localhost:5173'
+.venv/Scripts/python.exe -m agent.platform_app api --host 127.0.0.1 --port 8080
+
+# Worker 终端：DATABASE_URL 和 CHECKPOINT_DATABASE_URL 为 platform_worker DSN。
+.venv/Scripts/python.exe -m agent.platform_app worker
 
 # 前端终端。
 Set-Location web
@@ -108,23 +96,31 @@ npm ci
 npm run dev
 ```
 
-配置变更需重启服务；不要共享包含密码的环境、DSN 或 `docker compose config` 完整输出。
+FastAPI 不启动后台 Agent；只有 API 进程时任务会保持排队。无需 `SERVICE_KEY` 或内部 Go→Python HTTP 协议。`/healthz` 检查平台数据库，`/livez` 为进程存活检查。
 
-## 验证与云部署
+## 验证、评测与恢复
+
+测试数据库必须是专用环境，允许创建和删除随机测试数据库/账号；生产 DSN 不得用作 `TEST_DATABASE_URL`。
 
 ```powershell
-# 集成测试仅使用专用测试数据库，可创建/删除测试 schema 与账号。
-# 配置 TEST_DATABASE_URL 和 MYSQL_TEST_HOST/PORT/PASSWORD 后运行数据库测试。
-# 先关闭 npm run dev，避免 Windows 锁住 esbuild 阻止 npm ci。
-.\scripts\verify.ps1
+$env:PYTHONUTF8='1'
+# 配置 TEST_DATABASE_URL；运行新平台、图持久化和原查询内核回归。
+.venv/Scripts/python.exe -m pytest agent/tests -q
+# 可选完整 Olist 和真实备份恢复验证：另配置 OLIST_TEST_CSV_DIR、PG_TEST_BIN。
+Set-Location web
+npm run build
 ```
 
-未配置数据库时脚本会明确跳过数据库集成测试。真实 Olist HTTP 验收见 `scripts/smoke.py --help`：要求基准 2018-08-31、第二租户只读 SP 视图，以及专用测试账号；密码由 `SMOKE_PASSWORD` 环境变量传入。脚本会临时修改测试运营账号权限并恢复。
+独立分析评测默认零模型调用，只审计题集。A 单步 / B 自适应 / C 固定流程均使用新 Python 平台、相同 PG 数据与授权，不混用旧 Go/MySQL 的延迟作为 Agent 收益证据。
 
-组合查询的独立 CSV 核对：在项目根目录执行 `.\.venv\Scripts\python.exe scripts/verify_semantic.py`，要求本地 Compose、`data/olist` 原始 CSV、alpha/admin 全范围授权视图及基准 2018-08-31。默认八条规则问题不调用模型；追加 `--with-model` 会增加一次真实模型调用并记录 Token。核对指标值、样本、NULL、筛选、分组及 Top N；不修改账号权限。
+```powershell
+.venv/Scripts/python.exe scripts/run_analysis_study.py
+# 确认模型、价格和题集后，显式启用真实调用；上限按每组每夹具计算。
+.venv/Scripts/python.exe scripts/run_analysis_study.py --with-model --split acceptance --repeats 3 --max-model-calls 500
+```
 
-[云部署步骤](docs/deployment.md)提供云主机 Compose 和 Kubernetes 两条路径，同一套镜像连接云托管 PostgreSQL/MySQL。[验证记录](docs/validation.md)列出已验证内容及未验证边界。
+题集为 80 表达 / 40 意图组、标注仍为 draft。当前确定性工具和故障测试不能证明真实模型完成率提升；真实模型实验及人工题集复核单独验收。历史解析/多轮实测见[解析证据](docs/user-understanding-evidence.md)、[多轮证据](docs/multiturn-evidence.md)，均属于旧平台基线。
 
-下一阶段的[问数质量与线上运行方案](docs/quality-operations-design.md)细化独立评测、逐次执行记录、租户统计及云主机 Compose 验收；需求和技术方案待人工确认，尚未实现。
+备份和迁移操作见[Python 平台运维](docs/python-platform-operations.md)。所有三个权限域必须来自同一备份快照；恢复只允许空目标库，恢复后重建可信数据源映射和账号密钥。当前改动不包含远端推送或 ECS 部署。
 
-当前 ECS 部署采用[自建双数据库与 SSH 私有访问方案](docs/ecs-private-deployment-spec.md)，运维见[私有部署手册](docs/ecs-private-operations.md)。RDS、ACR 和公网 HTTPS 的正式发布模板继续保留，后续按[阿里云部署要求](docs/aliyun-deployment-design.md)迁移和验收。
+旧 Go/MySQL 本地配置保留在 `deploy/compose.legacy.yaml` 和 `deploy/legacy.env.example`；现有 `compose.private/cloud`、旧 release 脚本及其线上记录属于历史发布链，不能直接用于新平台发布。新平台正式云端发布仍需按其新入口完成单独验收。

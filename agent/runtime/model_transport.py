@@ -1,5 +1,6 @@
 """网关 HTTP 配置；容器连接地址与 HTTPS 证书身份可以分开。"""
 from dataclasses import dataclass, field
+import asyncio
 import ipaddress
 import os
 import re
@@ -62,6 +63,9 @@ class ModelTransport:
     def client(self):
         return httpx.Client(verify=self.context, timeout=20, follow_redirects=False, trust_env=False)
 
+    def bounded_client(self):
+        return DeadlineClient(self.context)
+
     def post(self, client, prompt: str, question: str, max_tokens: int):
         # 网关当前没有支持强制 JSON 模式的路由，返回内容仍由业务层严格校验。
         return client.post(self.url,
@@ -69,3 +73,25 @@ class ModelTransport:
             extensions={"sni_hostname": self.server_name} if self.server_name else {},
             json={"model": self.model, "messages": [{"role": "system", "content": prompt},
                 {"role": "user", "content": question}], "max_tokens": max_tokens})
+
+
+class DeadlineClient:
+    """Agent 调用使用整体截止时间，避免分段读超时不断延长一次决策。"""
+    def __init__(self, context, timeout=20):
+        self.context, self.timeout = context, timeout
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        return False
+
+    def post(self, *args, **kwargs):
+        async def send():
+            async with httpx.AsyncClient(verify=self.context, timeout=self.timeout, follow_redirects=False, trust_env=False) as client:
+                return await client.post(*args, **kwargs)
+        with asyncio.Runner(loop_factory=asyncio.SelectorEventLoop if os.name == "nt" else asyncio.new_event_loop) as runner:
+            try:
+                return runner.run(asyncio.wait_for(send(), timeout=self.timeout))
+            except TimeoutError:
+                raise httpx.ReadTimeout("analysis_model_deadline") from None

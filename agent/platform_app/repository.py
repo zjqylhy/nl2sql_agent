@@ -2,6 +2,8 @@
 import hashlib
 import json
 import secrets
+from functools import lru_cache
+from pathlib import Path
 from datetime import datetime, timezone
 
 import bcrypt
@@ -18,6 +20,19 @@ from .policy import Policy
 
 ACTIVE = {"pending", "querying", "needs_clarification"}
 USER_COLUMNS = "id,tenant_id,username,role,allowed_metrics"
+GRAPH_VERSION = "stategraph-1"
+
+
+@lru_cache
+def code_digest():
+    root = Path(__file__).resolve().parents[1]
+    digest = hashlib.sha256()
+    for folder in (root/"runtime", root/"platform_app"):
+        for path in sorted(folder.rglob("*.py")):
+            digest.update(path.relative_to(root).as_posix().encode())
+            digest.update(path.read_bytes().replace(b"\r\n", b"\n"))
+    digest.update((root/"runtime/catalog.json").read_bytes().replace(b"\r\n", b"\n"))
+    return digest.hexdigest()
 
 
 def identity(user):
@@ -28,7 +43,7 @@ def binding(user, analysis=False):
     source = runtime.sources().get(user["tenant_id"] + ":" + user["role"])
     if source is None or source.driver != "postgresql":
         raise HTTPException(403, "未配置 PostgreSQL 授权数据源")
-    return metadata(identity(user))[1] if analysis else source_metadata(source, user["tenant_id"], user["role"])
+    return {**metadata(identity(user))[1], "graph_version": GRAPH_VERSION, "code_digest": code_digest()} if analysis else source_metadata(source, user["tenant_id"], user["role"])
 
 
 def metrics_in(value):
@@ -92,7 +107,9 @@ class Repository:
             raise HTTPException(404, "任务不存在或指标权限已变化")
         if task["kind"] == "analysis":
             run = conn.execute("SELECT * FROM analysis_runs WHERE id=%s", (run_id,)).fetchone()
-            if run["role"] != user["role"] or not set(run["required_metrics"]) <= set(user["allowed_metrics"]) or (check_binding and run["binding"] != binding(user, True)["binding"]):
+            meta = binding(user, True) if check_binding else run["metadata"]
+            changed_code = any(run["metadata"].get(k) != meta.get(k) for k in ("graph_version", "code_digest"))
+            if run["role"] != user["role"] or not set(run["required_metrics"]) <= set(user["allowed_metrics"]) or (check_binding and (run["binding"] != meta["binding"] or task["status"] in ACTIVE and changed_code)):
                 raise HTTPException(404, "任务授权或数据绑定已变化")
         elif task["conversation_id"]:
             self.conversation(conn, user, task["conversation_id"])
