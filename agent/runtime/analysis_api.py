@@ -250,7 +250,7 @@ def decide(request: Snapshot):
             except (ValueError, KeyError, TypeError):
                 code = None
             # 仅识别当前网关在上游执行前拒绝的契约；通用 429 不推断为零用量。
-            if code in {"app_qps_exceeded", "insufficient_quota"}:
+            if isinstance(code, str) and code in {"app_qps_exceeded", "insufficient_quota"}:
                 try:
                     delay = int(exc.response.headers.get("Retry-After", "60"))
                 except ValueError:

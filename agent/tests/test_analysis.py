@@ -198,7 +198,7 @@ def test_invalid_spec_feedback_explains_constraint_without_original_input():
     assert '2018-07-01' not in json.dumps(feedback) and 'input' not in feedback['issues'][0]
 
 
-@pytest.mark.parametrize('status,code,known_rejection', [(429, 'insufficient_quota', True), (429, 'vendor_unknown', False), (503, 'metering_unavailable', False)])
+@pytest.mark.parametrize('status,code,known_rejection', [(429, 'insufficient_quota', True), (429, 'app_qps_exceeded', True), (429, ['malformed'], False), (429, 'vendor_unknown', False), (503, 'metering_unavailable', False)])
 def test_gateway_rejection_contract_does_not_retry_unknown_calls(client, monkeypatch, status, code, known_rejection):
     import httpx
     from runtime.model_transport import ModelTransport
