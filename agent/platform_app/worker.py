@@ -101,7 +101,7 @@ def execute_analysis(repo, task):
             repo.execution(conn, task)
             current = conn.execute("SELECT * FROM analysis_runs WHERE id=%s FOR UPDATE", (task["id"],)).fetchone()
             state = current["state"]
-            for key in ("spec", "answers", "feedback", "repairs", "message"):
+            for key in ("spec", "answers", "feedback", "repairs", "model_retries", "message"):
                 if key in result:
                     state[key] = result[key]
             if checkpoint.interrupts:

@@ -28,6 +28,7 @@ class State(TypedDict, total=False):
     repairs: int
     sql_retries: int
     retry_sql: bool
+    model_retries: int
     no_progress: int
 
 
@@ -87,6 +88,10 @@ def build_graph(repo, task, saver):
 
     def failure(state, output):
         code = output.get("error_code", "internal")
+        if code == "model_rate_limit":
+            if state.get("model_retries", 0) == 0:
+                return {"model_retries": 1, "feedback": output, "status": "model_backoff"}
+            return {"status": "failed", "message": "模型网关仍拒绝请求，有限重试已耗尽", "feedback": output}
         if code in {"invalid_arguments", "model_format", "missing_conditions", "missing_evidence"} and state.get("repairs", 0) == 0:
             return {"repairs": 1, "feedback": output, "status": "decide", "retry_sql": False}
         return {"status": "failed", "message": output.get("message", "分析未完成"), "feedback": output}
@@ -119,18 +124,25 @@ def build_graph(repo, task, saver):
         interrupt({"kind": "backoff", "wait_id": state["op_id"], "seconds": 15 if state["feedback"].get("error_code") == "sql_unknown" else 1})
         return {"status": "tool"}
 
+    def model_backoff(state):
+        # 在已知未执行的拒绝回执之后等待；恢复新建操作，绝不重发未知调用。
+        interrupt({"kind": "backoff", "wait_id": state["op_id"],
+            "seconds": state["feedback"]["retry_after_seconds"], "message": state["feedback"]["message"]})
+        return {"status": "decide"}
+
     graph = StateGraph(State)
     for name, fn in {"prepare_decision": prepare, "decide": decision, "interpret": interpret,
                      "prepare_tool": prepare, "tool": execute_tool, "observe": observe,
-                     "wait_for_answer": wait_for_answer, "backoff": backoff}.items():
+                     "wait_for_answer": wait_for_answer, "backoff": backoff, "model_backoff": model_backoff}.items():
         graph.add_node(name, fn)
     graph.add_edge(START, "prepare_decision")
     graph.add_edge("prepare_decision", "decide")
     graph.add_edge("decide", "interpret")
-    graph.add_conditional_edges("interpret", lambda s: s["status"], {"tool": "prepare_tool", "decide": "prepare_decision", "failed": END})
+    graph.add_conditional_edges("interpret", lambda s: s["status"], {"tool": "prepare_tool", "decide": "prepare_decision", "model_backoff": "model_backoff", "failed": END})
     graph.add_edge("prepare_tool", "tool")
     graph.add_edge("tool", "observe")
     graph.add_conditional_edges("observe", lambda s: s["status"], {"decide": "prepare_decision", "waiting": "wait_for_answer", "backoff": "backoff", "failed": END, "completed": END})
     graph.add_edge("wait_for_answer", "prepare_decision")
     graph.add_edge("backoff", "prepare_tool")
+    graph.add_edge("model_backoff", "prepare_decision")
     return graph.compile(checkpointer=saver)

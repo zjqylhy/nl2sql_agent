@@ -1,7 +1,10 @@
 name: olist-python-agent
 x-application: &application
   image: olist-python-platform:${APP_TAG:-local}
-  build: {context: ., dockerfile: deploy/Dockerfile.platform}
+  build:
+    context: .
+    dockerfile: deploy/Dockerfile.platform
+    args: {SOURCE_COMMIT: "${SOURCE_COMMIT:-uncommitted}"}
   networks: [backend]
   read_only: true
   tmpfs: [/tmp]

@@ -91,6 +91,7 @@ class Ledger:
         state["answers"] = snapshot.get("answers", [])
         state["feedback"] = snapshot.get("feedback", {})
         state["repairs"] = max(state["repairs"], snapshot.get("repairs", 0))
+        state["model_retries"] = max(state.get("model_retries", 0), snapshot.get("model_retries", 0))
         if state["spec"]:
             run["required_metrics"] = sorted(set(run["required_metrics"]) | set(metric_ids(Spec.model_validate(state["spec"]))))
         conn.execute("INSERT INTO analysis_steps(id,tenant_id,run_id,sequence,action_key,phase,execution_version,input,status) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,'running')", (op_id, run["tenant_id"], run["id"], state["sequence"], key or op_id, phase, self.task["execution_version"], Jsonb(payload)))

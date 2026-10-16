@@ -191,6 +191,7 @@ SPEC: {goal:compare_declines|top_n_total,current:{start:YYYY-MM-DD,end_exclusive
 For top_n_total baseline and ranking MUST both be null. ranking=absolute|rate applies only to compare_declines.
 checks may contain orders,aov,share when explicitly requested with top_n_total. For aov sum gmv/orders over the same selected states then divide; for share sum selected GMV and whole-scope GMV then divide. Never average aov.
 If share is requested, query complete state groups with top_n=null, sum scope=top_n for selected GMV/orders and scope=returned_groups for whole-scope GMV. This avoids a second SQL query. Include orders in the query when orders or aov is requested.
+scope=selection requires a selection artifact from rank_declines, never a scalar. For TopN totals use scope=top_n on the original complete query for every selected metric.
 Do not guess missing dates, N, or whether decline means absolute amount or rate. For missing conditions ask request_clarification. Preserve all user filters. Dates use the supplied historical anchor, not today's date. State means Brazilian state. GMV excludes freight and canceled/unavailable; aov=GMV/valid orders. No causality, new dimensions, SQL, code or data sources.
 Tools (exact argument keys):
 lookup_metrics {metrics:[gmv,orders,aov]}
@@ -243,6 +244,20 @@ def decide(request: Snapshot):
     except ModelConfigurationError:
         return {"status": "error", "error_code": "model_config", "message": "模型尚未配置", "model_sent": False}
     except httpx.HTTPError as exc:
+        if isinstance(exc, httpx.HTTPStatusError) and exc.response.status_code == 429:
+            try:
+                code = exc.response.json()["error"]["code"]
+            except (ValueError, KeyError, TypeError):
+                code = None
+            # 仅识别当前网关在上游执行前拒绝的契约；通用 429 不推断为零用量。
+            if code in {"app_qps_exceeded", "insufficient_quota"}:
+                try:
+                    delay = int(exc.response.headers.get("Retry-After", "60"))
+                except ValueError:
+                    delay = 60
+                return {"status": "error", "error_code": "model_rate_limit", "message": "模型网关限流或额度不足，等待后有限重试",
+                    "model_sent": False, "request_sent": sent, "http_status": 429, "gateway_code": code,
+                    "retry_after_seconds": min(120, max(1, delay))}
         # 区分 HTTP 拒绝、客户端截止与连接故障，保留诊断依据但不回显响应正文。
         error = {"status": "error", "error_code": "unknown_execution", "message": "模型调用结果未知，已停止", "model_sent": sent,
                  "transport_error": "http_status" if isinstance(exc, httpx.HTTPStatusError) else "timeout" if isinstance(exc, httpx.TimeoutException) else "connection"}

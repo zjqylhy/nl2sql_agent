@@ -196,3 +196,22 @@ def test_invalid_spec_feedback_explains_constraint_without_original_input():
     assert feedback['fields'] == [''] or feedback['fields'] == ['spec']
     assert '单期合计不接受比较基期或下降口径' in feedback['issues'][0]['message']
     assert '2018-07-01' not in json.dumps(feedback) and 'input' not in feedback['issues'][0]
+
+
+@pytest.mark.parametrize('status,code,known_rejection', [(429, 'insufficient_quota', True), (429, 'vendor_unknown', False), (503, 'metering_unavailable', False)])
+def test_gateway_rejection_contract_does_not_retry_unknown_calls(client, monkeypatch, status, code, known_rejection):
+    import httpx
+    from runtime.model_transport import ModelTransport
+    monkeypatch.setenv('LLM_BASE_URL', 'https://fixture.invalid/v1')
+    monkeypatch.setenv('LLM_MODEL', 'fixture')
+    monkeypatch.setenv('LLM_API_KEY', 'test-only-no-network')
+    monkeypatch.setattr(ModelTransport, 'bounded_client', lambda self, timeout=20: httpx.Client(transport=httpx.MockTransport(
+        lambda request: httpx.Response(status, headers={'Retry-After': '9999'}, json={'error': {'code': code, 'message': 'private-provider-detail'}}))))
+    identity = {'tenant_id': 'alpha', 'role': 'ops', 'allowed_metrics': ['gmv']}
+    body = {**identity, 'binding': context(Identity.model_validate(identity))['binding'], 'question': '统计 GMV'}
+    output = client.post('/internal/analysis/decide', headers={'X-Service-Key': 's'*40}, json=body).json()
+    assert output['http_status'] == status and output['model_sent'] is not known_rejection
+    assert output['error_code'] == ('model_rate_limit' if known_rejection else 'unknown_execution')
+    assert 'private-provider-detail' not in json.dumps(output)
+    if known_rejection:
+        assert output['retry_after_seconds'] == 120 and output['request_sent'] is True

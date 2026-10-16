@@ -71,7 +71,7 @@ def permitted(user, value):
 
 def new_state(spec=None):
     return dict(phase="decide", spec=spec, feedback={}, answers=[], sequence=0, model_calls=0, actions=0,
-                sql_calls=0, repairs=0, sql_retries=0, clarifications=0, active_ms=0, tokens=0, cost=0, message="")
+                sql_calls=0, repairs=0, sql_retries=0, model_retries=0, clarifications=0, active_ms=0, tokens=0, cost=0, message="")
 
 
 def public_task(task):

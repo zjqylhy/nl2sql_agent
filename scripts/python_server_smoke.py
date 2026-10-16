@@ -10,7 +10,7 @@ import urllib.request
 from uuid import uuid4
 
 
-def run(base, origin, *, analysis=False):
+def run(base, origin, *, analysis=False, extended_topn=False):
     client = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 
     def call(path, body=None, headers=None):
@@ -53,8 +53,11 @@ def run(base, origin, *, analysis=False):
             events(task["id"])
         if analysis:
             assert call("/api/analysis-capabilities")["enabled"]
+            topn = "统计2018年7月各州GMV排名前3的州，计算这3个州的GMV合计。"
+            if extended_topn:
+                topn += "同时核查订单总量、加权客单价及占全国GMV比例。"
             for question in [
-                "统计2018年7月各州GMV排名前3的州，计算这3个州的GMV合计，同时核查订单总量、加权客单价及占全国GMV比例。",
+                topn,
                 "比较2018年6月与2018年7月各州的GMV，以6月为基期、7月为当期，按下降金额找出下降最大的三个州，核查订单量和客单价变化，并给出数据依据。",
             ]:
                 body = {"question": question, "request_id": str(uuid4())}
@@ -69,6 +72,9 @@ def run(base, origin, *, analysis=False):
         report["operations"] = call("/api/operations/summary?days=1")
         report["passed"] = True
         return report
+    except Exception as exc:
+        report.update(passed=False, error_type=type(exc).__name__)
+        return report
     finally:
         # 每次运行均释放验收会话，不把 token 写入报告。
         call("/api/logout", {})
@@ -79,13 +85,15 @@ if __name__ == "__main__":
     parser.add_argument("--base", default="http://localhost:8088")
     parser.add_argument("--origin", default="http://localhost:8088")
     parser.add_argument("--analysis", action="store_true")
+    parser.add_argument("--extended-topn", action="store_true", help="额外验证 TopN 订单量、加权客单价与占比")
     parser.add_argument("--report", required=True, type=Path)
     args = parser.parse_args()
     # 验收默认只访问服务器回环入口，防止误把凭据发送到其他站点。
     from urllib.parse import urlsplit
     assert urlsplit(args.base).hostname in {"localhost", "127.0.0.1"}
-    result = run(args.base, args.origin, analysis=args.analysis)
+    result = run(args.base, args.origin, analysis=args.analysis, extended_topn=args.extended_topn)
     descriptor = os.open(args.report, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
         json.dump(result, stream, ensure_ascii=False, indent=2)
-    print(json.dumps({"passed": True, "queries": len(result["queries"]), "analysis": len(result["analysis"]), "report": str(args.report)}))
+    print(json.dumps({"passed": result["passed"], "queries": len(result["queries"]), "analysis": len(result["analysis"]), "report": str(args.report)}))
+    raise SystemExit(0 if result["passed"] else 1)
