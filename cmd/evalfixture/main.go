@@ -79,7 +79,11 @@ func run() error {
 		return err
 	}
 	origin := "http://" + listener.Addr().String()
-	app := api.New(db, api.Config{Origin: origin, AgentURL: os.Getenv("AGENT_URL"), ServiceKey: os.Getenv("SERVICE_KEY")})
+	analysisPolicy, err := api.AnalysisPolicyFromEnv()
+	if err != nil {
+		return err
+	}
+	app := api.New(db, api.Config{Origin: origin, AgentURL: os.Getenv("AGENT_URL"), ServiceKey: os.Getenv("SERVICE_KEY"), Analysis: analysisPolicy})
 	server := http.Server{Handler: app.Handler(), ReadHeaderTimeout: 5 * time.Second}
 	go app.RunWorker(ctx)
 	go func() {

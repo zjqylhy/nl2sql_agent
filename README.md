@@ -14,7 +14,7 @@
 
 2026-10-14 已将多轮版部署到现有私有 ECS：迁移 003、最小运行授权、真实 HTTP/CSV 核对、重启后的草稿恢复及包含会话数据的双库恢复均通过，详见 [线上验收](docs/multiturn-ecs-validation.md)。
 
-下一步的[有限经营分析助手技术方案](docs/business-analysis-assistant-design.md)已形成待确认草案，明确已有查询/多轮能力与待实现的工具决策、两期比较、步骤恢复和独立评测，附架构、流程及状态图；业务代码尚未实现。
+[有限经营分析助手](docs/business-analysis-implementation.md)已完成首版代码与本地验证，支持逐步选择工具、两期下降核查、Top N 合计、确定性计算、澄清与中断恢复。功能默认关闭；真实模型 A/B/C 评测、题集人工复核和发布验收尚未完成。[技术方案](docs/business-analysis-assistant-design.md)保留扩展前已有能力与新增能力的划分及流程图。
 
 ## Windows 本地启动
 
