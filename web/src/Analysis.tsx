@@ -2,7 +2,7 @@ import {useEffect,useState} from 'react'
 import QueryResult,{type SemanticResult} from './QueryResult'
 
 type Artifact={kind:string;result_ref:string;metrics_used:string[];data:Record<string,unknown>}
-type Run={id:string;question:string;status:string;version:number;metadata:{analysis_date:string};policy:{currency:string;max_cost:number};state:{phase:string;message:string;model_calls:number;sql_calls:number;tokens:number;cost:number;answers:string[];feedback:{evidence_expired?:boolean}};usage?:{unknown_calls:number};artifacts:Artifact[];steps:{id:string;sequence:number;phase:string;action:string|null;status:string;error_code:string|null}[]}
+type Run={id:string;question:string;status:string;version:number;metadata:{analysis_date:string};policy:{currency:string;max_cost:number;max_tokens?:number};state:{phase:string;message:string;model_calls:number;sql_calls:number;tokens:number;cost:number;answers:string[];feedback:{evidence_expired?:boolean}};usage?:{unknown_calls:number};artifacts:Artifact[];steps:{id:string;sequence:number;phase:string;action:string|null;status:string;error_code:string|null}[]}
 type History={id:string;question:string;status:string}
 type Cell={baseline:string|null;current:string|null;delta:string|null;rate:string|null}
 type ComparisonRow={state:string;values:Record<string,Cell>}
@@ -49,7 +49,8 @@ export default function AnalysisWorkspace({api,storageKey}:{api:Api;storageKey:s
     {history.length>0&&<label>分析历史<select value={run?.id??''} onChange={e=>{setError('');if(e.target.value)void load(e.target.value)}}><option value="">选择历史任务</option>{history.map(h=><option key={h.id} value={h.id}>{names[h.status]} · {h.question.slice(0,50)}</option>)}</select></label>}
     {!run?<form onSubmit={submit} className="analysis-form"><label>分析问题<textarea value={question} onChange={e=>setQuestion(e.target.value)} maxLength={2000} rows={4} placeholder="例如：比较 2018 年 6 月和 7 月各州 GMV，按下降金额取前三，核查订单量和客单价"/></label><div className="examples">{['2018 年 7 月 GMV 前 3 个州的 GMV 合计是多少？','比较 2018 年 6 月和 7 月各州 GMV，按下降金额取前三，并核查订单量和客单价'].map(q=><button key={q} type="button" onClick={()=>setQuestion(q)}>{q}</button>)}</div><button className="primary" disabled={!enabled||busy||!question.trim()}>{busy?'受理中…':'开始分析'}</button></form>:<>
       <div className="question-bubble">{run.question}</div><div className="task-progress"><strong>{names[run.status]??run.status}</strong><span>基准 {run.metadata.analysis_date}</span>{['pending','querying','needs_clarification'].includes(run.status)&&<button disabled={busy} onClick={()=>void stop()}>停止任务</button>}</div>
-      <p className="muted">模型调用 {run.state.model_calls}/10 · SQL {run.state.sql_calls}/6 · Token 计费预留与已知消耗 {run.state.tokens}/30000 · 预算估算 {(run.state.cost/1000000).toFixed(6)} / {(run.policy.max_cost/1000000).toFixed(6)} {run.policy.currency}</p>
+      <p className="muted">模型调用 {run.state.model_calls}/10 · SQL {run.state.sql_calls}/6 · Token 计费预留与已知消耗 {run.state.tokens}/{run.policy.max_tokens??30000} · 预算估算 {(run.state.cost/1000000).toFixed(6)} / {(run.policy.max_cost/1000000).toFixed(6)} {run.policy.currency}</p>
+      {run.policy.currency==='TEST_UNIT'&&<div className="notice">真实模型联调使用测试预算单位 TEST_UNIT，不能作为实际费用或供应商账单。</div>}
       {Boolean(run.usage?.unknown_calls)&&<div className="notice">有 {run.usage?.unknown_calls} 次调用的用量尚未确认；上述预算包含其预留。</div>}
       {run.state.message&&<div className={'notice '+(run.status==='failed'?'error':'')}>{run.state.message}</div>}
       {run.state.feedback?.evidence_expired&&<div className="notice">详细步骤与原始依据已超过 30 天保留期；保留最终报告与汇总用量，任务不能恢复。</div>}
