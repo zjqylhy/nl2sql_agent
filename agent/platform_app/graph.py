@@ -40,7 +40,8 @@ def build_graph(repo, task, saver):
             run = conn.execute("SELECT * FROM analysis_runs WHERE id=%s", (task["id"],)).fetchone()
             artifacts = [r["body"] for r in conn.execute("SELECT body FROM analysis_artifacts WHERE run_id=%s ORDER BY created_at,result_ref", (task["id"],))]
         value = dict(**identity(user).model_dump(), binding=run["binding"], question=state["question"],
-            spec=state.get("spec"), artifacts=artifacts, answers=state.get("answers", []), feedback=state.get("feedback", {}))
+            spec=state.get("spec"), artifacts=artifacts, answers=state.get("answers", []), feedback=state.get("feedback", {}),
+            max_output_tokens=run["policy"].get("max_output_tokens", 1024))
         checked(Snapshot.model_validate(value))
         return value, run
 
@@ -56,7 +57,7 @@ def build_graph(repo, task, saver):
         if not fixed:
             from datetime import date
             prompt, question = decision_prompt(Snapshot.model_validate(request), date.fromisoformat(run["metadata"]["analysis_date"]))
-            payload.update(prompt=prompt, question=question, model=run["metadata"]["model"])
+            payload.update(prompt=prompt, question=question, model=run["metadata"]["model"], max_output_tokens=request["max_output_tokens"])
         output = ledger.call(state["op_id"], phase, payload, state,
             lambda: (fixed_decide if fixed else decide)(Snapshot.model_validate(request)))
         return {"output": output}

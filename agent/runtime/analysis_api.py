@@ -55,6 +55,7 @@ class Snapshot(Identity):
     artifacts: list[dict] = Field(default_factory=list, max_length=12)
     feedback: dict = Field(default_factory=dict)
     answers: list[str] = Field(default_factory=list, max_length=2)
+    max_output_tokens: int = Field(default=1024, ge=256, le=4096, strict=True)
 
 
 class ToolRequest(Snapshot):
@@ -214,7 +215,7 @@ def decide(request: Snapshot):
         transport = ModelTransport.from_env()
         with transport.bounded_client() as client:
             sent = True
-            response = transport.post(client, prompt, question, 1024)
+            response = transport.post(client, prompt, question, request.max_output_tokens)
             response.raise_for_status()
             raw = response.json()
         usage = raw.get("usage")

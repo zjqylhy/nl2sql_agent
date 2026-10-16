@@ -1,0 +1,8 @@
+# 仅用于服务器验收：增加官方 PG 客户端，运行镜像不安装运维工具。
+ARG PLATFORM_IMAGE=olist-python-platform:local
+FROM ${PLATFORM_IMAGE}
+USER root
+RUN apt-get update && apt-get install -y --no-install-recommends postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+WORKDIR /workspace
+ENTRYPOINT ["python"]

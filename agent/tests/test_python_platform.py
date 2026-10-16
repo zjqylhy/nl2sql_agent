@@ -219,11 +219,14 @@ def test_receipt_saved_before_checkpoint_failure_replays_without_query(platform,
 
 
 @pytest.mark.parametrize("unknown_after_crash", [False, True])
-def test_unknown_model_never_resent(platform, monkeypatch, unknown_after_crash):
+@pytest.mark.parametrize("output_limit", [1024, 4096])
+def test_unknown_model_never_resent(platform, monkeypatch, unknown_after_crash, output_limit):
     client, repo, _ = platform
+    client.app.state.policy = POLICY.model_copy(update={"max_output_tokens": output_limit})
     from agent.platform_app import graph
     calls = []
     def unknown(request):
+        assert request.max_output_tokens == output_limit
         calls.append(1)
         if unknown_after_crash:
             raise RuntimeError("injected model result lost")
@@ -238,8 +241,34 @@ def test_unknown_model_never_resent(platform, monkeypatch, unknown_after_crash):
     run = client.get("/api/analysis-runs/"+run_id).json()
     assert run["status"] == "failed", run
     assert calls == [1] and run["state"]["sql_calls"] == 0
-    assert run["usage"]["unknown_calls"] == 1 and run["state"]["tokens"] == 7024
+    assert run["usage"]["unknown_calls"] == 1 and run["state"]["tokens"] == 6000 + output_limit
     assert client.post(f"/api/analysis-runs/{run_id}/resume", json={}).status_code == 409
+
+
+def test_reasoning_output_limit_is_frozen_reserved_and_settled(platform, monkeypatch):
+    client, repo, _ = platform
+    from agent.platform_app import graph
+    client.app.state.policy = POLICY.model_copy(update={"max_output_tokens": 4096})
+    calls = []
+    def decide(request):
+        assert request.max_output_tokens == 4096
+        calls.append(request)
+        current = request.spec or Spec.model_validate(spec())
+        return {"status": "completed", "model_sent": True,
+            "usage": {"prompt_tokens": 100, "completion_tokens": 2048},
+            "decision": next_action(current, request.artifacts)}
+    monkeypatch.setattr(graph, "decide", decide)
+    run_id = client.post("/api/analysis-runs", json={"question": "含推理 Token 的决策", "request_id": str(uuid4())}).json()["id"]
+    # 接纳后的环境和 API 策略变化不得修改已冻结的任务上限。
+    client.app.state.policy = POLICY
+    monkeypatch.setenv("ANALYSIS_MODEL_MAX_OUTPUT_TOKENS", "1024")
+    run_once(repo)
+    run = client.get("/api/analysis-runs/"+run_id).json()
+    assert run["status"] == "completed", run
+    assert run["usage"]["known_tokens"] == 2148 * len(calls) and run["usage"]["unknown_calls"] == 0
+    with repo.db.transaction() as conn:
+        rows = conn.execute("SELECT reserved_tokens,actual_tokens,status FROM analysis_budget_ledger WHERE run_id=%s", (run_id,)).fetchall()
+        assert rows and all(r == {"reserved_tokens": 10096, "actual_tokens": 2148, "status": "settled"} for r in rows)
 
 
 @pytest.mark.parametrize("always_timeout", [False, True])

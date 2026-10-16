@@ -158,3 +158,27 @@ def test_model_sees_catalog_definitions_and_scalar_types_within_budget():
         artifacts.append(calculate(decision.action.arguments,artifacts,target,BINDING))
     else:
         pytest.fail('bounded complete trajectory did not finish')
+
+
+@pytest.mark.parametrize('limit', [1024, 4096])
+def test_decision_request_sends_bounded_output_limit(client, monkeypatch, limit):
+    import httpx
+    from runtime.model_transport import ModelTransport
+    monkeypatch.setenv('LLM_BASE_URL', 'https://fixture.invalid/v1')
+    monkeypatch.setenv('LLM_MODEL', 'fixture')
+    monkeypatch.setenv('LLM_API_KEY', 'test-only-no-network')
+    observed = []
+    def respond(request):
+        observed.append(json.loads(request.content)['max_tokens'])
+        decision = {'spec': None, 'action': {'action': 'request_clarification',
+            'arguments': {'missing_fields': ['current'], 'message': '请补充日期'}}}
+        return httpx.Response(200, json={'choices': [{'finish_reason': 'stop',
+            'message': {'content': json.dumps(decision)}}],
+            'usage': {'prompt_tokens': 100, 'completion_tokens': 500}})
+    monkeypatch.setattr(ModelTransport, 'bounded_client', lambda self: httpx.Client(transport=httpx.MockTransport(respond)))
+    identity = {'tenant_id': 'alpha', 'role': 'ops', 'allowed_metrics': ['gmv']}
+    body = {**identity, 'binding': context(Identity.model_validate(identity))['binding'],
+        'question': '统计 GMV', 'max_output_tokens': limit}
+    response = client.post('/internal/analysis/decide', headers={'X-Service-Key': 's'*40}, json=body)
+    assert response.status_code == 200 and response.json()['status'] == 'completed'
+    assert observed == [limit]

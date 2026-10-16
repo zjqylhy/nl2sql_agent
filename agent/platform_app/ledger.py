@@ -56,11 +56,11 @@ class Ledger:
             key = hashlib.sha256(canonical([run["binding"], snapshot.get("spec"), payload]).encode()).hexdigest()
             cached = conn.execute("SELECT output FROM analysis_steps WHERE run_id=%s AND action_key=%s AND status='completed' ORDER BY sequence DESC LIMIT 1", (run["id"], key)).fetchone() if phase == "tool" else None
             if phase == "decide":
-                if state["model_calls"] >= 10 or state["tokens"] + 7024 > 30000 or state["cost"] + policy.cost(6000, 1024) > policy.max_cost:
+                if state["model_calls"] >= 10 or state["tokens"] + policy.reserved_tokens > 30000 or state["cost"] + policy.reserved_cost > policy.max_cost:
                     raise BudgetExceeded("模型调用、Token 或费用预算已耗尽")
                 state["model_calls"] += 1
-                state["tokens"] += 7024
-                state["cost"] += policy.cost(6000, 1024)
+                state["tokens"] += policy.reserved_tokens
+                state["cost"] += policy.reserved_cost
             elif phase == "tool":
                 if state["actions"] >= 12:
                     raise BudgetExceeded("工具动作预算已耗尽")
@@ -95,7 +95,7 @@ class Ledger:
         conn.execute("INSERT INTO analysis_steps(id,tenant_id,run_id,sequence,action_key,phase,execution_version,input,status) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,'running')", (op_id, run["tenant_id"], run["id"], state["sequence"], key or op_id, phase, self.task["execution_version"], Jsonb(payload)))
         conn.execute("INSERT INTO analysis_step_attempts(step_id,execution_version) VALUES(%s,%s)", (op_id, self.task["execution_version"]))
         if phase == "decide" and reserve:
-            conn.execute("INSERT INTO analysis_budget_ledger(step_id,run_id,reserved_tokens,reserved_cost) VALUES(%s,%s,7024,%s)", (op_id, run["id"], policy.cost(6000, 1024)))
+            conn.execute("INSERT INTO analysis_budget_ledger(step_id,run_id,reserved_tokens,reserved_cost) VALUES(%s,%s,%s,%s)", (op_id, run["id"], policy.reserved_tokens, policy.reserved_cost))
         conn.execute("UPDATE analysis_runs SET state=%s,required_metrics=%s,version=version+1,updated_at=now() WHERE id=%s", (Jsonb(state), run["required_metrics"], run["id"]))
         self.repo.event(conn, run["id"], "step", {"sequence": state["sequence"], "phase": phase, "status": "running"})
 
@@ -114,13 +114,13 @@ class Ledger:
             if step["phase"] == "decide":
                 usage = output.get("usage") or {}
                 tokens = [usage.get("prompt_tokens"), usage.get("completion_tokens")]
-                known = all(type(v) is int and 0 <= v <= limit for v, limit in zip(tokens, [6000, 1024]))
+                known = all(type(v) is int and 0 <= v <= limit for v, limit in zip(tokens, [6000, policy.max_output_tokens]))
                 if output.get("model_sent") is False:
                     tokens, known = [0, 0], True
                 if known:
                     actual_cost = policy.cost(*tokens)
-                    state["tokens"] += sum(tokens) - 7024
-                    state["cost"] += actual_cost - policy.cost(6000, 1024)
+                    state["tokens"] += sum(tokens) - policy.reserved_tokens
+                    state["cost"] += actual_cost - policy.reserved_cost
                     conn.execute("UPDATE analysis_budget_ledger SET actual_tokens=%s,actual_cost=%s,status='settled' WHERE step_id=%s", (sum(tokens), actual_cost, op_id))
                 else:
                     conn.execute("UPDATE analysis_budget_ledger SET status='unknown' WHERE step_id=%s", (op_id,))
