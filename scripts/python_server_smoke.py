@@ -10,7 +10,7 @@ import urllib.request
 from uuid import uuid4
 
 
-def run(base, origin, *, analysis=False, extended_topn=False):
+def run(base, origin, *, analysis=False, extended_topn=False, task_timeout=600):
     client = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 
     def call(path, body=None, headers=None):
@@ -22,7 +22,7 @@ def run(base, origin, *, analysis=False, extended_topn=False):
             return raw if "text/event-stream" in response.headers.get("Content-Type", "") else json.loads(raw)
 
     def wait(path):
-        deadline = time.monotonic() + 210
+        deadline = time.monotonic() + task_timeout
         while time.monotonic() < deadline:
             value = call(path)
             if value["status"] not in {"pending", "querying"}:
@@ -86,12 +86,13 @@ if __name__ == "__main__":
     parser.add_argument("--origin", default="http://localhost:8088")
     parser.add_argument("--analysis", action="store_true")
     parser.add_argument("--extended-topn", action="store_true", help="额外验证 TopN 订单量、加权客单价与占比")
+    parser.add_argument("--task-timeout", type=int, choices=range(30, 601), default=600)
     parser.add_argument("--report", required=True, type=Path)
     args = parser.parse_args()
     # 验收默认只访问服务器回环入口，防止误把凭据发送到其他站点。
     from urllib.parse import urlsplit
     assert urlsplit(args.base).hostname in {"localhost", "127.0.0.1"}
-    result = run(args.base, args.origin, analysis=args.analysis, extended_topn=args.extended_topn)
+    result = run(args.base, args.origin, analysis=args.analysis, extended_topn=args.extended_topn, task_timeout=args.task_timeout)
     descriptor = os.open(args.report, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
         json.dump(result, stream, ensure_ascii=False, indent=2)

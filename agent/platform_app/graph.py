@@ -51,6 +51,15 @@ def build_graph(repo, task, saver):
         seq = state.get("sequence", 0) + 1
         return {"sequence": seq, "op_id": hashlib.sha256(f"{task['id']}:{seq}".encode()).hexdigest()[:48]}
 
+    def model_interval(state):
+        with repo.db.transaction() as conn:
+            run = conn.execute("SELECT policy,state FROM analysis_runs WHERE id=%s", (task["id"],)).fetchone()
+        seconds = run["policy"].get("model_interval_seconds", 0)
+        if seconds and run["policy"]["strategy"] == "adaptive" and run["state"]["model_calls"]:
+            # 等待不占 Worker 线程，不预占尚未发送的模型费用，也不会重放已完成调用。
+            interrupt({"kind": "backoff", "wait_id": state["op_id"], "seconds": seconds, "message": "等待已配置的模型调用间隔"})
+        return {}
+
     def decision(state):
         request, run = snapshot(state)
         fixed = run["policy"]["strategy"] == "fixed" and state.get("spec") is not None
@@ -131,12 +140,13 @@ def build_graph(repo, task, saver):
         return {"status": "decide"}
 
     graph = StateGraph(State)
-    for name, fn in {"prepare_decision": prepare, "decide": decision, "interpret": interpret,
+    for name, fn in {"prepare_decision": prepare, "model_interval": model_interval, "decide": decision, "interpret": interpret,
                      "prepare_tool": prepare, "tool": execute_tool, "observe": observe,
                      "wait_for_answer": wait_for_answer, "backoff": backoff, "model_backoff": model_backoff}.items():
         graph.add_node(name, fn)
     graph.add_edge(START, "prepare_decision")
-    graph.add_edge("prepare_decision", "decide")
+    graph.add_edge("prepare_decision", "model_interval")
+    graph.add_edge("model_interval", "decide")
     graph.add_edge("decide", "interpret")
     graph.add_conditional_edges("interpret", lambda s: s["status"], {"tool": "prepare_tool", "decide": "prepare_decision", "model_backoff": "model_backoff", "failed": END})
     graph.add_edge("prepare_tool", "tool")

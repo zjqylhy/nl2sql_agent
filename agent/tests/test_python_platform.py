@@ -792,6 +792,34 @@ def test_known_gateway_rejection_waits_durably_and_retries_only_once(platform, m
         assert len(calls) == 2 and result["state"]["sql_calls"] == 0
 
 
+def test_model_interval_is_durable_without_reserving_unsent_calls(platform, monkeypatch):
+    client, repo, _ = platform
+    client.app.state.policy = POLICY.model_copy(update={"model_interval_seconds": 20})
+    calls = deterministic_model(monkeypatch)
+    run_id = client.post("/api/analysis-runs", json={"question": "有限调用间隔", "request_id": str(uuid4())}).json()["id"]
+    run_once(repo)
+    waiting = client.get("/api/analysis-runs/"+run_id).json()
+    assert waiting["status"] == "pending" and waiting["state"]["phase"] == "backoff"
+    assert len(calls) == 1 and waiting["usage"]["unknown_calls"] == 0
+    first_steps = [s["id"] for s in waiting["steps"]]
+    assert len(first_steps) == 2 and repo.claim(True) is None
+    for _ in range(10):
+        with repo.db.transaction() as conn:
+            conn.execute("UPDATE tasks SET ready_at=now()-interval '1 second' WHERE id=%s", (run_id,))
+        # 新 Repository 读取原生 PG 检查点，而非继续某个内存中的图对象。
+        task = Repository(repo.db).claim(True)
+        assert task
+        execute(Repository(repo.db), task)
+        value = client.get("/api/analysis-runs/"+run_id).json()
+        if value["status"] == "completed":
+            break
+    else:
+        pytest.fail('调用间隔恢复未在有限步骤内完成')
+    assert value["state"]["sql_calls"] == 1 and value["usage"]["unknown_calls"] == 0
+    assert [s["id"] for s in value["steps"]][:2] == first_steps
+    assert value["state"]["model_calls"] == len(calls)
+
+
 def test_longer_model_deadline_cannot_exceed_total_active_budget(platform, monkeypatch):
     client, repo, _ = platform
     from agent.platform_app import graph
