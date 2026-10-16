@@ -94,7 +94,10 @@ def safe_error(exc):
     if isinstance(exc, AnalysisError):
         return {"status": "error", "error_code": exc.code, "message": exc.message}
     if isinstance(exc, ValidationError):
-        return {"status": "error", "error_code": "invalid_arguments", "message": "参数格式不正确", "fields": [".".join(str(p) for p in e["loc"]) for e in exc.errors()[:8]]}
+        issues = [{"field": ".".join(str(p) for p in e["loc"]), "message": e["msg"][:200]} for e in exc.errors()[:8]]
+        # 给修正步骤明确的约束原因；不回传 Pydantic 的 input/ctx，避免回显原始输入。
+        return {"status": "error", "error_code": "invalid_arguments", "message": "参数格式不正确",
+                "fields": [e["field"] for e in issues], "issues": issues}
     return {"status": "error", "error_code": "internal", "message": "分析服务暂时不可用"}
 
 
@@ -184,6 +187,7 @@ def decision_prompt(request, anchor):
             summaries[-1].update(op=data['op'],metric=data['metric'],unit=data['unit'])
     prompt = """Olist analyst. Output JSON only: {"spec":SPEC_OR_NULL,"action":{"action":TOOL,"arguments":ARGS}}.
 SPEC: {goal:compare_declines|top_n_total,current:{start:YYYY-MM-DD,end_exclusive:YYYY-MM-DD},baseline:period|null,ranking:absolute|rate|null,n:1..10,filters:[],checks:[]}.
+For top_n_total baseline and ranking MUST both be null. ranking=absolute|rate applies only to compare_declines.
 checks may contain orders,aov,share when explicitly requested with top_n_total. For aov sum gmv/orders over the same selected states then divide; for share sum selected GMV and whole-scope GMV then divide. Never average aov.
 Do not guess missing dates, N, or whether decline means absolute amount or rate. For missing conditions ask request_clarification. Preserve all user filters. Dates use the supplied historical anchor, not today's date. State means Brazilian state. GMV excludes freight and canceled/unavailable; aov=GMV/valid orders. No causality, new dimensions, SQL, code or data sources.
 Tools (exact argument keys):

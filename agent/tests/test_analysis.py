@@ -182,3 +182,13 @@ def test_decision_request_sends_bounded_output_limit(client, monkeypatch, limit)
     response = client.post('/internal/analysis/decide', headers={'X-Service-Key': 's'*40}, json=body)
     assert response.status_code == 200 and response.json()['status'] == 'completed'
     assert observed == [limit]
+
+
+def test_invalid_spec_feedback_explains_constraint_without_original_input():
+    from runtime.analysis_api import safe_error
+    with pytest.raises(ValidationError) as error:
+        Spec.model_validate({'goal': 'top_n_total', 'current': PERIODS[1], 'ranking': 'absolute'})
+    feedback = safe_error(error.value)
+    assert feedback['fields'] == [''] or feedback['fields'] == ['spec']
+    assert '单期合计不接受比较基期或下降口径' in feedback['issues'][0]['message']
+    assert '2018-07-01' not in json.dumps(feedback) and 'input' not in feedback['issues'][0]
