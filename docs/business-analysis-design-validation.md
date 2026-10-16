@@ -38,6 +38,8 @@ Archify `finalize architecture --repo-root . --quality showcase --json` 返回 e
 
 两图均通过 showcase 的 validate、deliver、严格 check 和 browser-check，diagnostics 为空；失败图的当前回执为 [review-3](../.archify/workflow-analysis-failures-20261017-015918/review-3/analysis-failures.finalize-summary.json)，恢复图回执见[此处](../.archify/workflow-analysis-recovery-20261017-015918/analysis-recovery.finalize-summary.json)。额外截图检查均通过，已目视复核两图的 1440×900 浅色截图。失败图曾尝试将六类情形放在一页，现拆成四类失败与两类恢复/业务反馈；当前候选、HTML、发布记录和回执哈希已核对一致。
 
+`.archify/.gitattributes` 禁止制品目录自动转换换行，确保 Git 中保存及跨平台检出的候选字节与回执哈希一致。
+
 交互架构图是初版快照，通过自动化制品与浏览器检查，未执行截图视觉复核；本轮 calculate 在正文架构图及第 4.4 节补充。初版交互流程图未通过布局检查，已由本轮通过并做截图复核的简化流程替代；详细反馈语义保留在正文第二张流程图与反馈表。Mermaid 代码块未单独渲染验收。
 
 本次没有运行应用测试、真实模型或 A/B/C 评测；方案中的成功率、延迟和预算均是待确认目标。未变更应用逻辑、数据库、线上配置或原有未提交的规则文件；方案及图表提交到独立分支，未推送。
