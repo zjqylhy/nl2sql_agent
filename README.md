@@ -14,6 +14,8 @@
 
 2026-10-14 已将多轮版部署到现有私有 ECS：迁移 003、最小运行授权、真实 HTTP/CSV 核对、重启后的草稿恢复及包含会话数据的双库恢复均通过，详见 [线上验收](docs/multiturn-ecs-validation.md)。
 
+下一步的[有限经营分析助手技术方案](docs/business-analysis-assistant-design.md)已形成待确认草案，明确已有查询/多轮能力与待实现的工具决策、两期比较、步骤恢复和独立评测，附架构、流程及状态图；业务代码尚未实现。
+
 ## Windows 本地启动
 
 需要 Docker Desktop（Linux containers）、Docker Compose。源码调试另需 Go 1.27、Python 3.12、Node.js 24。数据库和数据均存本地，不提交 Git。

@@ -137,7 +137,7 @@ LangGraph 的 checkpointer 可以持久化图运行状态，内存 saver 不能�
 
 ## 5 执行流程与反馈处理
 
-交互版：[执行流程图](../.archify/workflow-business-analysis-20261017-003203/business-analysis.html)。这是待实现流程；其中授权、SQL 和事件机制复用现有模块。
+下图为完整执行流程。这是待实现流程；其中授权、SQL 和事件机制复用现有模块。流程及状态图使用文内 Mermaid，交互架构图另附；图表交付范围见[方案验证记录](business-analysis-design-validation.md)。
 
 ```mermaid
 flowchart TD
