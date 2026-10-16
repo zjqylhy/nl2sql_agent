@@ -60,6 +60,7 @@ class Datasource(BaseModel):
     analysis_date: date
     ssl_ca: str | None = None
     context_revision: int = Field(default=1, ge=1, strict=True)
+    dataset_revision: str = Field(default="", pattern=r"^(?:[a-f0-9]{64})?$")
 
 
 @lru_cache
@@ -255,8 +256,17 @@ def run_query(request: QueryRequest):
         if isinstance(exc, Clarification) and exc.usage is not None:
             result["usage"] = exc.usage
         return result
+    result = execute_plan(source, plan, request.allowed_metrics, usage)
+    if turn_info is not None:
+        result.update(multiturn=turn_info, context_binding=binding["binding"])
+    return result
+
+
+def execute_plan(source: Datasource, plan: QueryPlan, allowed_metrics: list[str], usage: dict):
+    """共享受限查询内核；结构化工具不再经过自然语言解析。"""
     with telemetry.stage("plan_validation"):
-        if any(m not in request.allowed_metrics for m in plan.metrics):
+        plan.check_anchor(source.analysis_date)
+        if any(m not in allowed_metrics for m in plan.metrics):
             raise HTTPException(403, "没有全部所请求指标的权限")
     with telemetry.stage("compile"):
         sql, params = compile_plan(plan)
@@ -274,6 +284,9 @@ def run_query(request: QueryRequest):
     telemetry.update(rows=len(rows))
     with telemetry.stage("normalize"):
         result = normalize_result(plan, rows, source.analysis_date, usage, sql, params)
-        if turn_info is not None:
-            result.update(multiturn=turn_info, context_binding=binding["binding"])
         return result
+
+
+# 在共享查询内核定义后注册，避免工具适配器和旧接口相互初始化。
+from .analysis_api import router as analysis_router
+app.include_router(analysis_router)
