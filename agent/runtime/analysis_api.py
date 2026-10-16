@@ -166,12 +166,16 @@ def decision_prompt(request, anchor):
         rows = data.get("rows", [])
         plan = data.get("requested_plan", data.get("plan", {}))
         summaries.append({"ref": a["result_ref"], "kind": a["kind"], "metrics": a["metrics_used"],
-                          "period": plan.get("time_range"), "coverage": data.get("coverage"),
+                          "period": plan.get("time_range", data.get('cohort',{}).get('period')), "coverage": data.get("coverage"),
                           "states": data.get("states"), "value": data.get("value"), "row_count": len(rows),
                           "quality_complete": data.get("quality_complete"),
                           "outcome": data.get("outcome"),
                           "preview": [{"state": r.get("state", r.get("dimensions", {}).get("state")),
                                        "values": {m: c.get("value", c.get("delta")) for m, c in r.get("values", {}).items()}} for r in rows[:1]]})
+        if a['kind']=='catalog':
+            summaries[-1]['definitions']=data
+        elif a['kind']=='scalar':
+            summaries[-1].update(op=data['op'],metric=data['metric'],unit=data['unit'])
     prompt = """Olist analyst. Output JSON only: {"spec":SPEC_OR_NULL,"action":{"action":TOOL,"arguments":ARGS}}.
 SPEC: {goal:compare_declines|top_n_total,current:{start:YYYY-MM-DD,end_exclusive:YYYY-MM-DD},baseline:period|null,ranking:absolute|rate|null,n:1..10,filters:[],checks:[]}.
 checks may contain orders,aov,share when explicitly requested with top_n_total. For aov sum gmv/orders over the same selected states then divide; for share sum selected GMV and whole-scope GMV then divide. Never average aov.

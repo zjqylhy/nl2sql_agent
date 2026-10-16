@@ -101,7 +101,7 @@ $env:PYTHONPATH='agent'
 | --- | --- |
 | `go test ./... -count=1` | 通过；真实隔离 PostgreSQL，包含幂等、私有结果、版本围栏、SQL 重试、未知模型、撤权、停止迟到回执、预算超界、保留期和持久化失败注入 |
 | `go vet ./...` | 通过 |
-| `pytest agent/tests -q` | **333 passed，7 skipped**；跳过项为 Windows 无法执行的 Linux symlink/Bash 发布用例 |
+| `pytest agent/tests -q` | **334 passed，7 skipped**；跳过项为 Windows 无法执行的 Linux symlink/Bash 发布用例 |
 | 实际 MySQL 工具流水线 | 新建只读授权视图；查询→合计→有效订单合计→相除→占比→finish，全程真实 SQL；两种导入授权模式均通过 |
 | `npm --prefix web run build` | TypeScript 与 Vite 生产构建通过；保留原有 ECharts 537.6 kB 分包告警 |
 | 浏览器验收 | 本地模拟模型 + 真实 PostgreSQL/MySQL：两期下降、Top N 合计、整体客单价、补充后继续、刷新复用、模型未知停止；不是模型准确率实测 |

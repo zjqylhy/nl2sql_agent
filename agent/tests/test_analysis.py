@@ -12,6 +12,7 @@ from runtime import app as runtime
 from runtime.analysis import (AnalysisError, BinaryArgs, CompareArgs, Decision, FinishArgs, RankArgs, Spec,
                               SumArgs, artifact, calculate, compare, finish, rank)
 from runtime.analysis_api import Identity, context, decision_prompt, Snapshot
+from runtime.analysis_fixed import next_action
 from runtime.plan import QueryPlan
 
 BINDING = "b" * 64
@@ -135,3 +136,25 @@ def test_model_prompt_bound_is_small_for_complete_three_metric_trajectory(client
     request.artifacts = [a,b,c,rank(RankArgs(result_ref=c["result_ref"]), [a,b,c], spec(), BINDING)]
     prompt, message = decision_prompt(request, date(2018,8,31))
     assert len(prompt.encode())+len(message.encode())+256 <= 6000
+
+
+def test_model_sees_catalog_definitions_and_scalar_types_within_budget():
+    target=spec('top_n_total',n=1,checks=['orders','aov','share'])
+    source=query(PERIODS[1],[('SP',['100','10','10']),('RJ',['80','2','40'])])
+    artifacts=[artifact('catalog',{'gmv':{'definition':'有效订单商品金额，不含运费','unit':'BRL'}},['gmv'],BINDING),source]
+    request=Snapshot(tenant_id='alpha',role='ops',allowed_metrics=['gmv','orders','aov'],binding=BINDING,question='2018年7月 GMV 前一州合计、整体客单价和占比',spec=target)
+    for _ in range(10):
+        request.artifacts=artifacts
+        prompt,message=decision_prompt(request,date(2018,8,31))
+        assert len(prompt.encode())+len(message.encode())+256<=6000
+        observation=json.loads(message)['evidence']
+        assert observation[0]['definitions']['gmv']['unit']=='BRL'
+        assert all('op' in a and 'metric' in a and 'unit' in a for a in observation if a['kind']=='scalar')
+        decision=Decision.model_validate(next_action(target,artifacts))
+        if decision.action.action=='finish':
+            assert finish(decision.action.arguments,artifacts,target,BINDING)['data']['complete']
+            break
+        assert decision.action.action=='calculate'
+        artifacts.append(calculate(decision.action.arguments,artifacts,target,BINDING))
+    else:
+        pytest.fail('bounded complete trajectory did not finish')
