@@ -122,7 +122,8 @@ def build_graph(repo, task, saver):
         refs = state.get("refs", [])
         no_progress = state.get("no_progress", 0) + 1 if art["result_ref"] in refs else 0
         if no_progress >= 2:
-            return {"status": "failed", "message": "重复调用未产生新证据，已停止"}
+            message = '重复调用未产生新证据，已停止'
+            return {'status':'failed','message':message,'feedback':{'status':'error','error_code':'no_progress','message':message}}
         return {"refs": list(dict.fromkeys([*refs, art["result_ref"]])), "no_progress": no_progress,
             "status": "completed" if art["kind"] == "report" else "decide", "retry_sql": False,
             "feedback": {"status": "completed", "result_ref": art["result_ref"], "outcome": art["data"].get("outcome")}}

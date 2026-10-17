@@ -758,6 +758,24 @@ def test_fixed_strategy_parses_spec_without_agent_tool_choice(platform, monkeypa
     assert run["state"]["actions"] == 7
 
 
+def test_repeated_query_stops_with_structured_no_progress_code(platform, monkeypatch):
+    client, repo, _ = platform
+    from agent.platform_app import graph
+    calls=[]
+    def repeat(request):
+        calls.append(request)
+        return {'status':'completed','model_sent':True,'usage':{'prompt_tokens':100,'completion_tokens':50},
+                'decision':next_action(Spec.model_validate(spec()),[])}
+    monkeypatch.setattr(graph,'decide',repeat)
+    run_id=client.post('/api/analysis-runs',json={'question':'重复查询安全停止','request_id':str(uuid4())}).json()['id']
+    run_once(repo)
+    value=client.get('/api/analysis-runs/'+run_id).json()
+    assert value['status']=='failed' and value['state']['feedback']['error_code']=='no_progress'
+    assert len(calls)==3 and value['state']['sql_calls']==1 and value['usage']['unknown_calls']==0
+    assert sum(s['cached'] for s in value['steps'])==2
+    assert not any(a['kind']=='report' for a in value['artifacts'])
+
+
 @pytest.mark.parametrize('first', ['repair','clarification'])
 def test_fixed_model_retry_and_answer_share_durable_pacing(platform, monkeypatch, first):
     client, repo, _ = platform
