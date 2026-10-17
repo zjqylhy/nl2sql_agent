@@ -123,3 +123,31 @@ def test_pilot_selects_entire_groups_and_exported_source_is_bound(monkeypatch, t
     before = study.source_identity()
     (tmp_path/'agent/test.py').write_text('version2')
     assert before['execution_tree_sha256'] != study.source_identity()['execution_tree_sha256']
+
+
+def test_compare_checks_equivalence_regrade_preserves_original_and_rejects_share():
+    import hashlib
+    from copy import deepcopy
+    from scripts.evaluate_analysis import spec_correct
+    from scripts.regrade_analysis_study import regrade
+    case = next(c for c in load()['cases'] if c['id']=='analysis-01-2')
+    spec = {**case['spec'],'checks':['orders','aov']}
+    assert spec_correct(spec, case['spec'])
+    assert not spec_correct({**spec,'checks':['share']}, case['spec'])
+    assert not spec_correct({**spec,'n':3}, case['spec'])
+    gold = expected(ROOT/case['fixture'],case['spec'])
+    result = dict(id=case['id'],repeat=0,intent_group=case['group'],category=case['category'],expected_complete=True,
+                  status='completed',complete_success=False,behavior_correct=False,observed_spec=spec,
+                  observed_report={'complete':True,**gold},cost_known=True)
+    original = {'completed':True,'source_commit':'a'*40,'dataset_sha256':hashlib.sha256((ROOT/'cases.json').read_bytes()).hexdigest(),
+                'groups':{name:{'results':[deepcopy(result)],'summary':summary([result])} for name in ['baseline','adaptive','fixed']}}
+    corrected = regrade(original)
+    assert all(not g['results'][0]['complete_success'] for g in original['groups'].values())
+    assert corrected['groups']['adaptive']['summary']['complete_successes']==1
+    assert corrected['groups']['fixed']['summary']['complete_successes']==1
+    assert corrected['groups']['baseline']['summary']['complete_successes']==0
+    assert corrected['groups']['adaptive']['original_frozen_summary']['complete_successes']==0
+    assert corrected['posthoc_regrade']['model_calls_added']==0
+    bad = deepcopy(original)
+    bad['groups']['adaptive']['results'][0]['observed_report']['rows'][0]['values']['gmv']['delta']='9999'
+    assert regrade(bad)['groups']['adaptive']['summary']['complete_successes']==0

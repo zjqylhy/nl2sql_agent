@@ -51,7 +51,10 @@ def spec_correct(actual, expected):
         if actual.get(name,default)!=expected.get(name,default):
             return False
     key=lambda f:json.dumps(f,sort_keys=True)
-    return sorted(map(key,actual.get("filters",[])))==sorted(map(key,expected.get("filters",[]))) and set(actual.get("checks",[]))==set(expected.get("checks",[]))
+    checks, gold_checks = set(actual.get('checks', [])), set(expected.get('checks', []))
+    # 比较报告无论是否重复声明 checks，都强制核查 orders/aov；share 不属于此等价类。
+    equivalent_checks = (checks <= {'orders','aov'} and gold_checks <= {'orders','aov'}) if expected['goal']=='compare_declines' else checks==gold_checks
+    return sorted(map(key,actual.get("filters",[])))==sorted(map(key,expected.get("filters",[]))) and equivalent_checks
 
 
 def baseline_complete(task, spec, gold):
