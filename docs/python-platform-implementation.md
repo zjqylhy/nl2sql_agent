@@ -1,6 +1,6 @@
 # Python 单栈实施记录
 
-需求与方案：`python-agent-target-spec.md`，用户已确认并授权实现。默认源码和 Compose 为 Python API/Worker + LangGraph + PostgreSQL，ECS 入口已按单独授权切换；当前部署、真实模型结果与失败记录见 [服务器验收](python-platform-ecs-validation.md)。下文保留首次本地实施时的验证证据，不能将其历史状态理解为当前线上状态。旧 Go/MySQL 保留为显式基线，不参与默认运行路径。
+需求与方案：`python-agent-target-spec.md`，用户已确认并授权实现。默认源码和 Compose 为 Python API/Worker + LangGraph + PostgreSQL，ECS 入口已按单独授权切换；首次部署见 [服务器验收](python-platform-ecs-validation.md)，当前版本见 [增量发布验收](python-platform-release-20261017.md)。下文保留首次本地实施时的验证证据，不能将其历史状态理解为当前线上状态。旧 Go/MySQL 保留为显式基线，不参与默认运行路径。
 
 ## P0：真实 PostgreSQL 机制验证
 
@@ -12,7 +12,7 @@
 
 ## 验收边界
 
-首次实施完成了 P0–P4 的代码、本地进程、持久化故障与数据验证；当时 Docker 服务未运行，只验证了 Compose 配置。后续镜像构建、运行及真实模型冒烟在 ECS 执行，见 [服务器验收](python-platform-ecs-validation.md)。P5 同平台评测入口已适配，题集仍须人工复核和扩充，真实 A/B/C 对照实验尚未执行，不能用模拟模型结果或少量冒烟声明完成率收益。
+首次实施完成了 P0–P4 的代码、本地进程、持久化故障与数据验证；当时 Docker 服务未运行，只验证了 Compose 配置。后续镜像构建、运行及真实模型冒烟在 ECS 执行，见 [服务器验收](python-platform-ecs-validation.md)。P5 同平台评测入口已适配，开发分区 A/B/C 预实验与修复回归已执行；题集仍须人工复核和扩充，完整独立对照待完成，不能用模拟模型结果或少量冒烟声明完成率收益。
 
 ## P1–P3：纵向闭环
 
@@ -62,4 +62,4 @@
 
 额外保留期故障检查覆盖超过 100 个终态任务：清理成功后保存图清理标记，下一轮推进后续批次；图清理失败不标记完成，下轮安全重试，已归档用量不会归零。固定流程 C 从首个工具起由固定计划选择，模型仅提供完整规格；代码升级阻止旧活动图继续执行，同时保留授权仍有效的已完成历史。
 
-运维与回退命令见 [Python 平台运维](python-platform-operations.md)。首次本地实施未推送或部署；后续按用户授权在新服务器数据卷迁移、验收并切换入口，旧卷保留，详见 [服务器验收](python-platform-ecs-validation.md)。Git 远端仍未推送。
+运维与回退命令见 [Python 平台运维](python-platform-operations.md)。首次本地实施未推送或部署；后续按用户授权在新服务器数据卷迁移、验收并切换入口，旧卷保留，详见 [服务器验收](python-platform-ecs-validation.md)。最新一轮已明确授权部署及提交 PR，记录见 [增量发布验收](python-platform-release-20261017.md)。

@@ -1,6 +1,6 @@
 # 分析协议修正与服务器回归
 
-2026-10-17。按 [本批规格](analysis-protocol-hardening-spec.md) 完成修正；真实模型回归在 ECS 15:50–16:01 CST 执行。**新代码尚未切换生产**，线上仍为 `54edc60`，首页、健康状态与备份定时器正常。
+2026-10-17。按 [本批规格](analysis-protocol-hardening-spec.md) 完成修正；真实模型回归在 ECS 15:50–16:01 CST 执行。该回归完成时线上仍为 `54edc60`；用户随后明确授权部署与提交 PR，现已于 16:36 CST 切换至 `f51e10a`，见 [增量发布验收](python-platform-release-20261017.md)。
 
 完整记录见 [脱敏回归证据](evidence/analysis-protocol-hardening-20261017.json)。首轮 [A/B/C 预实验](analysis-study-pilot-results.md) 及原始失败均保留。
 
@@ -52,4 +52,4 @@ C 的四题均一次模型调用得到规格，没有再要求模型生成未使
 
 完整回归包含 27 州复杂轨迹的输入预算、引用映射/伪造引用拒绝、TopN 候选及未知金额、原有恢复/权限/预算故障检查。真实模型回归采用只读提交源码挂载到既有 Python 验收镜像，不冒充新生产镜像发布验收。
 
-隔离数据库及只读角色确认零遗留后，清理了本轮专属 PostgreSQL 容器、归属标签卷和临时凭据。源码、日志和报告留在 `/srv/olist/python/studies/20261017-hardening`；生产源目录、数据、模型网关和入口没有变更，未推送 Git。
+隔离数据库及只读角色确认零遗留后，清理了本轮专属 PostgreSQL 容器、归属标签卷和临时凭据。源码、日志和报告留在 `/srv/olist/python/studies/20261017-hardening`；这轮回归本身没有修改生产源目录、数据、模型网关或入口。后续发布单独验收，不改写此处冻结的模型回归结果。
