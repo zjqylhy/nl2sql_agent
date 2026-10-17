@@ -1,0 +1,13 @@
+FROM python:3.12-slim
+ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
+WORKDIR /app
+COPY agent/requirements.lock .
+RUN pip install --no-cache-dir -r requirements.lock
+ARG SOURCE_COMMIT=uncommitted
+LABEL org.opencontainers.image.revision=$SOURCE_COMMIT
+COPY agent ./agent
+RUN useradd --uid 10001 --create-home runtime
+USER 10001
+EXPOSE 8080
+ENTRYPOINT ["python", "-m", "agent.platform_app"]
+CMD ["api"]

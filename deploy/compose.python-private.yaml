@@ -1,0 +1,62 @@
+# 与仓库根目录 compose.yaml 合并使用；环境文件、数据和密钥留在服务器。
+x-logging: &logging
+  driver: json-file
+  options: {max-size: "10m", max-file: "3"}
+x-gateway-environment: &gateway-environment
+  LLM_CONNECT_HOST: gateway
+  LLM_CA_FILE: /run/secrets/gateway-ca.pem
+services:
+  postgres:
+    command: ["postgres", "-c", "shared_buffers=64MB", "-c", "max_connections=40", "-c", "work_mem=2MB", "-c", "maintenance_work_mem=32MB", "-c", "max_parallel_workers_per_gather=0", "-c", "statement_timeout=10000"]
+    mem_limit: 320m
+    logging: *logging
+  migrate:
+    build:
+      args: {SOURCE_COMMIT: "${SOURCE_COMMIT:?required}"}
+    mem_limit: 384m
+    logging: *logging
+  roles:
+    mem_limit: 256m
+    logging: *logging
+  api:
+    environment: *gateway-environment
+    volumes: ["${GATEWAY_CA_FILE:?required}:/run/secrets/gateway-ca.pem:ro"]
+    depends_on:
+      gateway: {condition: service_healthy}
+    mem_limit: 256m
+    logging: *logging
+  worker:
+    environment: *gateway-environment
+    volumes: ["${GATEWAY_CA_FILE:?required}:/run/secrets/gateway-ca.pem:ro"]
+    depends_on:
+      gateway: {condition: service_healthy}
+    mem_limit: 384m
+    logging: *logging
+  import:
+    volumes: ["${CSV_DIR:?required}:/data:ro"]
+    mem_limit: 384m
+    logging: *logging
+  web:
+    image: olist-python-web:${APP_TAG:?required}
+    build:
+      args: {SOURCE_COMMIT: "${SOURCE_COMMIT:?required}"}
+    mem_limit: 64m
+    logging: *logging
+  gateway:
+    image: ${TUNNEL_IMAGE:?required}
+    command: ["-N", "-T", "-i", "/run/secrets/tunnel-key", "-o", "BatchMode=yes", "-o", "IdentitiesOnly=yes", "-o", "StrictHostKeyChecking=yes", "-o", "UserKnownHostsFile=/run/secrets/gateway-known-hosts", "-o", "ExitOnForwardFailure=yes", "-o", "ServerAliveInterval=30", "-o", "ServerAliveCountMax=3", "-o", "ConnectTimeout=10", "-L", "0.0.0.0:9443:127.0.0.1:8443", "nl2sql-tunnel@47.113.231.252"]
+    volumes:
+      - ${TUNNEL_KEY_FILE:?required}:/run/secrets/tunnel-key:ro
+      - ${GATEWAY_KNOWN_HOSTS_FILE:?required}:/run/secrets/gateway-known-hosts:ro
+    networks: [backend]
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    restart: unless-stopped
+    mem_limit: 32m
+    logging: *logging
+    healthcheck:
+      test: ["CMD", "nc", "-z", "127.0.0.1", "9443"]
+      interval: 10s
+      timeout: 3s
+      retries: 12

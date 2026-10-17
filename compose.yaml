@@ -1,85 +1,123 @@
-name: olist-agent
+name: olist-python-agent
+x-application: &application
+  image: olist-python-platform:${APP_TAG:-local}
+  build:
+    context: .
+    dockerfile: deploy/Dockerfile.platform
+    args: {SOURCE_COMMIT: "${SOURCE_COMMIT:-uncommitted}"}
+  networks: [backend]
+  read_only: true
+  tmpfs: [/tmp]
+  security_opt: ["no-new-privileges:true"]
+x-environment: &environment
+  TENANT_DATASOURCES: ${TENANT_DATASOURCES:-{}}
+  LLM_API_KEY: ${NL2SQL_AGENT_API_KEY:-}
+  LLM_BASE_URL: ${LLM_BASE_URL:-}
+  LLM_MODEL: ${LLM_MODEL:-}
+  LLM_INTENT_MAX_TOKENS: ${LLM_INTENT_MAX_TOKENS:-256}
+  LLM_PLAN_MAX_TOKENS: ${LLM_PLAN_MAX_TOKENS:-512}
+  ANALYSIS_ENABLED: ${ANALYSIS_ENABLED:-false}
+  ANALYSIS_STRATEGY: ${ANALYSIS_STRATEGY:-adaptive}
+  ANALYSIS_TOKENIZER: ${ANALYSIS_TOKENIZER:-}
+  ANALYSIS_CURRENCY: ${ANALYSIS_CURRENCY:-}
+  ANALYSIS_PRICE_VERSION: ${ANALYSIS_PRICE_VERSION:-}
+  ANALYSIS_INPUT_PRICE_MICROS: ${ANALYSIS_INPUT_PRICE_MICROS:-}
+  ANALYSIS_OUTPUT_PRICE_MICROS: ${ANALYSIS_OUTPUT_PRICE_MICROS:-}
+  ANALYSIS_MAX_COST_MICROS: ${ANALYSIS_MAX_COST_MICROS:-}
+  ANALYSIS_MODEL_MAX_OUTPUT_TOKENS: ${ANALYSIS_MODEL_MAX_OUTPUT_TOKENS:-1024}
+  ANALYSIS_MODEL_TIMEOUT_SECONDS: ${ANALYSIS_MODEL_TIMEOUT_SECONDS:-20}
+  ANALYSIS_MAX_TOKENS: ${ANALYSIS_MAX_TOKENS:-30000}
+  ANALYSIS_MODEL_INTERVAL_SECONDS: ${ANALYSIS_MODEL_INTERVAL_SECONDS:-0}
 services:
   postgres:
     image: postgres:17-alpine
     environment:
-      POSTGRES_USER: platform
+      POSTGRES_USER: platform_migrator
       POSTGRES_DB: platform
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
-    volumes: [postgres_data:/var/lib/postgresql/data]
-    healthcheck:
-      test: ["CMD-SHELL","pg_isready -U platform -d platform"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
+      POSTGRES_PASSWORD: ${POSTGRES_ADMIN_PASSWORD:?required}
+    command: ["postgres", "-c", "max_connections=40", "-c", "statement_timeout=10000"]
+    volumes: [python_postgres_data:/var/lib/postgresql/data]
     networks: [backend]
     restart: unless-stopped
-  mysql:
-    image: mysql:8.4
-    environment:
-      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?set MYSQL_ROOT_PASSWORD}
-      MYSQL_ROOT_HOST: "%"
-    volumes: [mysql_data:/var/lib/mysql]
     healthcheck:
-      test: ["CMD-SHELL","mysqladmin ping -h localhost --silent"]
+      test: ["CMD", "pg_isready", "-U", "platform_migrator", "-d", "platform"]
       interval: 5s
       timeout: 3s
       retries: 30
-    networks: [backend]
-    restart: unless-stopped
   migrate:
-    build: {context: ., dockerfile: deploy/Dockerfile.api}
-    command: ["-command","migrate"]
+    <<: *application
+    command: ["migrate"]
     environment:
-      DATABASE_URL: postgres://platform:${POSTGRES_PASSWORD}@postgres:5432/platform?sslmode=disable
+      DATABASE_URL: postgresql://platform_migrator:${POSTGRES_ADMIN_PASSWORD:?required}@postgres:5432/platform?sslmode=disable
     depends_on:
       postgres: {condition: service_healthy}
-    networks: [backend]
-    read_only: true
-    security_opt: ["no-new-privileges:true"]
-  agent:
-    build: {context: ., dockerfile: deploy/Dockerfile.agent}
+  roles:
+    <<: *application
+    command: ["provision-roles"]
     environment:
-      SERVICE_KEY: ${SERVICE_KEY:?set SERVICE_KEY}
-      TENANT_DATASOURCES: ${TENANT_DATASOURCES:-{}}
-      LLM_API_KEY: ${NL2SQL_AGENT_API_KEY:-}
-      LLM_BASE_URL: ${LLM_BASE_URL:-}
-      LLM_MODEL: ${LLM_MODEL:-}
-      LLM_INTENT_MAX_TOKENS: ${LLM_INTENT_MAX_TOKENS:-256}
-      LLM_PLAN_MAX_TOKENS: ${LLM_PLAN_MAX_TOKENS:-512}
-    depends_on:
-      mysql: {condition: service_healthy}
-    networks: [backend]
-    read_only: true
-    tmpfs: [/tmp]
-    security_opt: ["no-new-privileges:true"]
-    restart: unless-stopped
-  api:
-    build: {context: ., dockerfile: deploy/Dockerfile.api}
-    environment:
-      DATABASE_URL: postgres://platform:${POSTGRES_PASSWORD}@postgres:5432/platform?sslmode=disable
-      SERVICE_KEY: ${SERVICE_KEY:?set SERVICE_KEY}
-      AGENT_URL: http://agent:8000
-      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:8088}
-      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      DATABASE_URL: postgresql://platform_migrator:${POSTGRES_ADMIN_PASSWORD:?required}@postgres:5432/platform?sslmode=disable
+      POSTGRES_API_PASSWORD: ${POSTGRES_API_PASSWORD:?required}
+      POSTGRES_WORKER_PASSWORD: ${POSTGRES_WORKER_PASSWORD:?required}
     depends_on:
       migrate: {condition: service_completed_successfully}
-      agent: {condition: service_started}
-    networks: [backend]
-    read_only: true
-    security_opt: ["no-new-privileges:true"]
+  api:
+    <<: *application
+    command: ["api"]
+    environment:
+      <<: *environment
+      DATABASE_URL: postgresql://platform_api:${POSTGRES_API_PASSWORD:?required}@postgres:5432/platform?sslmode=disable
+      PUBLIC_ORIGIN: ${PUBLIC_ORIGIN:-http://localhost:8088}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+      TRUSTED_PROXY_CIDRS: ${TRUSTED_PROXY_CIDRS:-}
+    depends_on:
+      roles: {condition: service_completed_successfully}
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/healthz',timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+  worker:
+    <<: *application
+    command: ["worker"]
+    environment:
+      <<: *environment
+      DATABASE_URL: postgresql://platform_worker:${POSTGRES_WORKER_PASSWORD:?required}@postgres:5432/platform?sslmode=disable
+      CHECKPOINT_DATABASE_URL: postgresql://platform_worker:${POSTGRES_WORKER_PASSWORD:?required}@postgres:5432/platform?sslmode=disable
+    depends_on:
+      roles: {condition: service_completed_successfully}
+    restart: unless-stopped
+  import:
+    <<: *application
+    profiles: [maintenance]
+    entrypoint: ["python", "-m", "agent.tools.import_olist_postgres"]
+    command: ["--csv-dir", "/data", "--schema", "analytics_alpha_v1", "--readonly-user", "alpha_ro"]
+    environment:
+      IMPORT_DATABASE_URL: postgresql://platform_migrator:${POSTGRES_ADMIN_PASSWORD:?required}@postgres:5432/platform?sslmode=disable
+      OLIST_READONLY_PASSWORD: ${OLIST_READONLY_PASSWORD:?required}
+    volumes: ["./data/olist:/data:ro"]
+    depends_on:
+      roles: {condition: service_completed_successfully}
+  seed:
+    <<: *application
+    profiles: [maintenance]
+    command: ["seed", "--tenant", "alpha", "--username", "admin"]
+    environment:
+      DATABASE_URL: postgresql://platform_api:${POSTGRES_API_PASSWORD:?required}@postgres:5432/platform?sslmode=disable
+      BOOTSTRAP_PASSWORD: ${BOOTSTRAP_PASSWORD:?required}
+    depends_on:
+      roles: {condition: service_completed_successfully}
   web:
     build: {context: ., dockerfile: deploy/Dockerfile.web}
     ports: ["127.0.0.1:${HTTP_PORT:-8088}:8080"]
-    depends_on: [api]
+    depends_on:
+      api: {condition: service_healthy}
     networks: [backend]
     read_only: true
     tmpfs: [/tmp]
     security_opt: ["no-new-privileges:true"]
     restart: unless-stopped
 volumes:
-  postgres_data:
-  mysql_data:
+  python_postgres_data:
 networks:
   backend:

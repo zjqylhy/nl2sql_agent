@@ -1,0 +1,239 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "经营分析助手 中断恢复与数据不足 待实现",
+    "locale": "zh-CN",
+    "output": ".archify/workflow-analysis-recovery-20261017-015918/analysis-recovery.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "git@github.com:zjqylhy/nl2sql_agent.git",
+      "revision": "f8e36b3f9a476e3962b601b4be7e5a456b91eaee",
+      "link_mode": "local-only"
+    }
+  },
+  "lanes": [
+    {
+      "id": "recover",
+      "label": "05 服务中断或保存失败",
+      "variant": "exception"
+    },
+    {
+      "id": "business",
+      "label": "06 无数据或结束证据不足",
+      "variant": "exception"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "recover-case",
+      "lane": "recover",
+      "col": 0,
+      "type": "external",
+      "label": "中断或持久化失败",
+      "sublabel": "不能继续依赖未保存的结果",
+      "width": 220,
+      "sources": [
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 292
+        }
+      ]
+    },
+    {
+      "id": "recover-handle",
+      "lane": "recover",
+      "col": 1,
+      "type": "security",
+      "label": "停止后续调用",
+      "sublabel": "存储恢复后核对最后检查点",
+      "width": 220,
+      "sources": [
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 292
+        }
+      ]
+    },
+    {
+      "id": "recover-yes",
+      "lane": "recover",
+      "col": 3,
+      "type": "backend",
+      "label": "复用并继续",
+      "sublabel": "结果已提交且准入仍有效",
+      "width": 220,
+      "sources": [
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 292
+        }
+      ],
+      "yOffset": -48
+    },
+    {
+      "id": "recover-no",
+      "lane": "recover",
+      "col": 3,
+      "type": "security",
+      "label": "未知执行分流",
+      "sublabel": "查询按安全重试；模型未知终止",
+      "width": 220,
+      "sources": [
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 292
+        }
+      ],
+      "yOffset": 48
+    },
+    {
+      "id": "business-case",
+      "lane": "business",
+      "col": 0,
+      "type": "external",
+      "label": "无数据或证据不足",
+      "sublabel": "无数据并不等于系统故障",
+      "width": 220,
+      "sources": [
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 290
+        },
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 291
+        }
+      ]
+    },
+    {
+      "id": "business-handle",
+      "lane": "business",
+      "col": 1,
+      "type": "security",
+      "label": "保存事实及缺失要求",
+      "sublabel": "不补零，不擅自扩大范围",
+      "width": 220,
+      "sources": [
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 290
+        },
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 291
+        }
+      ]
+    },
+    {
+      "id": "business-yes",
+      "lane": "business",
+      "col": 3,
+      "type": "backend",
+      "label": "返回模型补查",
+      "sublabel": "仅限原问题内合法且有预算的查询",
+      "width": 220,
+      "sources": [
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 290
+        },
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 291
+        }
+      ],
+      "yOffset": -48
+    },
+    {
+      "id": "business-no",
+      "lane": "business",
+      "col": 3,
+      "type": "security",
+      "label": "说明未完成项",
+      "sublabel": "重复无进展则 failed/no_progress",
+      "width": 220,
+      "sources": [
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 290
+        },
+        {
+          "path": "docs/business-analysis-assistant-design.md",
+          "line": 291
+        }
+      ],
+      "yOffset": 48
+    }
+  ],
+  "edges": [
+    {
+      "id": "recover-classify",
+      "from": "recover-case",
+      "to": "recover-handle",
+      "variant": "default"
+    },
+    {
+      "id": "recover-allow",
+      "from": "recover-handle",
+      "to": "recover-yes",
+      "variant": "emphasis",
+      "label": "已有完整检查点"
+    },
+    {
+      "id": "recover-deny",
+      "from": "recover-handle",
+      "to": "recover-no",
+      "variant": "security",
+      "label": "结果是否提交无法确认"
+    },
+    {
+      "id": "business-classify",
+      "from": "business-case",
+      "to": "business-handle",
+      "variant": "default"
+    },
+    {
+      "id": "business-allow",
+      "from": "business-handle",
+      "to": "business-yes",
+      "variant": "emphasis",
+      "label": "可合法补齐证据"
+    },
+    {
+      "id": "business-deny",
+      "from": "business-handle",
+      "to": "business-no",
+      "variant": "security",
+      "label": "无法补齐或无进展"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "按失败类型逐行看",
+      "items": [
+        "每行是一种反馈的处理方式，按箭头条件查找去向；必须停止的情况两条分支均为终态。",
+        "补充后回到装载状态；SQL 重试由代码执行，参数修正才再次请求模型。"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "所有重试跨恢复累计",
+      "items": [
+        "整个 run 最多一次模型修复、一次 SQL 重试，仍受步数、时间和费用预算限制。",
+        "已发送但没有结果的模型调用不自动重发；只读查询 unknown 需等待旧执行上界失效后再核对安全。",
+        "保存失败时不继续工具、不发布成功；存储不可用时不能声称终态已经保存。"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "部分完成也要说清楚",
+      "items": [
+        "例如 GMV 排名已完成，orders/aov 补查两次超时：结果为 failed，并标记核查未完成。",
+        "已存结果恢复后复用；撤权的依据整体不可见；未完成不得显示完整分析成功。",
+        "本图是待实现方案，不能作为现有业务功能已经上线的证据。"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,10 @@
+[Unit]
+Description=Olist Python PostgreSQL consistent backup
+Requires=docker.service
+After=docker.service
+
+[Service]
+Type=oneshot
+UMask=0077
+WorkingDirectory=/srv/olist/python/current
+ExecStart=/usr/bin/python3 -m scripts.python_private_backup

@@ -151,10 +151,11 @@ def test_execution_refuses_group_overflow_and_closes_connection(monkeypatch, siz
     connection = Connection()
     monkeypatch.setattr(runtime, "connect", lambda source: connection)
     sql, params = compile_plan(rules("本月 GMV 按日统计"))
+    source = runtime.Datasource(host="unused", database="fixture", user="fixture", password="", analysis_date=ANCHOR)
     if size == 1001:
-        with pytest.raises(runtime.ResultTooLarge): runtime.execute(None, sql, params)
+        with pytest.raises(runtime.ResultTooLarge): runtime.execute(source, sql, params)
     else:
-        assert len(runtime.execute(None, sql, params)) == 1000
+        assert len(runtime.execute(source, sql, params)) == 1000
     assert connection.closed
 
 

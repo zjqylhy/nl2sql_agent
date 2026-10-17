@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "经营分析助手目标架构 已有与待实现",
+    "locale": "zh-CN",
+    "output": ".archify/architecture-business-assistant-20261017-003203/business-assistant.html",
+    "quality_profile": "showcase",
+    "repository": {"url": "git@github.com:zjqylhy/nl2sql_agent.git", "revision": "1bac45480e30efc5c2d79fe4895c0d18946c8de2", "link_mode": "local-only"}
+  },
+  "components": [
+    {"id": "analyst", "type": "external", "label": "业务用户", "sublabel": "明确时间与下降口径", "pos": [40, 80], "size": [160, 76], "sources": [{"path": "docs/business-analysis-assistant-design.md", "line": 11, "end_line": 21}]},
+    {"id": "workspace", "type": "frontend", "label": "React 工作台", "sublabel": "已有问数 · 待增分析页", "tag": "已有 + 扩展", "pos": [300, 80], "size": [190, 76], "sources": [{"path": "web/src/Conversation.tsx", "line": 12}, {"path": "docs/business-analysis-assistant-design.md", "line": 318, "end_line": 337}]},
+    {"id": "controller", "type": "backend", "label": "Go API 与 Worker", "sublabel": "逐步调度 · 授权与完成校验", "tag": "已有调度 · 待扩展", "pos": [610, 80], "size": [210, 90], "sources": [{"path": "internal/api/worker.go", "line": 15, "end_line": 75}, {"path": "docs/business-analysis-assistant-design.md", "line": 78, "end_line": 84}]},
+    {"id": "decision", "type": "backend", "label": "Python 决策适配器", "sublabel": "模型每次选择一个动作", "tag": "待实现", "pos": [960, 80], "size": [190, 76], "sources": [{"path": "docs/business-analysis-assistant-design.md", "line": 92, "end_line": 105}]},
+    {"id": "gateway", "type": "cloud", "label": "模型网关接入", "sublabel": "待增决策与说明协议", "tag": "已有 + 扩展", "pos": [960, 300], "size": [190, 76], "sources": [{"path": "agent/runtime/model_transport.py", "line": 59, "end_line": 71}, {"path": "docs/business-analysis-assistant-design.md", "line": 105}]},
+    {"id": "platform", "type": "database", "label": "PostgreSQL", "sublabel": "待增步骤 · 证据 · 预算账本", "tag": "已有库 + 新增表", "pos": [610, 300], "size": [210, 90], "sources": [{"path": "internal/store/migrations/001_init.sql", "line": 16, "end_line": 36}, {"path": "docs/business-analysis-assistant-design.md", "line": 231, "end_line": 246}]},
+    {"id": "tools", "type": "backend", "label": "Python 工具适配器", "sublabel": "受限参数 · 可信结果引用", "tag": "待实现", "pos": [300, 300], "size": [190, 90], "sources": [{"path": "docs/business-analysis-assistant-design.md", "line": 94, "end_line": 136}]},
+    {"id": "catalog", "type": "backend", "label": "指标语义目录", "sublabel": "GMV · 订单量 · 客单价", "tag": "已有 · 待加工具入口", "pos": [40, 300], "size": [170, 76], "sources": [{"path": "agent/runtime/catalog.json", "line": 1, "end_line": 32}, {"path": "docs/business-analysis-assistant-design.md", "line": 98}]},
+    {"id": "arithmetic", "type": "backend", "label": "确定性比较与排名", "sublabel": "Decimal · NULL · 稳定排名", "tag": "待实现", "pos": [40, 540], "size": [200, 90], "sources": [{"path": "docs/business-analysis-assistant-design.md", "line": 196, "end_line": 227}]},
+    {"id": "query", "type": "security", "label": "QueryPlan 与 SQL 校验", "sublabel": "参数化编译 · AST 白名单", "tag": "已有 · 复用", "pos": [330, 540], "size": [210, 90], "sources": [{"path": "agent/runtime/plan.py", "line": 73, "end_line": 143}, {"path": "agent/runtime/app.py", "line": 164, "end_line": 187}]},
+    {"id": "warehouse", "type": "database", "label": "MySQL 授权视图", "sublabel": "metric_orders · 只读取数", "tag": "已有 · 复用", "pos": [710, 540], "size": [190, 76], "sources": [{"path": "agent/runtime/app.py", "line": 160, "end_line": 190}, {"path": "agent/runtime/plan.py", "line": 128, "end_line": 143}]}
+  ],
+  "connections": [
+    {"id": "user-request", "from": "analyst", "to": "workspace", "label": "任务"},
+    {"id": "ui-api", "from": "workspace", "to": "controller", "label": "受理与 SSE", "variant": "emphasis"},
+    {"id": "controller-decide", "from": "controller", "to": "decision", "label": "可信快照", "variant": "dashed"},
+    {"id": "model-call", "from": "decision", "to": "gateway", "label": "HTTPS JSON"},
+    {"id": "checkpoint-write", "from": "controller", "to": "platform", "label": "事务保存", "variant": "dashed"},
+    {"id": "dispatch-tool", "from": "controller", "to": "tools", "label": "校验后分发", "variant": "dashed"},
+    {"id": "read-catalog", "from": "tools", "to": "catalog", "label": "授权目录"},
+    {"id": "compute-results", "from": "tools", "to": "arithmetic", "label": "持久结果", "variant": "dashed"},
+    {"id": "compile-plan", "from": "tools", "to": "query", "label": "合法计划"},
+    {"id": "readonly-query", "from": "query", "to": "warehouse", "label": "授权 SELECT", "variant": "security"}
+  ],
+  "cards": [
+    {"dot": "cyan", "title": "已有基础", "items": ["Go 鉴权与任务租约、PostgreSQL 事件和遥测、Python 语义查询及只读视图。", "原多轮只继承查询条件，不根据结果自主补查。"]},
+    {"dot": "violet", "title": "待实现链路", "items": ["虚线表示待新增的编排关系；节点标签区分复用和改造。", "Go 是状态唯一写入方；Python 接口无平台库写权限。", "工具结果先持久化，再作为下一次模型决策的观察。"]},
+    {"dot": "amber", "title": "完成与恢复边界", "items": ["代码核对完整证据并生成数字，模型选择受限结论及顺序。", "已持久步骤复用；未知调用单独处置，不承诺网络 exactly-once。", "本图为待确认目标架构，不表示新功能已实现或上线。"]}
+  ]
+}

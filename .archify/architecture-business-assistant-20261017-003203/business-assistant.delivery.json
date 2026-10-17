@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "436b7d14-7139-471c-8075-fa1867085171",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "C:\\Users\\LHY95\\Documents\\Codex\\nl2sql_agent\\.archify\\architecture-business-assistant-20261017-003203\\candidate.json",
+  "output": "C:\\Users\\LHY95\\Documents\\Codex\\nl2sql_agent\\.archify\\architecture-business-assistant-20261017-003203\\business-assistant.html",
+  "specification": {
+    "sha256": "a9c506683969694bd12a48510f5f369ce57a49d0664a3c7892b40e13117dacc6",
+    "bytes": 5855
+  },
+  "artifact": {
+    "sha256": "002eefb9e9dac4b1c9af76e528d1400898e22a9fbf2b3c723e97fae29da79c6d",
+    "bytes": 769268
+  }
+}

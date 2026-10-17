@@ -1,0 +1,182 @@
+{
+  "execution_location": "ECS; application builds and tests were not run locally",
+  "deployment": {
+    "passed": true,
+    "verified_at": "2026-10-17T08:36:39.207577+00:00",
+    "previous_source_commit": "54edc609d769a9af81b2c99e482dbff5c760b1c2",
+    "source_commit": "f51e10a4245b1ce037425019d95da8392025cffc",
+    "archive_sha256": "94610ce244884f44e457ce3b59c93863f5892ee85b7932b8f3cd223a3600793f",
+    "pytest_summary": "411 passed, 12 skipped in 116.35s (0:01:56)",
+    "strategy": "adaptive",
+    "configuration_changes": [
+      "APP_TAG",
+      "SOURCE_COMMIT"
+    ],
+    "no_schema_migration": true,
+    "no_active_tasks_at_switch": true,
+    "persistent_business_tables_unchanged": true,
+    "data_volume": [
+      "olist-python-agent_python_postgres_data"
+    ],
+    "postgres_container_unchanged": true,
+    "pre_upgrade_backup": {
+      "path": "/srv/olist/python/backups/20261017T083555Z-2d081c5f",
+      "sha256": "70423ac02aeea43fbfb48d00d6c64f66f6174012c86c3d541c0e1949f9ed3f7e",
+      "tables": 28,
+      "order_facts": 99441
+    },
+    "rollback_environment_preserved": true,
+    "previous_images_preserved": true,
+    "runtime": "python-langgraph",
+    "homepage_asset_verified": true,
+    "existing_account_login": true,
+    "existing_reports": [
+      {
+        "run_id": "e4246da3d5b507980f69e3c6b01e262f0fa6e039e4a84e9e",
+        "unchanged_steps_and_artifacts": true,
+        "sse_replay": true
+      },
+      {
+        "run_id": "8dc39ab67818b37ddec5510868484d5696c4211c95da7b1f",
+        "unchanged_steps_and_artifacts": true,
+        "sse_replay": true
+      }
+    ],
+    "backend_files_match_release": true,
+    "verified_agent_files": 72,
+    "backend_code_digest": "64493ca7ecd976e7bd2a07f645cba2a55b0cd04787b4035ffdcaa6d5e36d03ff",
+    "images": {
+      "api": {
+        "tag": "olist-python-platform:f51e10a4245b1ce037425019d95da8392025cffc",
+        "image_id": "sha256:693ae5e8fdca7f279ae1270f925a9b27f1c9b247b5f76dcf7ce08402b7402224",
+        "source_commit": "f51e10a4245b1ce037425019d95da8392025cffc"
+      },
+      "worker": {
+        "tag": "olist-python-platform:f51e10a4245b1ce037425019d95da8392025cffc",
+        "image_id": "sha256:693ae5e8fdca7f279ae1270f925a9b27f1c9b247b5f76dcf7ce08402b7402224",
+        "source_commit": "f51e10a4245b1ce037425019d95da8392025cffc"
+      },
+      "web": {
+        "tag": "olist-python-web:f51e10a4245b1ce037425019d95da8392025cffc",
+        "image_id": "sha256:a80fe992a29a69397837d96fe6fc428980573a0d294be4b4974177a5121bbc00",
+        "source_commit": "f51e10a4245b1ce037425019d95da8392025cffc"
+      }
+    },
+    "only_loopback_http_published": true,
+    "backup_timer": {
+      "active": true,
+      "enabled": true,
+      "last_result": "success",
+      "next_elapse": "Sun 2026-10-18 03:00:00 CST"
+    },
+    "post_upgrade_backup": {
+      "path": "/srv/olist/python/backups/20261017T083635Z-1caf414b",
+      "sha256": "fe37999907355624d162bca1dbe3e2abc40ab248622694e121c8ce342824cd64",
+      "tables": 28,
+      "order_facts": 99441
+    }
+  },
+  "build": {
+    "exit_code": 0,
+    "runtime_images_canonical_dockerfiles": true,
+    "validation_reused_existing_pg_client": true,
+    "shared_runtime_layer_prefix": 7,
+    "old_runtime_layer_count": 9,
+    "python_dependency_fingerprint_equal": true,
+    "runtime_lock_bytes_equal": true,
+    "application_copied_from_image": "olist-python-platform:f51e10a4245b1ce037425019d95da8392025cffc"
+  },
+  "pytest": {
+    "passed": 411,
+    "skipped": 12,
+    "duration_seconds": 116.35,
+    "skip_reason": "legacy MySQL paths",
+    "isolated_postgres": true,
+    "application_files_copied_from_new_runtime_image": true
+  },
+  "ci_configuration_server_check": {
+    "yaml_valid": true,
+    "shell_commands_parsed": 6,
+    "native_postgres_tests_configured": true,
+    "legacy_mysql_tests_retained": true,
+    "workflow_sha256": "3e00ced5d78ceb9db9311cd90d0b6b621968a407598e42fcf271dbfe266967ac"
+  },
+  "test_cleanup": {
+    "isolated_test_databases_remaining": 0,
+    "owned_test_container_removed": true,
+    "owned_test_volume_removed": true,
+    "temporary_test_credentials_removed": true
+  },
+  "real_smoke": {
+    "passed": true,
+    "source_commit": "f51e10a4245b1ce037425019d95da8392025cffc",
+    "started_at": "2026-10-17T08:36:51.547993+00:00",
+    "currency": "TEST_UNIT",
+    "actual_supplier_cost_verified": false,
+    "rules_query": {
+      "id": "3dd484b1ec1fe831f71f59751dc6ec108e12df61273a3c93",
+      "status": "completed",
+      "parser": "rules",
+      "sse_replay": true
+    },
+    "independent_csv_oracle": {
+      "states": [
+        "SP",
+        "RJ",
+        "MG"
+      ],
+      "gmv_brl": "517638.01"
+    },
+    "idempotency": true,
+    "sse_replay": true,
+    "verified_at": "2026-10-17T08:37:39.538061+00:00"
+  },
+  "real_analysis_runs": [
+    {
+      "id": "8b4c343955bb14c059ed331beed81c9885d1c8ed8b369466",
+      "status": "completed",
+      "model_calls": 3,
+      "sql_calls": 1,
+      "usage": {
+        "known_tokens": 3666,
+        "known_cost_micros": 3666,
+        "unknown_calls": 0
+      },
+      "failure_code": null,
+      "failure_http_status": null,
+      "current_code_digest_verified": true,
+      "total": {
+        "op": "sum",
+        "unit": "BRL",
+        "value": "517638.01",
+        "cohort": {
+          "period": {
+            "start": "2018-07-01",
+            "end_exclusive": "2018-08-01"
+          },
+          "filters": []
+        },
+        "metric": "gmv",
+        "states": [
+          "MG",
+          "RJ",
+          "SP"
+        ],
+        "source_ref": "be86bd577f467f20c676b101c9e384210ca9995eb1e1746c2193babaa5305018",
+        "quality_complete": true
+      }
+    }
+  ],
+  "first_deployment_attempt": {
+    "failed_before_switch": true,
+    "cause": "backup command ran outside release working directory",
+    "old_service_automatically_restored": true,
+    "corrected_before_successful_retry": true
+  },
+  "limits": [
+    "development regression still contains an adaptive repeated-query failure",
+    "independent held-out evaluation not completed",
+    "TEST_UNIT is not actual supplier invoice cost",
+    "server reboot not validated in this release"
+  ]
+}

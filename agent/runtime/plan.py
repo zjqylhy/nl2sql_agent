@@ -105,7 +105,7 @@ def from_intent(intent: Intent, anchor: date) -> QueryPlan:
     return QueryPlan(metrics=[intent.metric], dimensions=["state"] if intent.group_by else [], time_range=TimeRange(start=start, end_exclusive=end), filters=[Filter(field="state", op="in", values=intent.states)] if intent.states else [])
 
 
-def compile_plan(plan: QueryPlan) -> tuple[str, list]:
+def compile_plan(plan: QueryPlan, *, dialect="mysql") -> tuple[str, list]:
     c = catalog()
     fields = [f"{c.dimensions[d].expression} AS d_{d}" for d in plan.dimensions]
     if not fields:
@@ -135,11 +135,19 @@ def compile_plan(plan: QueryPlan) -> tuple[str, list]:
         clauses = []
         for o in order:
             alias = f"d_{o.field}" if o.field in plan.dimensions else f"m{plan.metrics.index(o.field)}_value"
+            if o.field in plan.metrics and dialect == "postgres":
+                # PG 只允许排序项直接引用输出别名，不能将别名用于 IS NULL 表达式。
+                clauses.append(alias + " " + o.direction.upper() + " NULLS LAST")
+                continue
             if o.field in plan.metrics:
                 clauses.append(alias + " IS NULL ASC")
             clauses.append(alias + " " + o.direction.upper())
         sql += " ORDER BY " + ", ".join(clauses)
-    return sql + f" LIMIT {plan.top_n or 1001}", params
+    sql += f" LIMIT {plan.top_n or 1001}"
+    if dialect == "postgres":
+        # 金额保持 NUMERIC 运算，避免通用转译器给除法插入浮点 CAST。
+        sql = sql.replace("DATE_FORMAT(purchased_at, '%Y-%m')", "TO_CHAR(purchased_at, 'YYYY-MM')")
+    return sql, params
 
 
 def normalize_result(plan: QueryPlan, raw_rows: list[dict], anchor: date, usage: dict, sql: str, params: list) -> dict:

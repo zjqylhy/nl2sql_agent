@@ -59,6 +59,8 @@ type Task struct {
 	Context          json.RawMessage `json:"-"`
 	AdmissionVersion int             `json:"-"`
 	RequestID        string          `json:"request_id,omitempty"`
+	Kind             string          `json:"kind"`
+	AnalysisMetrics  []string        `json:"-"`
 }
 
 type Event struct {
@@ -170,12 +172,12 @@ func (s *Store) NewSession(ctx context.Context, u User) (string, error) {
 	return token, err
 }
 
-const taskColumns = `t.id,t.tenant_id,t.user_id,t.input,t.status,t.result,t.error,t.attempts,t.execution_version,t.created_at,t.started_at,COALESCE(t.conversation_id,''),COALESCE(t.conversation_turn,0),t.conversation_context,COALESCE(t.admission_version,0),COALESCE(t.request_id,'')`
+const taskColumns = `t.id,t.tenant_id,t.user_id,t.input,t.status,t.result,t.error,t.attempts,t.execution_version,t.created_at,t.started_at,COALESCE(t.conversation_id,''),COALESCE(t.conversation_turn,0),t.conversation_context,COALESCE(t.admission_version,0),COALESCE(t.request_id,''),t.kind,COALESCE((SELECT required_metrics FROM analysis_runs r WHERE r.id=t.id),'{}'::text[])`
 
 func scanTask(row pgx.Row) (Task, error) {
 	var t Task
 	var raw []byte
-	err := row.Scan(&t.ID, &t.TenantID, &t.UserID, &raw, &t.Status, &t.Result, &t.Error, &t.Attempts, &t.Version, &t.CreatedAt, &t.StartedAt, &t.ConversationID, &t.ConversationTurn, &t.Context, &t.AdmissionVersion, &t.RequestID)
+	err := row.Scan(&t.ID, &t.TenantID, &t.UserID, &raw, &t.Status, &t.Result, &t.Error, &t.Attempts, &t.Version, &t.CreatedAt, &t.StartedAt, &t.ConversationID, &t.ConversationTurn, &t.Context, &t.AdmissionVersion, &t.RequestID, &t.Kind, &t.AnalysisMetrics)
 	if err == nil {
 		err = json.Unmarshal(raw, &t.Input)
 	}
@@ -187,11 +189,11 @@ func scanTask(row pgx.Row) (Task, error) {
 
 func (s *Store) Task(ctx context.Context, u User, id string) (Task, error) {
 	// 任务可见性包含租户和人员，管理员可读取本租户轨迹。
-	return scanTask(s.Pool.QueryRow(ctx, `SELECT `+taskColumns+` FROM tasks t WHERE t.id=$1 AND t.tenant_id=$2 AND (t.user_id=$3 OR (t.conversation_id IS NULL AND $4 IN ('admin','data')))`, id, u.TenantID, u.ID, u.Role))
+	return scanTask(s.Pool.QueryRow(ctx, `SELECT `+taskColumns+` FROM tasks t WHERE t.id=$1 AND t.tenant_id=$2 AND (t.user_id=$3 OR (t.kind='query' AND t.conversation_id IS NULL AND $4 IN ('admin','data')))`, id, u.TenantID, u.ID, u.Role))
 }
 
 func (s *Store) Tasks(ctx context.Context, u User) ([]Task, error) {
-	rows, err := s.Pool.Query(ctx, `SELECT `+taskColumns+` FROM tasks t WHERE t.tenant_id=$1 AND (t.user_id=$2 OR (t.conversation_id IS NULL AND $3 IN ('admin','data'))) ORDER BY t.created_at DESC LIMIT 100`, u.TenantID, u.ID, u.Role)
+	rows, err := s.Pool.Query(ctx, `SELECT `+taskColumns+` FROM tasks t WHERE t.tenant_id=$1 AND (t.user_id=$2 OR (t.kind='query' AND t.conversation_id IS NULL AND $3 IN ('admin','data'))) ORDER BY t.created_at DESC LIMIT 100`, u.TenantID, u.ID, u.Role)
 	if err != nil {
 		return nil, err
 	}
@@ -272,6 +274,20 @@ func (s *Store) Stop(ctx context.Context, u User, id string) error {
 		return err
 	}
 	if tag.RowsAffected() > 0 {
+		if t.Kind == "analysis" {
+			if _, err = tx.Exec(ctx, `UPDATE analysis_runs SET state=jsonb_set(jsonb_set(state,'{phase}','"canceled"'),'{message}','"任务已停止"'),version=version+1,updated_at=NOW() WHERE id=$1`, t.ID); err != nil {
+				return err
+			}
+			if _, err = tx.Exec(ctx, `UPDATE analysis_steps SET status='canceled',ended_at=NOW() WHERE run_id=$1 AND status='running'`, t.ID); err != nil {
+				return err
+			}
+			if _, err = tx.Exec(ctx, `UPDATE analysis_budget_ledger SET status='unknown' WHERE run_id=$1 AND status='reserved'`, t.ID); err != nil {
+				return err
+			}
+			if _, err = tx.Exec(ctx, `UPDATE task_outbox SET delivered_at=NOW() WHERE task_id=$1`, t.ID); err != nil {
+				return err
+			}
+		}
 		if t.ConversationID != "" {
 			if t.Status == "needs_clarification" {
 				_, err = tx.Exec(ctx, `UPDATE conversations SET pending=NULL,version=version+1,updated_at=NOW() WHERE id=$1 AND pending->>'last_task_id'=$2 AND active_task_id IS NULL`, t.ConversationID, t.ID)
@@ -293,13 +309,17 @@ func (s *Store) Stop(ctx context.Context, u User, id string) error {
 }
 
 func (s *Store) Claim(ctx context.Context) (Task, error) {
+	return s.ClaimWithAnalysis(ctx, false)
+}
+
+func (s *Store) ClaimWithAnalysis(ctx context.Context, analysisEnabled bool) (Task, error) {
 	tx, err := s.Pool.Begin(ctx)
 	if err != nil {
 		return Task{}, err
 	}
 	defer tx.Rollback(ctx)
 	// 先读取候选并锁其会话，再取队列容量锁和任务行，避免与接纳/停止锁反序。
-	candidate, err := scanTask(tx.QueryRow(ctx, `SELECT `+taskColumns+` FROM tasks t JOIN task_outbox o ON o.task_id=t.id WHERE o.delivered_at IS NULL AND (t.status='pending' OR (t.status='querying' AND t.lease_until<NOW())) AND NOT EXISTS(SELECT 1 FROM tasks a WHERE a.user_id=t.user_id AND a.id<>t.id AND a.status='querying' AND a.lease_until>NOW()) ORDER BY t.created_at LIMIT 1`))
+	candidate, err := scanTask(tx.QueryRow(ctx, `SELECT `+taskColumns+` FROM tasks t JOIN task_outbox o ON o.task_id=t.id WHERE o.delivered_at IS NULL AND (t.kind='query' OR ($1 AND EXISTS(SELECT 1 FROM analysis_runs r WHERE r.id=t.id AND r.ready_at<=NOW()) AND (SELECT COUNT(*) FROM tasks a WHERE a.kind='analysis' AND a.id<>t.id AND a.status='querying' AND a.lease_until>NOW())<2)) AND (t.status='pending' OR (t.status='querying' AND t.lease_until<NOW())) AND NOT EXISTS(SELECT 1 FROM tasks a WHERE a.user_id=t.user_id AND a.id<>t.id AND a.status='querying' AND a.lease_until>NOW()) ORDER BY t.created_at LIMIT 1`, analysisEnabled))
 	if err != nil {
 		return Task{}, err
 	}
@@ -316,11 +336,11 @@ func (s *Store) Claim(ctx context.Context) (Task, error) {
 	if active >= 50 {
 		return Task{}, ErrMissing
 	}
-	t, err := scanTask(tx.QueryRow(ctx, `SELECT `+taskColumns+` FROM tasks t JOIN task_outbox o ON o.task_id=t.id WHERE t.id=$1 AND o.delivered_at IS NULL AND (t.status='pending' OR (t.status='querying' AND t.lease_until<NOW())) AND NOT EXISTS(SELECT 1 FROM tasks a WHERE a.user_id=t.user_id AND a.id<>t.id AND a.status='querying' AND a.lease_until>NOW()) FOR UPDATE OF t SKIP LOCKED`, candidate.ID))
+	t, err := scanTask(tx.QueryRow(ctx, `SELECT `+taskColumns+` FROM tasks t JOIN task_outbox o ON o.task_id=t.id WHERE t.id=$1 AND o.delivered_at IS NULL AND (t.kind='query' OR ($2 AND EXISTS(SELECT 1 FROM analysis_runs r WHERE r.id=t.id AND r.ready_at<=NOW()) AND (SELECT COUNT(*) FROM tasks a WHERE a.kind='analysis' AND a.id<>t.id AND a.status='querying' AND a.lease_until>NOW())<2)) AND (t.status='pending' OR (t.status='querying' AND t.lease_until<NOW())) AND NOT EXISTS(SELECT 1 FROM tasks a WHERE a.user_id=t.user_id AND a.id<>t.id AND a.status='querying' AND a.lease_until>NOW()) FOR UPDATE OF t SKIP LOCKED`, candidate.ID, analysisEnabled))
 	if err != nil {
 		return Task{}, err
 	}
-	if t.Attempts >= 3 || (t.StartedAt != nil && time.Since(*t.StartedAt) > 5*time.Minute) {
+	if t.Kind != "analysis" && (t.Attempts >= 3 || (t.StartedAt != nil && time.Since(*t.StartedAt) > 5*time.Minute)) {
 		if _, err = tx.Exec(ctx, `UPDATE tasks SET status='failed',error='执行预算已耗尽',lease_until=NULL,updated_at=NOW() WHERE id=$1`, t.ID); err != nil {
 			return Task{}, err
 		}

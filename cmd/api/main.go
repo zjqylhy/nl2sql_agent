@@ -21,7 +21,7 @@ import (
 
 func run() error {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
-	command := flag.String("command", "serve", "serve / migrate / bootstrap / health / prune-attempts")
+	command := flag.String("command", "serve", "serve / migrate / bootstrap / health / prune-attempts / prune-analysis")
 	tenant := flag.String("tenant", "", "tenant slug")
 	username := flag.String("user", "", "username")
 	role := flag.String("role", "admin", "admin / data / ops")
@@ -49,6 +49,13 @@ func run() error {
 	}
 	defer db.Pool.Close()
 	switch *command {
+	case "prune-analysis":
+		n, err := db.PruneAnalysis(ctx)
+		if err != nil {
+			return fmt.Errorf("analysis cleanup failed")
+		}
+		slog.Info("analysis cleanup finished", "runs", n)
+		return nil
 	case "prune-attempts":
 		n, err := db.PruneAttempts(ctx)
 		if err != nil {
@@ -103,7 +110,11 @@ func run() error {
 			proxies = append(proxies, prefix)
 		}
 	}
-	app := api.New(db, api.Config{Origin: origin, AgentURL: agentURL, ServiceKey: key, SecureCookie: secure, TrustedProxies: proxies})
+	analysisPolicy, err := api.AnalysisPolicyFromEnv()
+	if err != nil {
+		return err
+	}
+	app := api.New(db, api.Config{Origin: origin, AgentURL: agentURL, ServiceKey: key, SecureCookie: secure, TrustedProxies: proxies, Analysis: analysisPolicy})
 	address := os.Getenv("HTTP_ADDR")
 	if address == "" {
 		address = ":8080"

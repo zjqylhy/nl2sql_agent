@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Python 单栈经营分析助手 · 目标架构（待实现）",
+    "locale": "zh-CN",
+    "output": ".archify/architecture-python-agent-target-20261017-041515/python-agent-target.html",
+    "quality_profile": "showcase",
+    "repository": {
+      "url": "git@github.com:zjqylhy/nl2sql_agent.git",
+      "revision": "cc68ecb209b957dfd0a2a8a0aa0b98a048dcb21e",
+      "link_mode": "local-only"
+    }
+  },
+  "components": [
+    {"id":"workbench","type":"frontend","label":"React 工作台","sublabel":"任务 / 条件补充 / 结果与依据","tag":"复用并适配","pos":[70,80],"size":[220,90],"sources":[{"path":"docs/python-agent-target-spec.md","line":61,"end_line":63,"label":"目标界面与 API 交互"}]},
+    {"id":"python-api","type":"backend","label":"FastAPI · API 进程","sublabel":"鉴权 / 接纳 / 停止 / 持久 SSE","tag":"待实现","pos":[390,80],"size":[260,90],"sources":[{"path":"docs/python-agent-target-spec.md","line":65,"end_line":67,"label":"目标 API 职责与事务"}]},
+    {"id":"platform-state","type":"database","label":"PostgreSQL · 平台域","sublabel":"账号 / task-outbox / 操作与费用账本","tag":"目标权限域","pos":[850,80],"size":[260,90],"sources":[{"path":"docs/python-agent-target-spec.md","line":81,"end_line":83,"label":"平台状态与事务"}]},
+    {"id":"model-gateway","type":"external","label":"模型网关","sublabel":"一次决策 / 一个受限动作","tag":"复用传输适配器","pos":[70,385],"size":[220,90],"sources":[{"path":"docs/python-agent-target-spec.md","line":69,"end_line":73,"label":"受限模型调用"}]},
+    {"id":"graph-worker","type":"backend","label":"Python Worker · LangGraph","sublabel":"授权 / 预算 / 围栏 / 澄清与恢复","tag":"待实现 · Agent 循环唯一归属","pos":[390,375],"size":[260,110],"sources":[{"path":"docs/python-agent-target-spec.md","line":69,"end_line":73,"label":"目标编排、外部调用和检查点"}]},
+    {"id":"graph-checkpoints","type":"database","label":"PostgreSQL · 图状态域","sublabel":"checkpoints / pending writes","tag":"待实现 · Worker 写入","pos":[850,385],"size":[260,90],"sources":[{"path":"docs/python-agent-target-spec.md","line":85,"end_line":85,"label":"图状态的唯一写入方"}]},
+    {"id":"authorized-tools","type":"backend","label":"受限查询与确定性计算","sublabel":"QueryPlan / Decimal / 完成检查","tag":"复用领域能力 · 适配 PG 方言","pos":[390,690],"size":[260,90],"sources":[{"path":"docs/python-agent-target-spec.md","line":75,"end_line":79,"label":"查询与计算的目标执行边界"}]},
+    {"id":"analytics-data","type":"database","label":"PostgreSQL · 分析域","sublabel":"版本化订单快照 / 授权只读视图","tag":"待实现 · 独立查询账号","pos":[850,690],"size":[260,90],"sources":[{"path":"docs/python-agent-target-spec.md","line":87,"end_line":87,"label":"数据版本与只读权限"}]}
+  ],
+  "boundaries":[
+    {"kind":"security-group","label":"一套 PostgreSQL · 三个 schema 与权限域（目标）","wraps":["platform-state","graph-checkpoints","analytics-data"],"pad":24}
+  ],
+  "connections":[
+    {"id":"user-http","from":"workbench","to":"python-api","label":"HTTP / SSE","variant":"emphasis"},
+    {"id":"accept-read-events","from":"python-api","to":"platform-state","label":"任务事务 / 事件读取"},
+    {"id":"claim-budget-ledger","from":"graph-worker","to":"platform-state","label":"领取 / 预算 / 回执"},
+    {"id":"bounded-model-call","from":"graph-worker","to":"model-gateway","label":"额度内调用","variant":"security"},
+    {"id":"durable-graph-state","from":"graph-worker","to":"graph-checkpoints","label":"同步检查点"},
+    {"id":"guarded-tools","from":"graph-worker","to":"authorized-tools","label":"校验后执行","variant":"security"},
+    {"id":"readonly-postgres","from":"authorized-tools","to":"analytics-data","label":"只读查询","variant":"security"}
+  ],
+  "cards":[
+    {"dot":"cyan","title":"从零选型","items":["面向 AI / Agent 应用后端；Python 统一平台、Agent 与评测","同一代码库和镜像，API 与 Worker 分进程","没有业务依据时不引入 Go、MySQL 或消息中间件"]},
+    {"dot":"emerald","title":"状态与安全","items":["LangGraph 管图状态；平台账本管权限、预算与外部回执","未知模型调用不自动重发；已保存回执重放复用","检查点与 pending writes 均需执行版本围栏"]},
+    {"dot":"amber","title":"实施状态","items":["此图是已提交规格支持的目标设计，尚未实现","框架、PG 数据源和平台迁移先通过机制 PoC 与故障验证","旧 Go 版本及演示结果不能作为新架构验收证据"]}
+  ]
+}

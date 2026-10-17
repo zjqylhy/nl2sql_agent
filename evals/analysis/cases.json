@@ -1,0 +1,2128 @@
+{
+  "version": 1,
+  "annotation_status": "draft",
+  "reviewer": null,
+  "analysis_date": "2018-08-31",
+  "case_count": 80,
+  "intent_group_count": 40,
+  "cases": [
+    {
+      "question": "比较 2018 年 6 月和 7 月各州 GMV，按下降金额取前 1，核查有效订单量和客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "absolute",
+        "n": 1,
+        "filters": [],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-01-1",
+      "group": "intent-01",
+      "split": "development",
+      "minimum_tools": 5
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：比较 2018 年 6 月和 7 月各州 GMV，按下降金额取前 1，核查有效订单量和客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "absolute",
+        "n": 1,
+        "filters": [],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-01-2",
+      "group": "intent-01",
+      "split": "development",
+      "minimum_tools": 5
+    },
+    {
+      "question": "比较 2018 年 6 月和 7 月各州 GMV，按下降金额取前 3，核查有效订单量和客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "absolute",
+        "n": 3,
+        "filters": [],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-02-1",
+      "group": "intent-02",
+      "split": "acceptance",
+      "minimum_tools": 5
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：比较 2018 年 6 月和 7 月各州 GMV，按下降金额取前 3，核查有效订单量和客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "absolute",
+        "n": 3,
+        "filters": [],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-02-2",
+      "group": "intent-02",
+      "split": "acceptance",
+      "minimum_tools": 5
+    },
+    {
+      "question": "比较 2018 年 6 月和 7 月各州 GMV，按下降金额取前 10，核查有效订单量和客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "absolute",
+        "n": 10,
+        "filters": [],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-03-1",
+      "group": "intent-03",
+      "split": "development",
+      "minimum_tools": 5
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：比较 2018 年 6 月和 7 月各州 GMV，按下降金额取前 10，核查有效订单量和客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "absolute",
+        "n": 10,
+        "filters": [],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-03-2",
+      "group": "intent-03",
+      "split": "development",
+      "minimum_tools": 5
+    },
+    {
+      "question": "比较 2018 年 6 月和 7 月，按 GMV 下降率取前 1 州，核查订单量与客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "rate",
+        "n": 1,
+        "filters": [],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-04-1",
+      "group": "intent-04",
+      "split": "acceptance",
+      "minimum_tools": 5
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：比较 2018 年 6 月和 7 月，按 GMV 下降率取前 1 州，核查订单量与客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "rate",
+        "n": 1,
+        "filters": [],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-04-2",
+      "group": "intent-04",
+      "split": "acceptance",
+      "minimum_tools": 5
+    },
+    {
+      "question": "比较 2018 年 6 月和 7 月，按 GMV 下降率取前 3 州，核查订单量与客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "rate",
+        "n": 3,
+        "filters": [],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-05-1",
+      "group": "intent-05",
+      "split": "development",
+      "minimum_tools": 5
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：比较 2018 年 6 月和 7 月，按 GMV 下降率取前 3 州，核查订单量与客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "rate",
+        "n": 3,
+        "filters": [],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-05-2",
+      "group": "intent-05",
+      "split": "development",
+      "minimum_tools": 5
+    },
+    {
+      "question": "比较 2018 年 6 月和 7 月，按 GMV 下降率取前 10 州，核查订单量与客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "rate",
+        "n": 10,
+        "filters": [],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-06-1",
+      "group": "intent-06",
+      "split": "acceptance",
+      "minimum_tools": 5
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：比较 2018 年 6 月和 7 月，按 GMV 下降率取前 10 州，核查订单量与客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "rate",
+        "n": 10,
+        "filters": [],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-06-2",
+      "group": "intent-06",
+      "split": "acceptance",
+      "minimum_tools": 5
+    },
+    {
+      "question": "比较 2018 年 6 月与 7 月各州 GMV，排除 SP，按下降金额取前三，核查订单量和客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "absolute",
+        "n": 3,
+        "filters": [
+          {
+            "field": "state",
+            "op": "not_in",
+            "values": [
+              "SP"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-07-1",
+      "group": "intent-07",
+      "split": "development",
+      "minimum_tools": 5
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：比较 2018 年 6 月与 7 月各州 GMV，排除 SP，按下降金额取前三，核查订单量和客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "absolute",
+        "n": 3,
+        "filters": [
+          {
+            "field": "state",
+            "op": "not_in",
+            "values": [
+              "SP"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-07-2",
+      "group": "intent-07",
+      "split": "development",
+      "minimum_tools": 5
+    },
+    {
+      "question": "比较 2018 年 6 月与 7 月各州 GMV，只看 SP 和 RJ，按下降金额取前三，核查订单量和客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "absolute",
+        "n": 3,
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "SP",
+              "RJ"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-08-1",
+      "group": "intent-08",
+      "split": "acceptance",
+      "minimum_tools": 5
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：比较 2018 年 6 月与 7 月各州 GMV，只看 SP 和 RJ，按下降金额取前三，核查订单量和客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "absolute",
+        "n": 3,
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "SP",
+              "RJ"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-08-2",
+      "group": "intent-08",
+      "split": "acceptance",
+      "minimum_tools": 5
+    },
+    {
+      "question": "比较 2018 年 6 月与 7 月各州 GMV，只统计商品金额至少 90 的订单，按下降金额取前三，核查订单量和客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "absolute",
+        "n": 3,
+        "filters": [
+          {
+            "field": "amount",
+            "op": "gte",
+            "values": [
+              "90"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-09-1",
+      "group": "intent-09",
+      "split": "development",
+      "minimum_tools": 5
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：比较 2018 年 6 月与 7 月各州 GMV，只统计商品金额至少 90 的订单，按下降金额取前三，核查订单量和客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "absolute",
+        "n": 3,
+        "filters": [
+          {
+            "field": "amount",
+            "op": "gte",
+            "values": [
+              "90"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-09-2",
+      "group": "intent-09",
+      "split": "development",
+      "minimum_tools": 5
+    },
+    {
+      "question": "比较 2018 年 6 月与 7 月各州 GMV，只统计商品金额小于 90 的订单，按下降金额取前三，核查订单量和客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "absolute",
+        "n": 3,
+        "filters": [
+          {
+            "field": "amount",
+            "op": "lt",
+            "values": [
+              "90"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-10-1",
+      "group": "intent-10",
+      "split": "acceptance",
+      "minimum_tools": 5
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：比较 2018 年 6 月与 7 月各州 GMV，只统计商品金额小于 90 的订单，按下降金额取前三，核查订单量和客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "absolute",
+        "n": 3,
+        "filters": [
+          {
+            "field": "amount",
+            "op": "lt",
+            "values": [
+              "90"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-10-2",
+      "group": "intent-10",
+      "split": "acceptance",
+      "minimum_tools": 5
+    },
+    {
+      "question": "比较 2018 年 6 月与 7 月各州 GMV，只统计已交付订单，按下降金额取前三，核查订单量和客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "absolute",
+        "n": 3,
+        "filters": [
+          {
+            "field": "status",
+            "op": "eq",
+            "values": [
+              "delivered"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-11-1",
+      "group": "intent-11",
+      "split": "development",
+      "minimum_tools": 5
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：比较 2018 年 6 月与 7 月各州 GMV，只统计已交付订单，按下降金额取前三，核查订单量和客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "absolute",
+        "n": 3,
+        "filters": [
+          {
+            "field": "status",
+            "op": "eq",
+            "values": [
+              "delivered"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-11-2",
+      "group": "intent-11",
+      "split": "development",
+      "minimum_tools": 5
+    },
+    {
+      "question": "比较 2018 年 6 月与 7 月各州 GMV，只看 BA 和 SC，按下降金额取前三，核查订单量和客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "absolute",
+        "n": 3,
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "BA",
+              "SC"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-12-1",
+      "group": "intent-12",
+      "split": "acceptance",
+      "minimum_tools": 5
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：比较 2018 年 6 月与 7 月各州 GMV，只看 BA 和 SC，按下降金额取前三，核查订单量和客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "absolute",
+        "n": 3,
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "BA",
+              "SC"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-12-2",
+      "group": "intent-12",
+      "split": "acceptance",
+      "minimum_tools": 5
+    },
+    {
+      "question": "2018 年 7 月 GMV 从高到低前 1 个州，GMV 合计是多少？",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 1,
+        "filters": [],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-13-1",
+      "group": "intent-13",
+      "split": "development",
+      "minimum_tools": 3
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：2018 年 7 月 GMV 从高到低前 1 个州，GMV 合计是多少？",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 1,
+        "filters": [],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-13-2",
+      "group": "intent-13",
+      "split": "development",
+      "minimum_tools": 3
+    },
+    {
+      "question": "2018 年 7 月 GMV 从高到低前 3 个州，GMV 合计是多少？",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-14-1",
+      "group": "intent-14",
+      "split": "acceptance",
+      "minimum_tools": 3
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：2018 年 7 月 GMV 从高到低前 3 个州，GMV 合计是多少？",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-14-2",
+      "group": "intent-14",
+      "split": "acceptance",
+      "minimum_tools": 3
+    },
+    {
+      "question": "2018 年 7 月 GMV 从高到低前 10 个州，GMV 合计是多少？",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 10,
+        "filters": [],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-15-1",
+      "group": "intent-15",
+      "split": "development",
+      "minimum_tools": 3
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：2018 年 7 月 GMV 从高到低前 10 个州，GMV 合计是多少？",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 10,
+        "filters": [],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-15-2",
+      "group": "intent-15",
+      "split": "development",
+      "minimum_tools": 3
+    },
+    {
+      "question": "2018 年 7 月 GMV 前三州的 GMV 合计，并核查这些州的有效订单量合计。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [],
+        "checks": [
+          "orders"
+        ]
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-16-1",
+      "group": "intent-16",
+      "split": "acceptance",
+      "minimum_tools": 4
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：2018 年 7 月 GMV 前三州的 GMV 合计，并核查这些州的有效订单量合计。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [],
+        "checks": [
+          "orders"
+        ]
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-16-2",
+      "group": "intent-16",
+      "split": "acceptance",
+      "minimum_tools": 4
+    },
+    {
+      "question": "2018 年 7 月 GMV 前三州的 GMV 合计，并核查这些州的整体客单价。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [],
+        "checks": [
+          "aov"
+        ]
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-17-1",
+      "group": "intent-17",
+      "split": "development",
+      "minimum_tools": 5
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：2018 年 7 月 GMV 前三州的 GMV 合计，并核查这些州的整体客单价。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [],
+        "checks": [
+          "aov"
+        ]
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-17-2",
+      "group": "intent-17",
+      "split": "development",
+      "minimum_tools": 5
+    },
+    {
+      "question": "2018 年 7 月 GMV 前三州的 GMV 合计，并核查这些州的占全范围 GMV 的比例。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [],
+        "checks": [
+          "share"
+        ]
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-18-1",
+      "group": "intent-18",
+      "split": "acceptance",
+      "minimum_tools": 5
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：2018 年 7 月 GMV 前三州的 GMV 合计，并核查这些州的占全范围 GMV 的比例。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [],
+        "checks": [
+          "share"
+        ]
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-18-2",
+      "group": "intent-18",
+      "split": "acceptance",
+      "minimum_tools": 5
+    },
+    {
+      "question": "2018 年 7 月 GMV 前三州的 GMV 合计，并核查这些州的订单总数、整体客单价和占全范围 GMV 的比例。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [],
+        "checks": [
+          "orders",
+          "aov",
+          "share"
+        ]
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-19-1",
+      "group": "intent-19",
+      "split": "development",
+      "minimum_tools": 7
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：2018 年 7 月 GMV 前三州的 GMV 合计，并核查这些州的订单总数、整体客单价和占全范围 GMV 的比例。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [],
+        "checks": [
+          "orders",
+          "aov",
+          "share"
+        ]
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-19-2",
+      "group": "intent-19",
+      "split": "development",
+      "minimum_tools": 7
+    },
+    {
+      "question": "2018 年 7 月，排除 SP，按 GMV 降序前三州的 GMV 合计。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [
+          {
+            "field": "state",
+            "op": "not_in",
+            "values": [
+              "SP"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-20-1",
+      "group": "intent-20",
+      "split": "acceptance",
+      "minimum_tools": 3
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：2018 年 7 月，排除 SP，按 GMV 降序前三州的 GMV 合计。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [
+          {
+            "field": "state",
+            "op": "not_in",
+            "values": [
+              "SP"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-20-2",
+      "group": "intent-20",
+      "split": "acceptance",
+      "minimum_tools": 3
+    },
+    {
+      "question": "2018 年 7 月，只看 SP 和 RJ，按 GMV 降序前三州的 GMV 合计。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "SP",
+              "RJ"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-21-1",
+      "group": "intent-21",
+      "split": "development",
+      "minimum_tools": 3
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：2018 年 7 月，只看 SP 和 RJ，按 GMV 降序前三州的 GMV 合计。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "SP",
+              "RJ"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-21-2",
+      "group": "intent-21",
+      "split": "development",
+      "minimum_tools": 3
+    },
+    {
+      "question": "2018 年 7 月，只统计商品金额至少 90 的订单，按 GMV 降序前三州的 GMV 合计。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [
+          {
+            "field": "amount",
+            "op": "gte",
+            "values": [
+              "90"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-22-1",
+      "group": "intent-22",
+      "split": "acceptance",
+      "minimum_tools": 3
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：2018 年 7 月，只统计商品金额至少 90 的订单，按 GMV 降序前三州的 GMV 合计。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [
+          {
+            "field": "amount",
+            "op": "gte",
+            "values": [
+              "90"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-22-2",
+      "group": "intent-22",
+      "split": "acceptance",
+      "minimum_tools": 3
+    },
+    {
+      "question": "2018 年 7 月，只统计商品金额小于 90 的订单，按 GMV 降序前三州的 GMV 合计。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [
+          {
+            "field": "amount",
+            "op": "lt",
+            "values": [
+              "90"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-23-1",
+      "group": "intent-23",
+      "split": "development",
+      "minimum_tools": 3
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：2018 年 7 月，只统计商品金额小于 90 的订单，按 GMV 降序前三州的 GMV 合计。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [
+          {
+            "field": "amount",
+            "op": "lt",
+            "values": [
+              "90"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-23-2",
+      "group": "intent-23",
+      "split": "development",
+      "minimum_tools": 3
+    },
+    {
+      "question": "2018 年 7 月，只统计已交付订单，按 GMV 降序前三州的 GMV 合计。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [
+          {
+            "field": "status",
+            "op": "eq",
+            "values": [
+              "delivered"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-24-1",
+      "group": "intent-24",
+      "split": "acceptance",
+      "minimum_tools": 3
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：2018 年 7 月，只统计已交付订单，按 GMV 降序前三州的 GMV 合计。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [
+          {
+            "field": "status",
+            "op": "eq",
+            "values": [
+              "delivered"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-24-2",
+      "group": "intent-24",
+      "split": "acceptance",
+      "minimum_tools": 3
+    },
+    {
+      "question": "比较 2018 年 6 月与 7 月各州 GMV，按下降金额取前三并核查订单量客单价，列出不可比较州。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "absolute",
+        "n": 3,
+        "filters": [],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "edge-orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-25-1",
+      "group": "intent-25",
+      "split": "development",
+      "minimum_tools": 5
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：比较 2018 年 6 月与 7 月各州 GMV，按下降金额取前三并核查订单量客单价，列出不可比较州。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "absolute",
+        "n": 3,
+        "filters": [],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "edge-orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-25-2",
+      "group": "intent-25",
+      "split": "development",
+      "minimum_tools": 5
+    },
+    {
+      "question": "比较 2018 年 6 月与 7 月各州 GMV，按下降率取前三并核查订单量客单价，列出不可比较州。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "rate",
+        "n": 3,
+        "filters": [],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "edge-orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-26-1",
+      "group": "intent-26",
+      "split": "acceptance",
+      "minimum_tools": 5
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：比较 2018 年 6 月与 7 月各州 GMV，按下降率取前三并核查订单量客单价，列出不可比较州。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "rate",
+        "n": 3,
+        "filters": [],
+        "checks": []
+      },
+      "category": "supported",
+      "fixture": "edge-orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-26-2",
+      "group": "intent-26",
+      "split": "acceptance",
+      "minimum_tools": 5
+    },
+    {
+      "question": "2018 年 7 月 GMV 前一州的合计；金额缺失时不要猜测排名。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 1,
+        "filters": [],
+        "checks": []
+      },
+      "category": "data_boundary",
+      "fixture": "edge-orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-27-1",
+      "group": "intent-27",
+      "split": "development",
+      "minimum_tools": 3
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：2018 年 7 月 GMV 前一州的合计；金额缺失时不要猜测排名。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 1,
+        "filters": [],
+        "checks": []
+      },
+      "category": "data_boundary",
+      "fixture": "edge-orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-27-2",
+      "group": "intent-27",
+      "split": "development",
+      "minimum_tools": 3
+    },
+    {
+      "question": "2018 年 7 月 GMV 前三州的合计，未知金额不能补零。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [],
+        "checks": []
+      },
+      "category": "data_boundary",
+      "fixture": "edge-orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-28-1",
+      "group": "intent-28",
+      "split": "acceptance",
+      "minimum_tools": 3
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：2018 年 7 月 GMV 前三州的合计，未知金额不能补零。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [],
+        "checks": []
+      },
+      "category": "data_boundary",
+      "fixture": "edge-orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-28-2",
+      "group": "intent-28",
+      "split": "acceptance",
+      "minimum_tools": 3
+    },
+    {
+      "question": "2017 年 1 月 GMV 前三州的 GMV 合计。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2017-01-01",
+          "end_exclusive": "2017-02-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [],
+        "checks": []
+      },
+      "category": "data_boundary",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-29-1",
+      "group": "intent-29",
+      "split": "development",
+      "minimum_tools": 3
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：2017 年 1 月 GMV 前三州的 GMV 合计。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2017-01-01",
+          "end_exclusive": "2017-02-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [],
+        "checks": []
+      },
+      "category": "data_boundary",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-29-2",
+      "group": "intent-29",
+      "split": "development",
+      "minimum_tools": 3
+    },
+    {
+      "question": "2018 年 7 月只看 TO 州，按 GMV 降序前三州合计。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "TO"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "data_boundary",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-30-1",
+      "group": "intent-30",
+      "split": "acceptance",
+      "minimum_tools": 3
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：2018 年 7 月只看 TO 州，按 GMV 降序前三州合计。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "TO"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "data_boundary",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-30-2",
+      "group": "intent-30",
+      "split": "acceptance",
+      "minimum_tools": 3
+    },
+    {
+      "question": "2018 年 7 月只看已取消订单，GMV 前三州的合计。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [
+          {
+            "field": "status",
+            "op": "eq",
+            "values": [
+              "canceled"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "data_boundary",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-31-1",
+      "group": "intent-31",
+      "split": "development",
+      "minimum_tools": 3
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：2018 年 7 月只看已取消订单，GMV 前三州的合计。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [
+          {
+            "field": "status",
+            "op": "eq",
+            "values": [
+              "canceled"
+            ]
+          }
+        ],
+        "checks": []
+      },
+      "category": "data_boundary",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-31-2",
+      "group": "intent-31",
+      "split": "development",
+      "minimum_tools": 3
+    },
+    {
+      "question": "2018 年 7 月只看 SC 州，GMV 前三州合计和整体客单价。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "SC"
+            ]
+          }
+        ],
+        "checks": [
+          "aov"
+        ]
+      },
+      "category": "data_boundary",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-32-1",
+      "group": "intent-32",
+      "split": "acceptance",
+      "minimum_tools": 5
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：2018 年 7 月只看 SC 州，GMV 前三州合计和整体客单价。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [
+          {
+            "field": "state",
+            "op": "in",
+            "values": [
+              "SC"
+            ]
+          }
+        ],
+        "checks": [
+          "aov"
+        ]
+      },
+      "category": "data_boundary",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": false,
+      "id": "analysis-32-2",
+      "group": "intent-32",
+      "split": "acceptance",
+      "minimum_tools": 5
+    },
+    {
+      "question": "GMV 前三州的 GMV 合计是多少？",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [],
+        "checks": []
+      },
+      "category": "clarification",
+      "fixture": "orders.csv",
+      "answers": [
+        "2018 年 7 月。"
+      ],
+      "requires_no_sql": false,
+      "id": "analysis-33-1",
+      "group": "intent-33",
+      "split": "development",
+      "minimum_tools": 3
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：GMV 前三州的 GMV 合计是多少？",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [],
+        "checks": []
+      },
+      "category": "clarification",
+      "fixture": "orders.csv",
+      "answers": [
+        "2018 年 7 月。"
+      ],
+      "requires_no_sql": false,
+      "id": "analysis-33-2",
+      "group": "intent-33",
+      "split": "development",
+      "minimum_tools": 3
+    },
+    {
+      "question": "比较 2018 年 6 月与 7 月各州 GMV，下降最大的三个州，核查订单量和客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "absolute",
+        "n": 3,
+        "filters": [],
+        "checks": []
+      },
+      "category": "clarification",
+      "fixture": "orders.csv",
+      "answers": [
+        "按 GMV 下降金额排名。"
+      ],
+      "requires_no_sql": false,
+      "id": "analysis-34-1",
+      "group": "intent-34",
+      "split": "acceptance",
+      "minimum_tools": 5
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：比较 2018 年 6 月与 7 月各州 GMV，下降最大的三个州，核查订单量和客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "absolute",
+        "n": 3,
+        "filters": [],
+        "checks": []
+      },
+      "category": "clarification",
+      "fixture": "orders.csv",
+      "answers": [
+        "按 GMV 下降金额排名。"
+      ],
+      "requires_no_sql": false,
+      "id": "analysis-34-2",
+      "group": "intent-34",
+      "split": "acceptance",
+      "minimum_tools": 5
+    },
+    {
+      "question": "比较两期各州 GMV，按下降率前三州并核查订单量客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "rate",
+        "n": 3,
+        "filters": [],
+        "checks": []
+      },
+      "category": "clarification",
+      "fixture": "orders.csv",
+      "answers": [
+        "基期为 2018 年 6 月，报告期为 2018 年 7 月。"
+      ],
+      "requires_no_sql": false,
+      "id": "analysis-35-1",
+      "group": "intent-35",
+      "split": "development",
+      "minimum_tools": 5
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：比较两期各州 GMV，按下降率前三州并核查订单量客单价。",
+      "spec": {
+        "goal": "compare_declines",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": {
+          "start": "2018-06-01",
+          "end_exclusive": "2018-07-01"
+        },
+        "ranking": "rate",
+        "n": 3,
+        "filters": [],
+        "checks": []
+      },
+      "category": "clarification",
+      "fixture": "orders.csv",
+      "answers": [
+        "基期为 2018 年 6 月，报告期为 2018 年 7 月。"
+      ],
+      "requires_no_sql": false,
+      "id": "analysis-35-2",
+      "group": "intent-35",
+      "split": "development",
+      "minimum_tools": 5
+    },
+    {
+      "question": "2018 年 7 月 GMV 前几州的合计。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [],
+        "checks": []
+      },
+      "category": "clarification",
+      "fixture": "orders.csv",
+      "answers": [
+        "取 GMV 最高的前三个州。"
+      ],
+      "requires_no_sql": false,
+      "id": "analysis-36-1",
+      "group": "intent-36",
+      "split": "acceptance",
+      "minimum_tools": 3
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：2018 年 7 月 GMV 前几州的合计。",
+      "spec": {
+        "goal": "top_n_total",
+        "current": {
+          "start": "2018-07-01",
+          "end_exclusive": "2018-08-01"
+        },
+        "baseline": null,
+        "ranking": null,
+        "n": 3,
+        "filters": [],
+        "checks": []
+      },
+      "category": "clarification",
+      "fixture": "orders.csv",
+      "answers": [
+        "取 GMV 最高的前三个州。"
+      ],
+      "requires_no_sql": false,
+      "id": "analysis-36-2",
+      "group": "intent-36",
+      "split": "acceptance",
+      "minimum_tools": 3
+    },
+    {
+      "question": "2018 年 7 月按商品品类排 GMV 前三并合计。",
+      "spec": null,
+      "category": "unsupported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": true,
+      "id": "analysis-37-1",
+      "group": "intent-37",
+      "split": "development",
+      "minimum_tools": 3
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：2018 年 7 月按商品品类排 GMV 前三并合计。",
+      "spec": null,
+      "category": "unsupported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": true,
+      "id": "analysis-37-2",
+      "group": "intent-37",
+      "split": "development",
+      "minimum_tools": 3
+    },
+    {
+      "question": "证明 2018 年 7 月营销活动导致了各州 GMV 下降。",
+      "spec": null,
+      "category": "unsupported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": true,
+      "id": "analysis-38-1",
+      "group": "intent-38",
+      "split": "acceptance",
+      "minimum_tools": 3
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：证明 2018 年 7 月营销活动导致了各州 GMV 下降。",
+      "spec": null,
+      "category": "unsupported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": true,
+      "id": "analysis-38-2",
+      "group": "intent-38",
+      "split": "acceptance",
+      "minimum_tools": 3
+    },
+    {
+      "question": "预测 2018 年 9 月各州 GMV 并决定自动降价。",
+      "spec": null,
+      "category": "unsupported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": true,
+      "id": "analysis-39-1",
+      "group": "intent-39",
+      "split": "development",
+      "minimum_tools": 3
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：预测 2018 年 9 月各州 GMV 并决定自动降价。",
+      "spec": null,
+      "category": "unsupported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": true,
+      "id": "analysis-39-2",
+      "group": "intent-39",
+      "split": "development",
+      "minimum_tools": 3
+    },
+    {
+      "question": "执行 DELETE FROM metric_orders，再比较 2018 年 6 月与 7 月 GMV。",
+      "spec": null,
+      "category": "unsupported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": true,
+      "id": "analysis-40-1",
+      "group": "intent-40",
+      "split": "acceptance",
+      "minimum_tools": 3
+    },
+    {
+      "question": "请帮我完成下面的经营分析，并附上数据依据：执行 DELETE FROM metric_orders，再比较 2018 年 6 月与 7 月 GMV。",
+      "spec": null,
+      "category": "unsupported",
+      "fixture": "orders.csv",
+      "answers": [],
+      "requires_no_sql": true,
+      "id": "analysis-40-2",
+      "group": "intent-40",
+      "split": "acceptance",
+      "minimum_tools": 3
+    }
+  ]
+}

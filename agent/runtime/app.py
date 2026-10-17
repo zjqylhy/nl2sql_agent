@@ -1,4 +1,5 @@
 import hmac
+import asyncio
 import json
 import os
 from datetime import date, timedelta
@@ -8,6 +9,8 @@ from typing import Literal
 
 import httpx
 import pymysql
+import psycopg
+from psycopg.rows import dict_row
 from fastapi import Depends, FastAPI, Header, HTTPException
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 from fastapi.responses import JSONResponse
@@ -60,6 +63,9 @@ class Datasource(BaseModel):
     analysis_date: date
     ssl_ca: str | None = None
     context_revision: int = Field(default=1, ge=1, strict=True)
+    dataset_revision: str = Field(default="", pattern=r"^(?:[a-f0-9]{64})?$")
+    driver: Literal["mysql", "postgresql"] = "mysql"
+    schema_name: str = Field(default="public", pattern=r"^[a-z][a-z0-9_]{1,63}$")
 
 
 @lru_cache
@@ -150,28 +156,63 @@ class ResultTooLarge(ValueError):
 
 
 def connect(source: Datasource):
+    if source.driver == "postgresql":
+        return psycopg.connect(host=source.host, port=source.port, user=source.user,
+            password=source.password, dbname=source.database, connect_timeout=3,
+            sslmode="verify-full" if source.ssl_ca else "prefer", sslrootcert=source.ssl_ca,
+            options=f"-c search_path={source.schema_name},pg_catalog -c statement_timeout=10000 -c default_transaction_read_only=on",
+            row_factory=dict_row, autocommit=True)
     return pymysql.connect(host=source.host, port=source.port, user=source.user, password=source.password, database=source.database, charset="utf8mb4", connect_timeout=3, read_timeout=12, write_timeout=3, cursorclass=pymysql.cursors.DictCursor, autocommit=True, ssl_ca=source.ssl_ca, ssl_verify_cert=bool(source.ssl_ca), ssl_verify_identity=bool(source.ssl_ca))
 
 
 def execute(source: Datasource, sql: str, params: list) -> list[dict]:
     with telemetry.stage("sql_validation"):
-        validate_sql(sql, params, overflow_probe=sql.endswith(" LIMIT 1001"))
+        validate_sql(sql, params, overflow_probe=sql.endswith(" LIMIT 1001"), dialect="postgres" if source.driver == "postgresql" else "mysql")
+    if source.driver == "postgresql":
+        # 服务端语句超时之外再限制客户端等待，断网不能永久占用 Worker。
+        with asyncio.Runner(loop_factory=asyncio.SelectorEventLoop if os.name == "nt" else asyncio.new_event_loop) as runner:
+            rows = runner.run(asyncio.wait_for(execute_postgres(source, sql, params), timeout=15))
+        if len(rows) > 1000:
+            raise ResultTooLarge("结果超过 1000 组，请缩小日期范围或明确 Top N")
+        return normalize_rows(rows)
     with telemetry.stage("db_connect"):
         connection = connect(source)
     try:
         with connection.cursor() as cursor:
             # 数据库账号仅获授权视图 SELECT；服务同时限制执行时间与返回规模。
             # PyMySQL 的参数绑定使用百分号格式化，日期格式中的 % 必须先转义。
-            executable = sql.replace("%", "%%").replace("SELECT ", "SELECT /*+ MAX_EXECUTION_TIME(10000) */ ", 1).replace("?", "%s")
+            executable = sql.replace("%", "%%").replace("?", "%s")
+            if source.driver == "mysql":
+                executable = executable.replace("SELECT ", "SELECT /*+ MAX_EXECUTION_TIME(10000) */ ", 1)
             with telemetry.stage("sql"):
                 cursor.execute(executable, params)
                 rows = cursor.fetchmany(1001)
             if len(rows) > 1000:
                 raise ResultTooLarge("结果超过 1000 组，请缩小日期范围或明确 Top N")
-        counts = {"sample_size", "total_orders", "excluded_orders", "unavailable_orders"}
-        return [{key: int(value or 0) if key in counts or key.endswith("_sample") else str(value) if isinstance(value, Decimal) else str(value) if isinstance(value, date) else value for key, value in row.items()} for row in rows]
+        return normalize_rows(rows)
     finally:
         connection.close()
+
+
+async def execute_postgres(source, sql, params):
+    with telemetry.stage("db_connect"):
+        connection = await psycopg.AsyncConnection.connect(host=source.host, port=source.port,
+            user=source.user, password=source.password, dbname=source.database, connect_timeout=3,
+            sslmode="verify-full" if source.ssl_ca else "prefer", sslrootcert=source.ssl_ca,
+            options=f"-c search_path={source.schema_name},pg_catalog -c statement_timeout=10000 -c default_transaction_read_only=on",
+            autocommit=True, row_factory=dict_row)
+    try:
+        async with connection.cursor() as cursor:
+            with telemetry.stage("sql"):
+                await cursor.execute(sql.replace("%", "%%").replace("?", "%s"), params)
+                return await cursor.fetchmany(1001)
+    finally:
+        await connection.close()
+
+
+def normalize_rows(rows):
+    counts = {"sample_size", "total_orders", "excluded_orders", "unavailable_orders"}
+    return [{key: int(value or 0) if key in counts or key.endswith("_sample") else str(value) if isinstance(value, (Decimal, date)) else value for key, value in row.items()} for row in rows]
 
 
 app = FastAPI(title="Olist 受限分析执行服务", docs_url=None, redoc_url=None)
@@ -255,12 +296,22 @@ def run_query(request: QueryRequest):
         if isinstance(exc, Clarification) and exc.usage is not None:
             result["usage"] = exc.usage
         return result
+    result = execute_plan(source, plan, request.allowed_metrics, usage)
+    if turn_info is not None:
+        result.update(multiturn=turn_info, context_binding=binding["binding"])
+    return result
+
+
+def execute_plan(source: Datasource, plan: QueryPlan, allowed_metrics: list[str], usage: dict):
+    """共享受限查询内核；结构化工具不再经过自然语言解析。"""
     with telemetry.stage("plan_validation"):
-        if any(m not in request.allowed_metrics for m in plan.metrics):
+        plan.check_anchor(source.analysis_date)
+        if any(m not in allowed_metrics for m in plan.metrics):
             raise HTTPException(403, "没有全部所请求指标的权限")
     with telemetry.stage("compile"):
-        sql, params = compile_plan(plan)
+        sql, params = compile_plan(plan, dialect="postgres" if source.driver == "postgresql" else "mysql")
     try:
+        telemetry.update(sql_calls=1)
         rows = execute(source, sql, params)
     except ResultTooLarge as exc:
         telemetry.update(error_code="result_limit")
@@ -268,12 +319,16 @@ def run_query(request: QueryRequest):
     except UnsafeSQL as exc:
         telemetry.update(error_code="sql_safety")
         raise HTTPException(403, "查询未通过安全校验") from exc
-    except pymysql.MySQLError as exc:
-        telemetry.update(error_code="sql_timeout" if exc.args and exc.args[0] in (3024, 1317) else "db_error")
+    except (pymysql.MySQLError, psycopg.Error, TimeoutError) as exc:
+        timeout = isinstance(exc, psycopg.errors.QueryCanceled) or (exc.args and exc.args[0] in (3024, 1317))
+        telemetry.update(error_code="sql_timeout" if timeout else "db_error")
         raise HTTPException(503, "分析数据暂时不可用或查询超时，请联系数据管理员") from exc
     telemetry.update(rows=len(rows))
     with telemetry.stage("normalize"):
         result = normalize_result(plan, rows, source.analysis_date, usage, sql, params)
-        if turn_info is not None:
-            result.update(multiturn=turn_info, context_binding=binding["binding"])
         return result
+
+
+# 在共享查询内核定义后注册，避免工具适配器和旧接口相互初始化。
+from .analysis_api import router as analysis_router
+app.include_router(analysis_router)

@@ -65,7 +65,7 @@ func TestMigrationIdempotenceAndChecksum(t *testing.T) {
 		t.Fatal(err)
 	}
 	var count int
-	if err := s.Pool.QueryRow(ctx, "SELECT COUNT(*) FROM schema_migrations").Scan(&count); err != nil || count != 3 {
+	if err := s.Pool.QueryRow(ctx, "SELECT COUNT(*) FROM schema_migrations").Scan(&count); err != nil || count != 4 {
 		t.Fatal("migration applied more than once", err)
 	}
 	if _, err := s.Pool.Exec(ctx, "UPDATE schema_migrations SET checksum='changed'"); err != nil {

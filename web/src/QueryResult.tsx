@@ -14,7 +14,7 @@ export default function QueryResult({result}:{result:SemanticResult}){
   const time=result.plan.dimensions.find(d=>d==='day'||d==='month')
   const overall=result.plan.dimensions.length===0
   return <article className="answer">
-    <div className="answer-heading"><h2>{result.metrics.map(m=>m.name).join(' · ')}</h2><span className="badge">口径 v1 · {result.usage.parser==='llm'?'模型解析':'规则解析'}</span></div>
+    <div className="answer-heading"><h2>{result.metrics.map(m=>m.name).join(' · ')}</h2><span className="badge">口径 v1 · {result.usage.parser==='tool'?'授权工具查询':result.usage.parser==='llm'?'模型解析':'规则解析'}</span></div>
     <p className="muted">{result.period.start} 至 {result.period.end_exclusive}（不含结束日） · 分析基准 {result.analysis_date}</p>
     {result.plan.filters.length>0&&<p className="definition">筛选：{result.plan.filters.map(f=>`${fieldNames[f.field]} ${opNames[f.op]} ${f.values.map(v=>f.field==='status'?statusNames[v]??v:v).join('、')}`).join('；')}</p>}
     {result.truncated&&<div className="notice">{result.message} 排序：{result.plan.order_by.map(o=>(result.metrics.find(m=>m.id===o.field)?.name??o.field)+(o.direction==='desc'?'降序':'升序')).join('、')}</div>}

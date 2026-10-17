@@ -12,7 +12,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[1]
-BUSINESS_TABLES = "tenants,users,sessions,tasks,task_events,task_outbox,task_attempts,conversations"
+BUSINESS_TABLES = "tenants,users,sessions,tasks,task_events,task_outbox,task_attempts,conversations,analysis_runs,analysis_steps,analysis_step_attempts,analysis_artifacts,analysis_budget_ledger,analysis_answers"
 BACKUP_NAME = re.compile(r"\d{8}T\d{6}Z-[a-f0-9]{8}")
 
 

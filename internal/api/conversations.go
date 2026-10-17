@@ -221,6 +221,10 @@ func (s *Server) discardPending(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) taskContextAllowed(ctx context.Context, u store.User, t store.Task) bool {
+	if t.Kind == "analysis" {
+		_, err := s.checkedAnalysis(ctx, u, t.ID)
+		return err == nil
+	}
 	if t.ConversationID == "" {
 		return true
 	}

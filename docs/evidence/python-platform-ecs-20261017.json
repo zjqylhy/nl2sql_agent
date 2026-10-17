@@ -1,0 +1,235 @@
+{
+  "verified_at": "2026-10-17T06:37:03.721937+00:00",
+  "execution_location": "ECS; no local builds or application tests in this deployment run",
+  "deployment": {
+    "passed": true,
+    "verified_at": "2026-10-17T06:35:12.455267+00:00",
+    "source_commit": "54edc609d769a9af81b2c99e482dbff5c760b1c2",
+    "runtime": "python-langgraph",
+    "http_port": 8088,
+    "homepage_asset_verified": true,
+    "legacy_admin_login": true,
+    "existing_reports": [
+      {
+        "run_id": "e4246da3d5b507980f69e3c6b01e262f0fa6e039e4a84e9e",
+        "unchanged_steps_and_artifacts": true,
+        "sse_replay": true
+      },
+      {
+        "run_id": "8dc39ab67818b37ddec5510868484d5696c4211c95da7b1f",
+        "unchanged_steps_and_artifacts": true,
+        "sse_replay": true
+      }
+    ],
+    "backup_timer": {
+      "active": true,
+      "enabled": true,
+      "last_backup_result": "success",
+      "next_elapse": "Sun 2026-10-18 03:00:00 CST"
+    },
+    "old_backup_timer_disabled": true,
+    "old_containers_stopped": true,
+    "old_volumes_preserved": [
+      "olist-agent-private_mysql_data",
+      "olist-agent-private_postgres_data"
+    ],
+    "only_loopback_http_published": true,
+    "current_release_symlink": "/srv/olist/python/releases/54edc609d769a9af81b2c99e482dbff5c760b1c2"
+  },
+  "code": {
+    "passed": true,
+    "source_commit": "54edc609d769a9af81b2c99e482dbff5c760b1c2",
+    "verified_backend_digest": "fd33f1db2baa26ab822a379328f9abb08eda22fa0518c9e065c3ffd1da31b534",
+    "lock_sha256": "8ee14cd4dd1ce62fbaf4cea2d859bdfe692011db17be74dc018796131c7c93be",
+    "backend_files_match_release": true,
+    "real_model_reports_match_current_backend": true,
+    "images": {
+      "api": {
+        "name": "olist-python-platform:54edc609d769a9af81b2c99e482dbff5c760b1c2",
+        "image_id": "sha256:f7bbd4b88eb68d0f2d05f5164ef95d517c0768154343dfc88a17309473a25a4a",
+        "source_commit": "54edc609d769a9af81b2c99e482dbff5c760b1c2"
+      },
+      "worker": {
+        "name": "olist-python-platform:54edc609d769a9af81b2c99e482dbff5c760b1c2",
+        "image_id": "sha256:f7bbd4b88eb68d0f2d05f5164ef95d517c0768154343dfc88a17309473a25a4a",
+        "source_commit": "54edc609d769a9af81b2c99e482dbff5c760b1c2"
+      },
+      "web": {
+        "name": "olist-python-web:54edc609d769a9af81b2c99e482dbff5c760b1c2",
+        "image_id": "sha256:baafa7b057ae5eb47663afa94d18737c26ed6eed7641464372006f63806eff97",
+        "source_commit": "54edc609d769a9af81b2c99e482dbff5c760b1c2"
+      }
+    }
+  },
+  "pytest": {
+    "summary": "393 passed, 12 skipped in 118.18s (0:01:58)",
+    "passed": 393,
+    "skipped": 12,
+    "skip_reason": "legacy MySQL paths; PostgreSQL target covered"
+  },
+  "frontend_build": {
+    "passed": true,
+    "warning": "existing ECharts chunk approximately 537 kB"
+  },
+  "real_model_core": {
+    "passed": true,
+    "single_queries": 2,
+    "analysis_runs": 2,
+    "idempotency_and_sse_replay": true,
+    "oracle": {
+      "independent_csv_orders": 99441,
+      "runs": [
+        {
+          "id": "e4246da3d5b507980f69e3c6b01e262f0fa6e039e4a84e9e",
+          "goal": "top_n_total",
+          "model_calls": 4,
+          "sql_calls": 1,
+          "known_tokens": 6750,
+          "active_ms": 18388,
+          "states": [
+            "SP",
+            "RJ",
+            "MG"
+          ],
+          "gmv": "517638.01"
+        },
+        {
+          "id": "8dc39ab67818b37ddec5510868484d5696c4211c95da7b1f",
+          "goal": "compare_declines",
+          "model_calls": 6,
+          "sql_calls": 2,
+          "known_tokens": 14780,
+          "active_ms": 38747,
+          "states": [
+            "SP",
+            "MG",
+            "RS"
+          ],
+          "gmv_deltas": {
+            "SP": "-18072.77",
+            "MG": "-12164.76",
+            "RS": "-4472.21"
+          }
+        }
+      ],
+      "passed": true
+    }
+  },
+  "permissions": {
+    "api": {
+      "platform_read": true,
+      "raw_fact_read": false,
+      "checkpoint_read": false,
+      "platform_ddl": false
+    },
+    "worker": {
+      "platform_read": true,
+      "raw_fact_read": false,
+      "checkpoint_read": true,
+      "platform_ddl": false
+    },
+    "query": {
+      "orders": 99441,
+      "readonly": "on",
+      "platform": false,
+      "raw": false
+    },
+    "passed": true
+  },
+  "recovery_and_negative_cases": {
+    "origin_and_unauthenticated": true,
+    "metric_and_admin_permissions": true,
+    "disabled_session_rejected": true,
+    "restart_clarification_answer_idempotency": {
+      "passed": true,
+      "run_id": "106b8d03a59d2a7285663e832572c99c7d05371e416813f5",
+      "sql_calls": 1,
+      "model_calls": 4,
+      "checkpoints_before_restart": 9
+    },
+    "no_data_is_not_zero": {
+      "passed": true,
+      "run_id": "e5bfd81e9049126f0ed3522abced7e79f19a7b0ad678e351",
+      "status": "failed"
+    },
+    "cancel_fences_late_result": {
+      "passed": true,
+      "run_id": "cc113eb57919db0a70868148c252db6384e82c3b72104160"
+    },
+    "passed": true
+  },
+  "backup_restore": {
+    "passed": true,
+    "backup": "/srv/olist/python/backups/20261016T225705Z-39ea4ac3",
+    "sha256": "6201d85fc34e954894b5f2222663eb9c379acb063073f92665ed21cf706e22c6",
+    "tables": 28,
+    "counts": {
+      "agent_checkpoint.checkpoint_blobs": 349,
+      "agent_checkpoint.checkpoint_migrations": 10,
+      "agent_checkpoint.checkpoint_writes": 1207,
+      "agent_checkpoint.checkpoints": 357,
+      "analytics_alpha_v1.customers": 99441,
+      "analytics_alpha_v1.dataset_release": 1,
+      "analytics_alpha_v1.items": 112650,
+      "analytics_alpha_v1.order_facts": 99441,
+      "analytics_alpha_v1.orders": 99441,
+      "analytics_alpha_v1.reviews": 99224,
+      "platform.alembic_version": 1,
+      "platform.analysis_answers": 1,
+      "platform.analysis_artifacts": 38,
+      "platform.analysis_budget_ledger": 59,
+      "platform.analysis_runs": 17,
+      "platform.analysis_step_attempts": 101,
+      "platform.analysis_steps": 101,
+      "platform.conversations": 13,
+      "platform.login_windows": 1,
+      "platform.query_receipts": 20,
+      "platform.schema_migrations": 4,
+      "platform.sessions": 1,
+      "platform.task_attempts": 88,
+      "platform.task_events": 398,
+      "platform.task_outbox": 72,
+      "platform.tasks": 72,
+      "platform.tenants": 1,
+      "platform.users": 4
+    },
+    "restored_tasks_checkpoints_reports": "72|357|5",
+    "restore_target": "isolated randomly named database, removed after verification"
+  },
+  "postcutover_service_backup": {
+    "path": "/srv/olist/python/backups/20261017T063205Z-a1a41c4a",
+    "sha256": "8bb90212b41bd957f2bc0b3ed644052b2ff959ab068cf2c5d03aad84b97a25a5",
+    "tables": 28,
+    "order_facts": 99441
+  },
+  "extended_topn": {
+    "passed": false,
+    "run_id": "2b6ce04ae85755f72feccb512f10753023b2223c2e943fdb",
+    "status": "failed",
+    "model_calls": 2,
+    "sql_calls": 1,
+    "known_tokens": 3417,
+    "unknown_calls": 1,
+    "http_status": 503,
+    "automatic_resend": false,
+    "unknown_reservation_retained": true
+  },
+  "budget": {
+    "currency": "TEST_UNIT",
+    "actual_money": false,
+    "user_approved": true,
+    "max_output_tokens": 4096,
+    "model_timeout_seconds": 45,
+    "max_tokens": 50000,
+    "model_interval_seconds": 20,
+    "max_model_calls": 10,
+    "max_tool_calls": 12,
+    "max_sql_calls": 6,
+    "max_active_seconds": 180
+  },
+  "not_completed": [
+    "independent held-out A/B/C model evaluation",
+    "actual provider invoice cost measurement",
+    "server reboot validation"
+  ]
+}
