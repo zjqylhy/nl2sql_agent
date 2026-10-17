@@ -120,7 +120,7 @@ npm run build
 .venv/Scripts/python.exe scripts/run_analysis_study.py --with-model --split acceptance --repeats 3 --max-model-calls 500
 ```
 
-题集为 80 表达 / 40 意图组、标注仍为 draft。当前确定性工具和故障测试不能证明真实模型完成率提升；真实模型实验及人工题集复核单独验收。历史解析/多轮实测见[解析证据](docs/user-understanding-evidence.md)、[多轮证据](docs/multiturn-evidence.md)，均属于旧平台基线。
+题集为 80 表达 / 40 意图组、标注仍为 draft。[服务器 A/B/C 预实验](docs/analysis-study-pilot-results.md)已执行 12 个开发表达：语义复核后完整任务 A 2/8、B 6/8、C 8/8，原始分数与失败均保留；当前没有证明自适应优于固定流程。完整评测及人工题集复核仍待验收。历史解析/多轮实测见[解析证据](docs/user-understanding-evidence.md)、[多轮证据](docs/multiturn-evidence.md)，均属于旧平台基线。
 
 备份和迁移操作见[Python 平台运维](docs/python-platform-operations.md)。所有三个权限域必须来自同一备份快照；恢复只允许空目标库，恢复后重建可信数据源映射和账号密钥。经用户单独授权，新版已切换至 ECS 私有入口并启用备份定时器，结果见[ECS 部署验收](docs/python-platform-ecs-validation.md)；未推送远端 Git。
 

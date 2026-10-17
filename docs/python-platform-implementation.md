@@ -37,6 +37,8 @@
 
 真实 HTTP 子进程验证：独立 API 与 Worker 登录、规则查询、观察 SQL=1 / 模型=0 / 未知=0、统计与清理通过。未执行真实模型对照，未将固定适配器的动作当成模型准确率。
 
+后续在 ECS 执行了 [12 表达 A/B/C 开发分区预实验](analysis-study-pilot-results.md)，独立测试 PG、冻结代码和原始计分，事后语义等价修正另存。该小样本仍为 draft，不替代完整、人工复核的对照实验。
+
 ## 首次本地浏览器操作验收（历史）
 
 新版本机预览 `http://localhost:5180/`，完整 Olist、真实 PG、真实图/账本，模型动作明确模拟。账号 `preview / analyst`，仅演示密码 `preview-password-only`，与远端账号无关。

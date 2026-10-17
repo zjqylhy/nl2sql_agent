@@ -75,6 +75,8 @@ docker build --build-arg "PLATFORM_IMAGE=olist-python-platform:<commit>" \
 
 两份核心样本的活跃耗时分别 18388 / 38747 ms，不包含持久等待；20 秒调用间隔会增加端到端耗时。这些冒烟记录没有证明成功率、成本或延迟改善。**完整 A/B/C 独立任务集实验、题集人工复核与隐藏组扩充仍待执行**；真实供应商费用、服务器重启恢复及公网 HTTPS 未验收。
 
+后续完成了独立测试 PG 上的 [12 表达 A/B/C 预实验](analysis-study-pilot-results.md)，原始失败与事后判分修正分别记录；没有将上述 Olist 冒烟混入合成题统计，也没有替换本次生产运行版本。
+
 ## 备份、切换和回退
 
 备份入口：在发布源码目录执行 `python3 -m scripts.python_private_backup`。定时器为 `python-private-backup.timer`；凭据从受限配置读取，通过临时环境文件传给备份容器，不放在进程参数中。恢复只针对显式建立的空库，校验 archive 摘要和全部表计数；演练结束只清理本次随机目标库。
