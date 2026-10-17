@@ -4,7 +4,7 @@
 
 支持原单次/多轮问数，以及范围有限的经营分析：比较两个时间段各州 GMV、按下降金额或比例排名并核查订单量和客单价；汇总 GMV 前 N 州的金额、订单量、整体客单价和占比。模型选择下一步，数字由受限 SQL 与 Decimal 工具计算；指标变化只作描述性分析。
 
-需求与边界见[实施规格](docs/python-agent-target-spec.md)，已验证内容与限制见[实施记录](docs/python-platform-implementation.md)。Go/Python/MySQL 首版保留作历史基线，相关实测不能当成新平台的模型效果证据。
+需求与边界见[实施规格](docs/python-agent-target-spec.md)，实现见[实施记录](docs/python-platform-implementation.md)，当前云端结果及限制见[ECS 部署验收](docs/python-platform-ecs-validation.md)。Go/Python/MySQL 首版保留作历史基线，相关实测不能当成新平台的模型效果证据。
 
 ## 运行边界
 
@@ -12,6 +12,7 @@
 - PostgreSQL 分 `platform`、`agent_checkpoint`、`analytics_*` 三个权限域。API 无图状态权限，分析查询账号仅能读取授权视图；schema 不提供 CPU/I/O 故障隔离。
 - 图保存下一节点和 interrupt；操作账本保存预算、执行回执和证据。恢复先核账，已完成操作复用回执，模型调用结果未知时停止。
 - 默认上限：模型 10 次、工具 12 次、SQL 6 次、全局参数修正 1 次、SQL 重试 1 次、活跃执行 180 秒、30000 Token、并行分析 2 个。价格和模型映射随任务冻结。
+- 输出上限、单次截止、Token 总预算及调用间隔在任务接纳时冻结。明确的网关执行前拒绝最多退避一次；通用 429、503、断连和超时不推断为零费用。
 - 两轮补充、等待最长 24 小时。详细证据与图线程保留 30 天，最终报告及已知/未知用量汇总保留。
 
 ## Windows 本地启动
@@ -121,6 +122,6 @@ npm run build
 
 题集为 80 表达 / 40 意图组、标注仍为 draft。当前确定性工具和故障测试不能证明真实模型完成率提升；真实模型实验及人工题集复核单独验收。历史解析/多轮实测见[解析证据](docs/user-understanding-evidence.md)、[多轮证据](docs/multiturn-evidence.md)，均属于旧平台基线。
 
-备份和迁移操作见[Python 平台运维](docs/python-platform-operations.md)。所有三个权限域必须来自同一备份快照；恢复只允许空目标库，恢复后重建可信数据源映射和账号密钥。当前改动不包含远端推送或 ECS 部署。
+备份和迁移操作见[Python 平台运维](docs/python-platform-operations.md)。所有三个权限域必须来自同一备份快照；恢复只允许空目标库，恢复后重建可信数据源映射和账号密钥。经用户单独授权，新版已切换至 ECS 私有入口并启用备份定时器，结果见[ECS 部署验收](docs/python-platform-ecs-validation.md)；未推送远端 Git。
 
-旧 Go/MySQL 本地配置保留在 `deploy/compose.legacy.yaml` 和 `deploy/legacy.env.example`；现有 `compose.private/cloud`、旧 release 脚本及其线上记录属于历史发布链，不能直接用于新平台发布。新平台正式云端发布仍需按其新入口完成单独验收。
+旧 Go/MySQL 本地配置保留在 `deploy/compose.legacy.yaml` 和 `deploy/legacy.env.example`；现有 `compose.private/cloud`、旧 release 脚本及其线上记录属于历史发布链，不能直接用于新平台发布。新版私有部署使用 `compose.yaml` 与 `deploy/compose.python-private.yaml`，当前版本及验收结果见上述 ECS 记录。
