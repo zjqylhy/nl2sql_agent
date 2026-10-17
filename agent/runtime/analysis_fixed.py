@@ -1,5 +1,5 @@
 """对照组固定流程：仅首次模型提取规格，后续按固定依赖顺序调用同一工具。"""
-from .analysis import AnalysisError, Spec
+from .analysis import Spec
 
 
 def next_action(spec: Spec, artifacts):

@@ -102,7 +102,7 @@ def test_protocol_rejects_sql_identity_and_unknown_math():
 @pytest.fixture
 def client(monkeypatch):
     monkeypatch.setenv("SERVICE_KEY", "s" * 40)
-    monkeypatch.setenv("TENANT_DATASOURCES", json.dumps({"alpha:ops": {"host": "mysql", "database": "olist_alpha", "user": "alpha_ro", "password": "fixture", "analysis_date": "2018-08-31", "dataset_revision": "d"*64}}))
+    monkeypatch.setenv("TENANT_DATASOURCES", json.dumps({"alpha:ops": {"host": "postgres", "database": "olist_alpha", "user": "alpha_ro", "password": "fixture", "analysis_date": "2018-08-31", "dataset_revision": "d"*64}}))
     runtime.sources.cache_clear()
     with TestClient(runtime.app) as client:
         yield client

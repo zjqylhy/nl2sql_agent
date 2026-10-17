@@ -1,0 +1,171 @@
+{
+  "verified_at": "2026-10-17T09:30:35.070330+00:00",
+  "execution_location": "ECS; no local application tests",
+  "configuration": {
+    "python_files_parsed": 92,
+    "workflow_yaml_valid": true,
+    "toml_valid": true,
+    "pymysql_not_installed": true,
+    "gateway_and_private_overrides_valid": true,
+    "compose_valid": true,
+    "snapshot_sha256": "a5af766b14bfefb897ec362b1d6fae6a88a9783cd4c703f082c22c469eae9614",
+    "comparison_shell_syntax_valid": true
+  },
+  "published_binding_compatibility": {
+    "passed": true,
+    "compared_roles": 3,
+    "query_and_analysis_data_bindings_unchanged": true,
+    "catalog_hashes_unchanged": true,
+    "active_code_digest_guard_retained": true,
+    "production_database_not_queried": true
+  },
+  "full_python_regression": {
+    "passed": 349,
+    "skipped": 0,
+    "seconds": 108.3,
+    "summary": "349 passed in 108.30s (0:01:48)",
+    "includes": [
+      "native PG checkpoints and fencing",
+      "fixed and adaptive graph recovery",
+      "all six Olist metric definitions and 99441-order CSV oracle",
+      "permissions, unknown execution and budgets",
+      "TLS transport and explicit crypto test dependency",
+      "backup and empty-database restore"
+    ]
+  },
+  "deterministic_quality": {
+    "mode": "deterministic",
+    "split": "development",
+    "groups": {
+      "baseline": {
+        "source_commit": "7cde18f8c0224c0de9dc8052cf571d470995f591",
+        "cases": 50,
+        "passed": 50,
+        "model_calls": 0,
+        "summary": {
+          "supported_correct": 25,
+          "supported_total": 25,
+          "answered_correct": 25,
+          "answered_total": 25,
+          "categories": {
+            "rules": {
+              "passed": 25,
+              "total": 25
+            },
+            "paraphrase": {
+              "passed": 0,
+              "total": 0
+            },
+            "clarification": {
+              "passed": 10,
+              "total": 10
+            },
+            "unsupported": {
+              "passed": 9,
+              "total": 9
+            },
+            "permission": {
+              "passed": 6,
+              "total": 6
+            }
+          }
+        },
+        "dataset_hash": "f6be8b48a74caaed501ad5ec640f54a930cd62a81f7b1c320031a017457e8c5d",
+        "fixture_hash": "e67a3f7b2a08e98e3b43a9340aa3b062d2292eaafc2887b632a2bcf4c372bc2a",
+        "scorer_version": "04b25b1b2bc8352b80ef1d5aa1c3cd162666ff928b81caca7335e6ec21b11854",
+        "executor_version": "378e9d2d8375cd37b75a5aab5bebc28d1514df512a4dc5d55e231d811b5bb41b",
+        "runtime_hash": "d393aecc48790a56e675d91b292d91453e763219d9cb8dadc8a76c0a64a42923",
+        "platform_scope": "candidate_python_platform_for_both_agents"
+      },
+      "candidate": {
+        "source_commit": "worktree-bcefb62",
+        "cases": 50,
+        "passed": 50,
+        "model_calls": 0,
+        "summary": {
+          "supported_correct": 25,
+          "supported_total": 25,
+          "answered_correct": 25,
+          "answered_total": 25,
+          "categories": {
+            "rules": {
+              "passed": 25,
+              "total": 25
+            },
+            "paraphrase": {
+              "passed": 0,
+              "total": 0
+            },
+            "clarification": {
+              "passed": 10,
+              "total": 10
+            },
+            "unsupported": {
+              "passed": 9,
+              "total": 9
+            },
+            "permission": {
+              "passed": 6,
+              "total": 6
+            }
+          }
+        },
+        "dataset_hash": "f6be8b48a74caaed501ad5ec640f54a930cd62a81f7b1c320031a017457e8c5d",
+        "fixture_hash": "e67a3f7b2a08e98e3b43a9340aa3b062d2292eaafc2887b632a2bcf4c372bc2a",
+        "scorer_version": "04b25b1b2bc8352b80ef1d5aa1c3cd162666ff928b81caca7335e6ec21b11854",
+        "executor_version": "378e9d2d8375cd37b75a5aab5bebc28d1514df512a4dc5d55e231d811b5bb41b",
+        "runtime_hash": "69506394226f2b8cceb9a7c354bc164fbc96c4c3b85b1c57a59910d9c985b0ba",
+        "platform_scope": "candidate_python_platform_for_both_agents"
+      }
+    },
+    "policy": {
+      "minimum_accuracy": 0.85,
+      "maximum_accuracy_drop": 0.02
+    },
+    "gate": {
+      "passed": true,
+      "accuracy": 1.0,
+      "baseline_accuracy": 1.0,
+      "supported_samples": 25,
+      "failures": []
+    },
+    "independent_model_quality_claim": false
+  },
+  "retired_test_scope": [
+    "Go API/store and legacy deployment/image-release tests",
+    "MySQL import and duplicate tool corpus tests now covered by native PG tests",
+    "unreachable single-metric parser tests; active QueryPlan, negation and frozen corpus tests retained"
+  ],
+  "cleanup": {
+    "remaining_fixture_databases": 0,
+    "remaining_fixture_roles": 0,
+    "owned_pg_container_removed": true,
+    "owned_pg_volume_removed": true,
+    "temporary_credentials_removed": true
+  },
+  "production": {
+    "source_commit": "f51e10a4245b1ce037425019d95da8392025cffc",
+    "service_unchanged": true,
+    "backup_timer": "active"
+  },
+  "scope_notes": [
+    "Historical baseline extras are used only in quality comparison; current regression image has no PyMySQL",
+    "TLS tests retain cryptography as explicit test dependency",
+    "No supplier model requests issued for cleanup validation",
+    "Production images and old data volumes were not removed"
+  ],
+  "source_proof": {
+    "normalization": "CRLF to LF; trailing empty lines collapsed to one newline",
+    "files": 103,
+    "sha256": "a396d49c04767fd8ae7b11ea6f95a0285de756c42e9805d20bf39491daf09caa",
+    "scope": [
+      "agent",
+      "scripts",
+      "deploy",
+      ".github/workflows",
+      "compose.yaml",
+      ".env.example",
+      ".dockerignore"
+    ]
+  }
+}

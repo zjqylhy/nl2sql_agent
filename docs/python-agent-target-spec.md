@@ -1,5 +1,7 @@
 # Python 单栈经营分析助手：目标架构与实施规格
 
+当前源码的 Go/MySQL 旧栈已按用户确认退役；历史实现和验收状态保留在下文，最新代码边界见[清理规格](runtime-cleanup-spec.md)。
+
 日期：2026-10-17。目标岗位：**AI / Agent 应用后端**。状态：**Python 单栈已实现并切换 ECS 入口，服务器回归和核心真实模型冒烟通过；扩展用例失败与评测待项另行记录**。
 
 本方案替代“Go 持有 Agent 状态机、Python 执行单步”的架构。默认入口已切换到 Python API/Worker、LangGraph 和 PostgreSQL 分析数据源；旧 Go/MySQL 保留为历史基线。实施见 [实施记录](python-platform-implementation.md)，当前服务和验证边界见 [ECS 验收](python-platform-ecs-validation.md)。

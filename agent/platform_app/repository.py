@@ -1,12 +1,10 @@
 """平台状态唯一写入口。图拥有下一节点，账本拥有外部调用回执和预算。"""
 import hashlib
-import json
 import secrets
 from functools import lru_cache
 from pathlib import Path
 from datetime import datetime, timezone
 
-import bcrypt
 from fastapi import HTTPException
 from psycopg.types.json import Jsonb
 
@@ -16,7 +14,6 @@ from agent.runtime.multiturn import source_metadata
 from agent.runtime import app as runtime
 from agent.runtime.analysis_api import Identity, metadata
 from .checkpoints import LeaseLost
-from .policy import Policy
 
 ACTIVE = {"pending", "querying", "needs_clarification"}
 USER_COLUMNS = "id,tenant_id,username,role,allowed_metrics"

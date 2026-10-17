@@ -9,7 +9,7 @@ from runtime import app as runtime
 def client(monkeypatch):
     monkeypatch.setenv("SERVICE_KEY", "s" * 40)
     monkeypatch.delenv("LLM_API_KEY", raising=False)
-    monkeypatch.setenv("TENANT_DATASOURCES", json.dumps({"alpha:ops": {"host": "mysql", "database": "olist_alpha", "user": "alpha_ro", "password": "test-only", "analysis_date": "2018-08-31"}}))
+    monkeypatch.setenv("TENANT_DATASOURCES", json.dumps({"alpha:ops": {"host": "postgres", "database": "olist_alpha", "user": "alpha_ro", "password": "test-only", "analysis_date": "2018-08-31"}}))
     runtime.sources.cache_clear()
     with TestClient(runtime.app) as client:
         yield client
@@ -21,11 +21,11 @@ def request(tenant="alpha", metrics=None, question="本月 GMV"):
 
 
 def test_error_telemetry_keeps_execution_and_unknown_usage(client, monkeypatch):
-    import pymysql
+    import psycopg
     body = request()
     body["execution"] = {"task_id": "a" * 48, "execution_version": 3}
     def fail_sql(*args):
-        raise pymysql.OperationalError(3024, "sensitive database content")
+        raise psycopg.errors.QueryCanceled("sensitive database content")
     monkeypatch.setattr(runtime, "execute", fail_sql)
     response = client.post("/internal/query", headers={"X-Service-Key": "s" * 40}, json=body)
     trace = response.json()["telemetry"]

@@ -73,12 +73,6 @@ def test_named_state_exclusion_keeps_negative_operator(monkeypatch):
     assert actual == expected and len(calls) == 1
 
 
-def test_legacy_adapter_does_not_swallow_state_negation():
-    from runtime.intent import rules_intent
-    with pytest.raises(Clarification):
-        rules_intent("本月 GMV，不包含 SP", {})
-
-
 @pytest.mark.parametrize("question", [
     "本月 GMV，千万别只看 sp，剩余州都算上", "本月 GMV，不能只取 SP 的数据",
     "本月 GMV，别仅按州汇总，按月给我", "本月 GMV，别把订单量也算进来",

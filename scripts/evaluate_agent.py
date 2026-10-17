@@ -3,17 +3,12 @@ import argparse
 import hashlib
 import json
 import os
-import secrets
-import socket
-import subprocess
 import sys
-import tempfile
 import time
 from datetime import datetime, timezone
 from pathlib import Path
 
 import httpx
-import pymysql
 
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
@@ -33,41 +28,6 @@ def wait_health(url, process):
         except httpx.HTTPError: pass
         time.sleep(0.1)
     raise RuntimeError("evaluation_health_timeout")
-
-
-def provision(prefix, rows):
-    root = pymysql.connect(host=os.environ["MYSQL_TEST_HOST"], port=int(os.getenv("MYSQL_TEST_PORT", "3306")), user=os.getenv("MYSQL_TEST_USER", "root"), password=os.environ["MYSQL_TEST_PASSWORD"], autocommit=True)
-    password = secrets.token_hex(24)
-    names = []
-    try:
-        for marker in ("a", "b"):
-            schema, account = "test_eval_" + marker + prefix, "ev_" + marker + prefix
-            names.append((schema, account))
-            with root.cursor() as cursor:
-                cursor.execute("CREATE DATABASE " + schema)
-                cursor.execute(f"CREATE TABLE {schema}.facts(purchased_at DATETIME,customer_state VARCHAR(2),order_status VARCHAR(16),item_amount DECIMAL(20,2),delivery_days DECIMAL(20,8),review_score DECIMAL(10,4))")
-                cursor.executemany(f"INSERT INTO {schema}.facts VALUES(%s,%s,%s,%s,%s,%s)", [(r["purchased_at"], r["state"], r["status"], r["amount"], r["delivery"], r["review"]) for r in rows])
-                cursor.execute(f"CREATE VIEW {schema}.metric_orders AS SELECT * FROM {schema}.facts" + (" WHERE customer_state='SP'" if marker == "b" else ""))
-                cursor.execute("CREATE USER %s@'%%' IDENTIFIED BY %s", (account, password))
-                cursor.execute(f"GRANT SELECT ON {schema}.metric_orders TO %s@'%%'", (account,))
-        sources = {}
-        for marker, (schema, account) in zip(("ea", "eb"), names, strict=True):
-            for role in ("admin", "ops"):
-                sources[marker + "_" + prefix + ":" + role] = {"host": os.environ["MYSQL_TEST_HOST"], "port": int(os.getenv("MYSQL_TEST_PORT", "3306")), "database": schema, "user": account, "password": password, "analysis_date": "2018-08-31"}
-        return root, names, sources
-    except Exception:
-        cleanup(root, names)
-        raise
-
-
-def cleanup(root, names):
-    try:
-        with root.cursor() as cursor:
-            for schema, account in names:
-                cursor.execute("DROP DATABASE IF EXISTS " + schema)
-                cursor.execute("DROP USER IF EXISTS %s@'%%'", (account,))
-    finally:
-        root.close()
 
 
 def execute_case(client, probe, service_key, case, sessions, rows, observe=None):
@@ -106,9 +66,11 @@ def execute_case(client, probe, service_key, case, sessions, rows, observe=None)
         alpha.post("/api/tasks/" + task_id + "/stop")
         return False, {"error_code": "evaluation_timeout"}
     if observe is None:
-        observed = httpx.get(probe + "/evaluation/" + task_id, headers={"X-Service-Key": service_key}, timeout=3, trust_env=False)
+        observed = httpx.get(probe + "/evaluation/tasks/" + task_id, headers={"X-Service-Key": service_key}, timeout=3, trust_env=False)
         if observed.status_code != 200: return False, {"error_code": "observation_missing"}
         trace = observed.json()
+        trace["known_tokens"] = trace["known_total_tokens"]
+        trace["error_code"] = next(iter(trace["error_codes"]), "")
     else:
         trace = observe(task_id)
     trace["task_status"] = task["status"]
@@ -121,7 +83,7 @@ def execute_case(client, probe, service_key, case, sessions, rows, observe=None)
 
 
 def run(args):
-    if not all(os.getenv(k) for k in ("TEST_DATABASE_URL", "MYSQL_TEST_HOST", "MYSQL_TEST_PASSWORD")):
+    if not os.getenv("TEST_DATABASE_URL"):
         raise RuntimeError("explicit_test_databases_required")
     if args.mode == "live" and not all(os.getenv(k) for k in ("LLM_API_KEY", "LLM_BASE_URL", "LLM_MODEL")):
         raise RuntimeError("live_model_configuration_required")
@@ -135,34 +97,11 @@ def run(args):
         if not selected: raise RuntimeError("evaluation_case_missing")
     if args.mode == "live" and sum(c["category"] == "paraphrase" for c in selected) * 3 > args.max_model_calls:
         raise RuntimeError("evaluation_call_budget_too_small")
-    prefix, password, key = secrets.token_hex(8), secrets.token_hex(24), secrets.token_hex(24)
-    root, names, sources = provision(prefix, rows)
-    processes, sessions = [], []
-    try:
-        with socket.socket() as available:
-            available.bind(("127.0.0.1", 0)); port = available.getsockname()[1]
-        probe = f"http://127.0.0.1:{port}"
-        env = {**os.environ, "SERVICE_KEY": key, "TENANT_DATASOURCES": json.dumps(sources), "PYTHONPATH": str(args.agent_root.resolve()) + os.pathsep + str(ROOT), "EVAL_PREFIX": prefix, "EVAL_PASSWORD": password, "AGENT_URL": probe}
-        env["EVAL_MAX_MODEL_CALLS"] = str(args.max_model_calls)
-        if args.mode == "deterministic": env.pop("LLM_API_KEY", None)
-        # 输出含服务日志，写入临时文件避免堵塞管道；不加入默认评测报告。
-        with tempfile.TemporaryFile() as log:
-            agent = subprocess.Popen([sys.executable, "-m", "uvicorn", "scripts.eval_runtime:app", "--host", "127.0.0.1", "--port", str(port), "--no-access-log"], env=env, stderr=log, stdout=log)
-            processes.append(agent); wait_health(probe, agent)
-            server = subprocess.Popen([str(args.fixture_server.resolve())], env=env, stdout=subprocess.PIPE, stderr=log, text=True)
-            processes.append(server)
-            # 启动失败即退出，不把缺失报告误判为通过。
-            import concurrent.futures
-            reader = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-            try:
-                ready = reader.submit(server.stdout.readline).result(timeout=20)
-                url = json.loads(ready)["api_url"]
-            except Exception:
-                server.terminate()
-                raise RuntimeError("fixture_start_failed")
-            finally:
-                reader.shutdown(wait=True)
-            wait_health(url, server)
+    from scripts.python_query_stack import stack
+    sessions = []
+    with stack(rows, args.agent_root, args.max_model_calls, live=args.mode == "live") as (url, prefix, password, key):
+        probe = url
+        try:
             for tenant, role in (("ea", "admin"), ("eb", "admin"), ("ea", "ops")):
                 session = httpx.Client(base_url=url, headers={"Origin": url}, timeout=5, trust_env=False)
                 sessions.append(session)
@@ -179,14 +118,13 @@ def run(args):
                 if trace.get("known_tokens") is not None:
                     results[-1]["tokens"] = trace["known_tokens"] if trace["unknown_usage_calls"] == 0 else None
                 print(json.dumps({"id": case["id"], "passed": bool(passed)}, ensure_ascii=False), flush=True)
-            metadata = {"report_version": 1, "status": "complete", "mode": args.mode, "split": args.split, "dataset_hash": digest(ROOT / "evals/cases.py"), "fixture_hash": digest(fixture), "scorer_version": digest(ROOT / "evals/oracle.py"), "source_commit": args.source_commit, "model": os.getenv("LLM_MODEL") if args.mode == "live" else None, "cases": results,
-                        "configuration_hash": hashlib.sha256((os.getenv("LLM_BASE_URL", "") + "|" + os.getenv("LLM_MODEL", "") + "|" + digest(args.agent_root / "runtime/app.py") + "|" + digest(args.agent_root / "runtime/catalog.json")).encode()).hexdigest()}
+            metadata = {"report_version": 1, "status": "complete", "mode": args.mode, "split": args.split, "dataset_hash": digest(ROOT / "evals/cases.py"), "fixture_hash": digest(fixture), "scorer_version": digest(ROOT / "evals/oracle.py"), "source_commit": args.source_commit, "model": os.getenv("LLM_MODEL") if args.mode == "live" else None, "cases": results}
             args.output.parent.mkdir(parents=True, exist_ok=True)
             metadata["created_at"] = datetime.now(timezone.utc).isoformat()
             metadata["fixture_kind"] = "synthetic_order_facts"
-            metadata["platform_scope"] = "candidate_go_platform_for_both_agents"
+            metadata["platform_scope"] = "candidate_python_platform_for_both_agents"
             executor_hash = hashlib.sha256()
-            for file in ("scripts/evaluate_agent.py", "scripts/eval_runtime.py", "cmd/evalfixture/main.go"):
+            for file in ("scripts/evaluate_agent.py", "scripts/python_query_stack.py", "scripts/query_eval_runtime.py"):
                 executor_hash.update((ROOT / file).read_bytes())
             metadata["executor_version"] = executor_hash.hexdigest()
             supported = [c for c in results if c["category"] in ("rules", "paraphrase")]
@@ -202,19 +140,14 @@ def run(args):
             metadata["configuration_hash"] = runtime_hash.hexdigest()
             args.output.write_text(json.dumps(metadata, ensure_ascii=False, indent=2), encoding="utf-8")
             return metadata
-    finally:
-        for session in sessions: session.close()
-        for process in reversed(processes):
-            process.terminate()
-            try: process.wait(timeout=15)
-            except subprocess.TimeoutExpired: process.kill(); process.wait()
-        cleanup(root, names)
+        finally:
+            for session in sessions:
+                session.close()
 
 
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--agent-root", type=Path, default=ROOT / "agent")
-    p.add_argument("--fixture-server", type=Path, required=True)
     p.add_argument("--mode", choices=("deterministic", "live"), default="deterministic")
     p.add_argument("--split", choices=("development", "acceptance", "all"), default="development")
     p.add_argument("--source-commit", required=True)

@@ -7,7 +7,6 @@ from langgraph.types import interrupt
 
 # 共享查询模块先完成初始化，再加载保留的内部工具适配器。
 from agent.runtime import app as runtime
-from agent.runtime.analysis import canonical
 from agent.runtime.analysis_api import Snapshot, ToolRequest, checked, decide, decision_prompt, fixed_decide, parse_spec, spec_prompt, tool
 from .ledger import Ledger
 from .repository import identity
@@ -40,11 +39,11 @@ def build_graph(repo, task, saver):
             user = repo.execution(conn, task)
             run = conn.execute("SELECT * FROM analysis_runs WHERE id=%s", (task["id"],)).fetchone()
             artifacts = [r["body"] for r in conn.execute("SELECT body FROM analysis_artifacts WHERE run_id=%s ORDER BY created_at,result_ref", (task["id"],))]
-        value = dict(**identity(user).model_dump(), binding=run["binding"], question=state["question"],
+        value = Snapshot(**identity(user).model_dump(), binding=run["binding"], question=state["question"],
             spec=state.get("spec"), artifacts=artifacts, answers=state.get("answers", []), feedback=state.get("feedback", {}),
             max_output_tokens=run["policy"].get("max_output_tokens", 1024),
             model_timeout_seconds=run["policy"].get("model_timeout_seconds", 20))
-        checked(Snapshot.model_validate(value))
+        checked(value)
         return value, run
 
     def prepare(state):
@@ -66,15 +65,16 @@ def build_graph(repo, task, saver):
         fixed = run["policy"]["strategy"] == "fixed" and state.get("spec") is not None
         spec_only = run['policy']['strategy'] == 'fixed' and not fixed
         phase = "fixed" if fixed else "decide"
-        payload = {"spec": request["spec"], "answers": request["answers"], "feedback": request["feedback"], "artifact_refs": state.get("refs", [])}
+        payload = {"spec": request.spec.model_dump(mode="json") if request.spec else None,
+                   "answers": request.answers, "feedback": request.feedback, "artifact_refs": state.get("refs", [])}
         if not fixed:
             from datetime import date
-            prompt, question = (spec_prompt if spec_only else decision_prompt)(Snapshot.model_validate(request), date.fromisoformat(run["metadata"]["analysis_date"]))
+            prompt, question = (spec_prompt if spec_only else decision_prompt)(request, date.fromisoformat(run["metadata"]["analysis_date"]))
             payload.update(prompt=prompt, question=question, model=run["metadata"]["model"],
                 decision_protocol='spec-only-v1' if spec_only else 'adaptive-short-refs-v2',
-                max_output_tokens=request["max_output_tokens"], model_timeout_seconds=request["model_timeout_seconds"])
+                max_output_tokens=request.max_output_tokens, model_timeout_seconds=request.model_timeout_seconds)
         output = ledger.call(state["op_id"], phase, payload, state,
-            lambda: (fixed_decide if fixed else parse_spec if spec_only else decide)(Snapshot.model_validate(request)))
+            lambda: (fixed_decide if fixed else parse_spec if spec_only else decide)(request))
         return {"output": output}
 
     def interpret(state):
@@ -82,20 +82,12 @@ def build_graph(repo, task, saver):
         if output.get("status") != "completed":
             return failure(state, output)
         value = output["decision"]
-        with repo.db.transaction() as conn:
-            strategy = conn.execute("SELECT policy->>'strategy' strategy FROM analysis_runs WHERE id=%s", (task["id"],)).fetchone()["strategy"]
-        if strategy == "fixed" and value["spec"] is not None:
-            # C 组从第一个工具起即按固定依赖执行，不采纳模型附带的工具选择。
-            from agent.runtime.analysis import Spec
-            from agent.runtime.analysis_fixed import next_action
-            request, _ = snapshot({**state, "spec": value["spec"]})
-            value = next_action(Spec.model_validate(value["spec"]), request["artifacts"])
         return {"spec": value["spec"], "decision": value["action"], "status": "tool", "retry_sql": False}
 
     def execute_tool(state):
         request, _ = snapshot(state)
         output = ledger.call(state["op_id"], "tool", state["decision"], state,
-            lambda: tool(ToolRequest.model_validate({**request, "action": state["decision"]})))
+            lambda: tool(ToolRequest(**request.model_dump(), action=state["decision"])))
         return {"output": output}
 
     def failure(state, output):

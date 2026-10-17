@@ -82,32 +82,11 @@ def validate_suite(report):
             raise ValueError("report_suite_version_mismatch")
 
 
-def release_identity(report, manifest):
-    """报告与待发布配置绑定，防止使用旧报告发布新镜像。"""
-    validate_report(report)
-    if report.get("execution_scope") != "release_images" or report.get("sse_verified") is not True:
-        raise ValueError("release_requires_actual_images")
-    import re
-    if not re.fullmatch(r"[a-f0-9]{40}", report.get("source_commit", "")):
-        raise ValueError("release_requires_committed_source")
-    if report["mode"] != "live" or report["split"] != "acceptance":
-        raise ValueError("release_requires_live_acceptance")
-    for field in ("source_commit", "configuration_hash"):
-        if not manifest.get(field) or report.get(field) != manifest[field]:
-            raise ValueError("release_identity_mismatch")
-    images = manifest.get("images")
-    if not isinstance(images, dict) or set(images) != {"api", "agent", "web"} or images != report.get("images"):
-        raise ValueError("release_images_mismatch")
-    if any(not isinstance(v, str) or not re.fullmatch(r"[^\s]+@sha256:[a-f0-9]{64}", v) for v in images.values()):
-        raise ValueError("release_requires_image_digests")
-
-
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--candidate", type=Path, required=True)
     parser.add_argument("--baseline", type=Path, required=True)
     parser.add_argument("--policy", type=Path, required=True)
-    parser.add_argument("--manifest", type=Path)
     args = parser.parse_args()
     try:
         candidate = json.loads(args.candidate.read_text(encoding="utf-8"))
@@ -115,10 +94,8 @@ def main():
         validate_suite(candidate)
         validate_suite(baseline)
         outcome = decide(candidate, baseline, json.loads(args.policy.read_text(encoding="utf-8")))
-        if args.manifest:
-            release_identity(candidate, json.loads(args.manifest.read_text(encoding="utf-8")))
     except (OSError, ValueError, KeyError, TypeError):
-        outcome = {"passed": False, "failures": ["report_or_release_identity_unavailable"]}
+        outcome = {"passed": False, "failures": ["report_identity_unavailable"]}
     print(json.dumps(outcome, ensure_ascii=False))
     return 0 if outcome["passed"] else 1
 

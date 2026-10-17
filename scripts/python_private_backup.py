@@ -7,7 +7,7 @@ import secrets
 import subprocess
 import tempfile
 
-from scripts.private_ops import read_env
+from scripts.private_env import read_env
 
 
 def run(env_file, source):

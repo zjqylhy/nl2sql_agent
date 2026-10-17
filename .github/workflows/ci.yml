@@ -12,28 +12,17 @@ jobs:
         options: >-
           --health-cmd "pg_isready -U test -d test"
           --health-interval 5s --health-timeout 3s --health-retries 20
-      mysql:
-        image: mysql:8.4
-        env: {MYSQL_ROOT_PASSWORD: test-only-ci-password, MYSQL_ROOT_HOST: "%"}
-        ports: ["3306:3306"]
-        options: >-
-          --health-cmd "mysqladmin ping -h localhost --silent"
-          --health-interval 5s --health-timeout 3s --health-retries 30
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-go@v5
-        with: {go-version: "1.27"}
       - uses: actions/setup-node@v4
         with: {node-version: "24", cache: npm, cache-dependency-path: web/package-lock.json}
-      - run: go vet ./... && go test -race ./...
-        env: {TEST_DATABASE_URL: "postgres://test:test-only-ci-password@localhost:5432/test?sslmode=disable"}
       - run: npm ci && npm run build
         working-directory: web
       - run: docker compose --env-file .env.example config --quiet
       - run: docker compose --env-file .env.example build api worker web
       # 使用运行镜像的依赖和配套 PG 客户端，覆盖真实检查点及备份恢复。
       - run: docker build --build-arg PLATFORM_IMAGE=olist-python-platform:local -f deploy/Dockerfile.validation -t olist-python-validation:ci .
-      - name: Python tests with PostgreSQL and legacy MySQL
+      - name: Python tests with PostgreSQL
         run: >-
           docker run --rm --network host --read-only --tmpfs /tmp:exec
           --cap-drop ALL --security-opt no-new-privileges:true
@@ -41,8 +30,6 @@ jobs:
           -e PYTHONPATH=/app:/workspace
           -e TEST_DATABASE_URL=postgresql://test:test-only-ci-password@localhost:5432/test
           -e PG_TEST_BIN=/usr/bin
-          -e MYSQL_TEST_HOST=localhost
-          -e MYSQL_TEST_PASSWORD=test-only-ci-password
           -v "$GITHUB_WORKSPACE:/workspace:ro"
           -w /app olist-python-validation:ci
           -m pytest /workspace/agent/tests -q -p no:cacheprovider

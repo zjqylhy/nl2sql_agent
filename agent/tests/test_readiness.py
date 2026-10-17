@@ -11,6 +11,20 @@ def source(**values):
     return app.Datasource(host="private-db", database="fixture", user="ro", password="secret", analysis_date="2018-08-31", ssl_ca="/private/ca.pem", **values)
 
 
+def test_postgres_connection_preserves_verified_tls_and_readonly_timeout(monkeypatch):
+    options = {}
+    sentinel = object()
+    def connect(**values):
+        options.update(values)
+        return sentinel
+    monkeypatch.setattr(app.psycopg, 'connect', connect)
+    assert app.connect(source()) is sentinel
+    assert options['sslmode'] == 'verify-full' and options['sslrootcert'] == '/private/ca.pem'
+    assert options['connect_timeout'] == 3
+    assert 'default_transaction_read_only=on' in options['options']
+    assert 'statement_timeout=10000' in options['options']
+
+
 def test_probe_verifies_tls_view_and_closes(monkeypatch):
     calls = {}
     class Cursor:
@@ -20,13 +34,12 @@ def test_probe_verifies_tls_view_and_closes(monkeypatch):
     class Connection:
         def cursor(self): return Cursor()
         def close(self): calls["closed"] = True
-    def connect(**options):
-        calls["options"] = options
+    def connect(value):
+        calls["source"] = value
         return Connection()
-    monkeypatch.setattr(readiness.pymysql, "connect", connect)
+    monkeypatch.setattr(app, "connect", connect)
     assert readiness.probe(source())
-    assert calls["options"]["ssl_verify_cert"] and calls["options"]["ssl_verify_identity"]
-    assert calls["options"]["read_timeout"] == 1
+    assert calls["source"].ssl_ca == "/private/ca.pem"
     assert calls["sql"].endswith("LIMIT 0") and calls["closed"]
 
 
@@ -40,10 +53,10 @@ def test_probe_failure_is_private_and_closes(monkeypatch, failure):
     class Connection:
         def cursor(self): return Cursor()
         def close(self): closed.append(True)
-    def connect(**options):
+    def connect(value):
         if failure != "missing_view": raise RuntimeError(failure + " secret")
         return Connection()
-    monkeypatch.setattr(readiness.pymysql, "connect", connect)
+    monkeypatch.setattr(app, "connect", connect)
     assert not readiness.probe(source())
     assert bool(closed) == (failure == "missing_view")
 

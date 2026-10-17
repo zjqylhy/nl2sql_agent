@@ -14,7 +14,7 @@ import tempfile
 import bcrypt
 import psycopg
 from psycopg import sql
-from psycopg.conninfo import conninfo_to_dict, make_conninfo
+from psycopg.conninfo import conninfo_to_dict
 
 from agent.platform_app.database import migrate
 from agent.runtime.catalog import catalog

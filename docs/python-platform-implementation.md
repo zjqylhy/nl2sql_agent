@@ -1,5 +1,7 @@
 # Python 单栈实施记录
 
+当前源码的 Go/MySQL 旧栈已按用户确认退役；历史实现和验收状态保留在下文，最新代码边界见[清理规格](runtime-cleanup-spec.md)。
+
 需求与方案：`python-agent-target-spec.md`，用户已确认并授权实现。默认源码和 Compose 为 Python API/Worker + LangGraph + PostgreSQL，ECS 入口已按单独授权切换；首次部署见 [服务器验收](python-platform-ecs-validation.md)，当前版本见 [增量发布验收](python-platform-release-20261017.md)。下文保留首次本地实施时的验证证据，不能将其历史状态理解为当前线上状态。旧 Go/MySQL 保留为显式基线，不参与默认运行路径。
 
 ## P0：真实 PostgreSQL 机制验证

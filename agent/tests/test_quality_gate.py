@@ -4,7 +4,7 @@ import sys
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
-from scripts.quality_gate import decide, release_identity, validate_suite
+from scripts.quality_gate import decide, validate_suite
 from evals.cases import cases
 from evals.oracle import facts
 
@@ -39,17 +39,6 @@ def test_boundaries_critical_calls_and_incomplete_reports():
         if change == "incomplete": new["status"] = "incomplete"
         if change == "identity": new["fixture_hash"] = "changed"
         assert not decide(new, old, POLICY)["passed"]
-
-
-def test_release_cannot_use_offline_or_different_images():
-    import pytest
-    new = report()
-    with pytest.raises(ValueError): release_identity(new, {})
-    new.update(mode="live", split="acceptance", configuration_hash="c", execution_scope="release_images", sse_verified=True, images={k: "registry.test/" + k + "@sha256:" + "a" * 64 for k in ("api", "agent", "web")})
-    manifest = {k: new[k] for k in ("source_commit", "configuration_hash", "images")}
-    release_identity(new, manifest)
-    manifest["images"] = {**manifest["images"], "api": "registry.test/api:latest"}
-    with pytest.raises(ValueError): release_identity(new, manifest)
 
 
 def test_dataset_partition_does_not_split_paraphrase_groups():

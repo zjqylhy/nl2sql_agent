@@ -4,12 +4,12 @@ import hashlib
 import json
 from pathlib import Path
 
-from .import_olist import TABLES
+from .olist_csv import TABLES
 
 
 def revision(folder: Path) -> str:
     files = {}
-    for filename, _, _ in TABLES.values():
+    for filename, _ in TABLES.values():
         with (folder / filename).open("rb") as source:
             files[filename] = hashlib.file_digest(source, "sha256").hexdigest()
     return hashlib.sha256(json.dumps(files, sort_keys=True, separators=(",", ":")).encode()).hexdigest()

@@ -14,7 +14,6 @@ from urllib.parse import urlsplit
 import bcrypt
 import psycopg
 from fastapi import Depends, FastAPI, HTTPException, Query, Request
-from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse, StreamingResponse
 from pydantic import Field, model_validator
@@ -22,7 +21,7 @@ from psycopg.types.json import Jsonb
 from starlette.concurrency import run_in_threadpool
 
 from agent.runtime import app as runtime
-from agent.runtime.analysis import AnalysisError, Spec, canonical, metric_ids
+from agent.runtime.analysis import AnalysisError, Spec, metric_ids
 from agent.runtime.analysis_api import context as analysis_context
 from agent.runtime.catalog import StrictModel, catalog
 from .database import Database

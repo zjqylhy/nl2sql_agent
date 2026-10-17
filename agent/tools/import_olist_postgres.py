@@ -10,7 +10,7 @@ import psycopg
 from psycopg import sql
 
 from .analysis_revision import revision
-from .import_olist import TABLES, chunks
+from .olist_csv import TABLES, chunks
 
 DDL = {
     "orders": "order_id text PRIMARY KEY, customer_id text NOT NULL, order_status text NOT NULL, order_purchase_timestamp timestamp NOT NULL, order_delivered_customer_date timestamp",
@@ -30,7 +30,7 @@ def provision(conn, folder: Path, schema: str, readonly_user: str, readonly_pass
         # 已有 schema 不覆盖；失败时表、数据、账号授权一起回滚。
         cur.execute(sql.SQL("CREATE SCHEMA {}").format(sql.Identifier(schema)))
         cur.execute(sql.SQL("SET LOCAL search_path={},pg_catalog").format(sql.Identifier(schema)))
-        for table, (filename, columns, _) in TABLES.items():
+        for table, (filename, columns) in TABLES.items():
             cur.execute(sql.SQL("CREATE TABLE {} ({})").format(sql.Identifier(table), sql.SQL(DDL[table])))
             with (folder / filename).open(encoding="utf-8-sig", newline="") as stream:
                 reader = csv.DictReader(stream)

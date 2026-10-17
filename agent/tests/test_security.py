@@ -1,6 +1,6 @@
 import pytest
 from runtime.security import validate_sql, UnsafeSQL
-from runtime.metrics import compile_query
+from runtime.plan import QueryPlan, compile_plan
 
 
 @pytest.mark.parametrize("sql", [
@@ -29,4 +29,5 @@ def test_attacks_are_rejected(sql):
 
 def test_parameter_count_is_checked():
     with pytest.raises(UnsafeSQL):
-        validate_sql(compile_query("gmv", False), ["2018-01-01"])
+        sql, _ = compile_plan(QueryPlan(metrics=["gmv"], time_range={"start": "2018-01-01", "end_exclusive": "2018-02-01"}))
+        validate_sql(sql, ["2018-01-01"], overflow_probe=True)

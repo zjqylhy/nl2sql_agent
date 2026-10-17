@@ -248,7 +248,7 @@ def main():
     parser.add_argument("--split", choices=["development", "acceptance"], default="development")
     parser.add_argument("--repeats", type=int, default=3)
     parser.add_argument("--with-model", action="store_true")
-    parser.add_argument('--observer-url', help='baseline 必须提供本机 analysis_eval_runtime 的地址')
+    parser.add_argument('--observer-url', help='baseline 必须提供隔离 Python 评测 API 的地址')
     parser.add_argument("--output", type=Path, default=ROOT/".cache/analysis-evaluation.json")
     args = parser.parse_args()
     if not 1 <= args.repeats <= 10:
@@ -256,7 +256,7 @@ def main():
     dataset = load()
     cases = [c for c in dataset["cases"] if c["split"] == args.split]
     if args.with_model:
-        if subprocess.check_output(['git','status','--porcelain','--','agent/runtime','internal','cmd','evals/analysis','scripts/evaluate_analysis.py','scripts/analysis_eval_runtime.py'],cwd=ROOT).strip():
+        if subprocess.check_output(['git','status','--porcelain','--','agent','evals/analysis','scripts'],cwd=ROOT).strip():
             raise ValueError('commit_evaluation_code_before_live_run')
         results = evaluate(args.base_url, args.group, cases, args.repeats, args.observer_url)
     else:

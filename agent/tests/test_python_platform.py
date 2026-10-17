@@ -581,45 +581,6 @@ def test_study_budget_survives_fixture_switch_and_error_cleanup(monkeypatch):
         budget.consume(1)
 
 
-def test_legacy_adoption_preserves_login_sessions_and_history(platform):
-    _, _, source = platform
-    from scripts.python_analysis_stack import uri_for
-    admin_dsn = os.environ["TEST_DATABASE_URL"]
-    name = "test_legacy_"+secrets.token_hex(6)
-    with psycopg.connect(admin_dsn, autocommit=True) as admin:
-        admin.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(name)))
-    dsn = uri_for(admin_dsn, name)
-    token = secrets.token_hex(24)
-    try:
-        with psycopg.connect(dsn) as conn:
-            conn.execute("CREATE TABLE schema_migrations(version text PRIMARY KEY,checksum text NOT NULL)")
-            for path in sorted((ROOT/"internal/store/migrations").glob("*.sql")):
-                conn.execute(path.read_text(encoding="utf-8"))
-                conn.execute("INSERT INTO schema_migrations VALUES(%s,%s)", ("migrations/"+path.name, hashlib.sha256(path.read_bytes()).hexdigest()))
-            conn.execute("INSERT INTO tenants VALUES('demo','legacy')")
-            conn.execute("INSERT INTO users(id,tenant_id,username,password_hash,role,allowed_metrics) VALUES('legacy','demo','admin',%s,'admin',ARRAY['gmv'])", (bcrypt.hashpw(b"legacy-password", bcrypt.gensalt(rounds=4)),))
-            conn.execute("INSERT INTO sessions VALUES(%s,'demo','legacy',now()+interval '1 hour')", (hashlib.sha256(token.encode()).hexdigest(),))
-            conn.execute("INSERT INTO tasks(id,tenant_id,user_id,input,status) VALUES('old','demo','legacy','{\"question\":\"旧问数\"}','pending')")
-        with pytest.raises(ValueError, match="未结束"):
-            migrate(dsn, adopt_legacy=True)
-        with psycopg.connect(dsn) as conn:
-            assert conn.execute("SELECT to_regclass('public.tasks')").fetchone()[0] == "tasks"
-            conn.execute("UPDATE tasks SET status='completed',result='{\"metric\":\"gmv\"}'")
-        migrate(dsn, adopt_legacy=True)
-        db = Database(dsn)
-        try:
-            with TestClient(create_app(db, None, origin=ORIGIN)) as client:
-                client.cookies["session"] = token
-                assert client.get("/api/me").json()["username"] == "admin"
-                assert client.get("/api/tasks/old").json()["status"] == "completed"
-                assert client.post("/api/login", headers={"Origin": ORIGIN}, json={"tenant": "demo", "username": "admin", "password": "legacy-password"}).status_code == 200
-        finally:
-            db.close()
-    finally:
-        with psycopg.connect(admin_dsn, autocommit=True) as admin:
-            admin.execute(sql.SQL("DROP DATABASE {} WITH (FORCE)").format(sql.Identifier(name)))
-
-
 @pytest.mark.parametrize("field,value", [("tokens", 30000), ("cost", 1000000), ("model_calls", 10), ("active_ms", 180000), ("sequence", 40)])
 def test_hard_budget_stops_before_provider(platform, monkeypatch, field, value):
     client, repo, _ = platform

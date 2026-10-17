@@ -1,4 +1,4 @@
-"""用独立语义标注和 CSV 重算验证解析；SQLite 只替代执行，不代表 MySQL 或部署验收。"""
+"""用独立语义标注和 CSV 重算验证解析；SQLite 只替代执行，不代表 PostgreSQL 部署验收。"""
 import argparse
 from datetime import date
 from decimal import Decimal
@@ -49,7 +49,7 @@ def evaluate(*, live=False, rounds=1, max_model_calls=120):
     source = runtime.Datasource(host="isolated-sqlite", database="parsing_fixture", user="fixture", password="unused", analysis_date=date(2018, 8, 31))
     connection = sqlite3.connect(":memory:")
     connection.row_factory = sqlite3.Row
-    connection.create_function("DATE_FORMAT", 2, lambda value, fmt: value[:7])
+    connection.create_function("TO_CHAR", 2, lambda value, fmt: value[:7])
     connection.execute("CREATE TABLE metric_orders(order_status TEXT,item_amount REAL,delivery_days REAL,review_score REAL,customer_state TEXT,purchased_at TEXT)")
     connection.executemany("INSERT INTO metric_orders VALUES(?,?,?,?,?,?)", [
         (r["status"], *[str(r[k]) if r[k] is not None else None for k in ("amount", "delivery", "review")], r["state"], r["purchased_at"]) for r in rows])

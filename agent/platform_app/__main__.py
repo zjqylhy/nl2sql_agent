@@ -38,7 +38,6 @@ def provision_roles(dsn, api_role="platform_api", worker_role="platform_worker")
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("command", choices=["api", "worker", "migrate", "seed", "provision-roles", "prune"])
-    parser.add_argument("--adopt-legacy", action="store_true")
     parser.add_argument("--tenant", default="demo")
     parser.add_argument("--username", default="admin")
     parser.add_argument("--host", default="0.0.0.0")
@@ -49,7 +48,7 @@ def main():
         uvicorn.run("agent.platform_app.api:app", host=args.host, port=args.port, access_log=False)
         return
     if args.command == "migrate":
-        migrate(os.environ["DATABASE_URL"], adopt_legacy=args.adopt_legacy)
+        migrate(os.environ["DATABASE_URL"])
         return
     if args.command == "provision-roles":
         provision_roles(os.environ["DATABASE_URL"])
