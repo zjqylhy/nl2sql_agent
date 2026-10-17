@@ -3,8 +3,16 @@ import sqlite3
 
 import pytest
 
-from runtime.metrics import METRICS, compile_query
+from runtime.catalog import catalog
+from runtime.plan import QueryPlan, compile_plan
 from runtime.security import validate_sql
+
+
+def compile_query(metric, grouped=False, state_count=0):
+    plan = QueryPlan(metrics=[metric], dimensions=["state"] if grouped else [],
+        time_range={"start": "2018-08-01", "end_exclusive": "2018-09-01"},
+        filters=[{"field": "state", "op": "in", "values": ["SP"]}] if state_count else [])
+    return compile_plan(plan)[0]
 
 
 @pytest.fixture
@@ -31,34 +39,34 @@ def facts():
 def test_golden_metrics(facts, metric, expected, samples):
     sql = compile_query(metric, False)
     params = ["2018-08-01", "2018-09-01"]
-    validate_sql(sql, params)
+    validate_sql(sql, params, overflow_probe=True)
     row = facts.execute(sql, params).fetchone()
-    assert row["value"] == pytest.approx(expected)
-    assert row["sample_size"] == samples
+    assert row["m0_value"] == pytest.approx(expected)
+    assert row["m0_sample"] == samples
     assert row["total_orders"] == 5
     assert row["unavailable_orders"] == 1
 
 
-@pytest.mark.parametrize("metric", METRICS)
+@pytest.mark.parametrize("metric", catalog().metrics)
 def test_empty_window_is_not_zero(facts, metric):
     row = facts.execute(compile_query(metric, False), ["2019-01-01", "2019-02-01"]).fetchone()
-    assert row["value"] is None
+    assert row["m0_value"] is None
     assert row["total_orders"] == 0
 
 
 def test_actual_zero_and_missing_amount(facts):
     row = facts.execute(compile_query("gmv", False), ["2018-08-06", "2018-08-07"]).fetchone()
-    assert row["value"] == 0
+    assert row["m0_value"] == 0
     facts.execute("INSERT INTO metric_orders VALUES('delivered',NULL,NULL,NULL,'SP','2018-08-07')")
     row = facts.execute(compile_query("gmv", False), ["2018-08-01", "2018-09-01"]).fetchone()
-    assert row["value"] is None  # 部分金额缺失，不能输出不完整总额。
+    assert row["m0_value"] is None  # 部分金额缺失，不能输出不完整总额。
 
 
 def test_state_filter_and_group(facts):
     sql = compile_query("gmv", True, 1)
     params = ["2018-08-01", "2018-09-01", "SP"]
-    validate_sql(sql, params)
+    validate_sql(sql, params, overflow_probe=True)
     rows = facts.execute(sql, params).fetchall()
     assert len(rows) == 1
-    assert rows[0]["label"] == "SP"
-    assert rows[0]["value"] == 150
+    assert rows[0]["d_state"] == "SP"
+    assert rows[0]["m0_value"] == 150

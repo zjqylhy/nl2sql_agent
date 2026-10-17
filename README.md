@@ -1,10 +1,10 @@
 # Olist 经营分析助手
 
-默认后端为 **Python + FastAPI + LangGraph + PostgreSQL**，前端 React。API 和 Worker 使用同一镜像、分进程运行；默认部署不启动 Go 或 MySQL 服务。
+后端为 **Python + FastAPI + LangGraph + PostgreSQL**，前端 React。API 和 Worker 使用同一镜像、分进程运行。
 
 支持原单次/多轮问数，以及范围有限的经营分析：比较两个时间段各州 GMV、按下降金额或比例排名并核查订单量和客单价；汇总 GMV 前 N 州的金额、订单量、整体客单价和占比。模型选择下一步，数字由受限 SQL 与 Decimal 工具计算；指标变化只作描述性分析。
 
-需求与边界见[实施规格](docs/python-agent-target-spec.md)，实现见[实施记录](docs/python-platform-implementation.md)，当前云端结果及限制见[ECS 部署验收](docs/python-platform-ecs-validation.md)。Go/Python/MySQL 首版保留作历史基线，相关实测不能当成新平台的模型效果证据。
+需求与边界见[实施规格](docs/python-agent-target-spec.md)，实现见[实施记录](docs/python-platform-implementation.md)，当前云端结果及限制见[增量发布验收](docs/python-platform-release-20261017.md)。Go/MySQL 源码、部署与执行链已退役；历史结果和冻结数据保留，旧版本可通过 Git 历史复现，详见[清理结果](docs/runtime-cleanup-results.md)。
 
 ## 运行边界
 
@@ -18,7 +18,7 @@
 
 ## Windows 本地启动
 
-需要 Python 3.12、Node.js，以及 PostgreSQL。容器启动需 Docker Desktop Linux containers；源码入口无需 Go。
+需要 Python 3.12、Node.js，以及 PostgreSQL。容器启动需 Docker Desktop Linux containers。
 
 ```powershell
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
@@ -37,7 +37,7 @@ docker compose up -d --build
 ```powershell
 python -m venv .venv
 .venv/Scripts/python.exe -m pip install -r agent/requirements.lock
-.venv/Scripts/python.exe agent/tools/download_olist.py --output data/olist
+.venv/Scripts/python.exe -m agent.tools.download_olist --output data/olist
 docker compose run --rm import
 docker compose run --rm seed
 ```
@@ -74,7 +74,7 @@ docker compose up -d --force-recreate api worker
 
 `ANALYSIS_INPUT_PRICE_MICROS` / `OUTPUT_PRICE_MICROS` 表示每百万 Token 的微货币单位价格，1000000 微单位等于 1 货币单位。预留与已知用量不等于供应商最终账单。示例中的空价格不能当作免费价格使用。默认策略 `adaptive`，`fixed` 用于对照实验。
 
-模型网关默认示例为 `https://localhost:9443/v1`。容器中 `localhost` 指容器本身，需按实际网络配置可达地址、TLS CA 和连接覆盖；参见[网关手册](docs/model-gateway-operations.md)，其中旧 agent 服务名在新部署中对应 worker。不能关闭 TLS 校验绕过证书问题。
+模型网关默认示例为 `https://localhost:9443/v1`。容器中 `localhost` 指容器本身，需按实际网络配置可达地址、TLS CA 和连接覆盖。Windows 隧道使用 `deploy/compose.gateway-local.yaml`，作用于 API 和 Worker；服务器使用 `deploy/compose.python-private.yaml`。不能关闭 TLS 校验绕过证书问题。
 
 ### 源码调试
 
@@ -117,12 +117,12 @@ npm run build
 
 ```powershell
 .venv/Scripts/python.exe scripts/run_analysis_study.py
-# 确认模型、价格和题集后，显式启用真实调用；上限按每组每夹具计算。
+# 确认模型、价格和题集后显式启用；max-model-calls 为整轮研究的请求上限。
 .venv/Scripts/python.exe scripts/run_analysis_study.py --with-model --split acceptance --repeats 3 --max-model-calls 500
 ```
 
 题集为 80 表达 / 40 意图组、标注仍为 draft。[服务器 A/B/C 预实验](docs/analysis-study-pilot-results.md)已执行 12 个开发表达：语义复核后完整任务 A 2/8、B 6/8、C 8/8，原始分数与失败均保留；当前没有证明自适应优于固定流程。完整评测及人工题集复核仍待验收。历史解析/多轮实测见[解析证据](docs/user-understanding-evidence.md)、[多轮证据](docs/multiturn-evidence.md)，均属于旧平台基线。
 
-备份和迁移操作见[Python 平台运维](docs/python-platform-operations.md)。所有三个权限域必须来自同一备份快照；恢复只允许空目标库，恢复后重建可信数据源映射和账号密钥。经用户单独授权，新版已切换至 ECS 私有入口并启用备份定时器，结果见[ECS 部署验收](docs/python-platform-ecs-validation.md)；未推送远端 Git。
+单步问数质量比较器 `scripts/compare_agent.sh` 也使用真实 Python API/Worker 与独立 PG，保留原冻结题集和质量门槛。对照历史 Python 内核时，基线额外依赖只存在于质量检查环境，不进入当前运行镜像。早于 Python 平台的 Go 执行器需在历史提交复现。
 
-旧 Go/MySQL 本地配置保留在 `deploy/compose.legacy.yaml` 和 `deploy/legacy.env.example`；现有 `compose.private/cloud`、旧 release 脚本及其线上记录属于历史发布链，不能直接用于新平台发布。新版私有部署使用 `compose.yaml` 与 `deploy/compose.python-private.yaml`，当前版本及验收结果见上述 ECS 记录。
+备份与恢复见[Python 平台运维](docs/python-platform-operations.md)。三个权限域必须来自同一备份快照；恢复只允许空目标库，之后重建可信数据源映射和账号密钥。服务器旧镜像和数据卷保留，本轮源码清理未自动切换线上版本。

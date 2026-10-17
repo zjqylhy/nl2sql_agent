@@ -8,7 +8,6 @@ from functools import lru_cache
 from typing import Literal
 
 import httpx
-import pymysql
 import psycopg
 from psycopg.rows import dict_row
 from fastapi import Depends, FastAPI, Header, HTTPException
@@ -56,7 +55,7 @@ class QueryRequest(BaseModel):
 class Datasource(BaseModel):
     model_config = ConfigDict(extra="forbid")
     host: str
-    port: int = 3306
+    port: int = 5432
     database: str = Field(pattern=r"^[a-z][a-z0-9_]{1,63}$")
     user: str
     password: str = Field(repr=False)
@@ -64,7 +63,7 @@ class Datasource(BaseModel):
     ssl_ca: str | None = None
     context_revision: int = Field(default=1, ge=1, strict=True)
     dataset_revision: str = Field(default="", pattern=r"^(?:[a-f0-9]{64})?$")
-    driver: Literal["mysql", "postgresql"] = "mysql"
+    driver: Literal["postgresql"] = "postgresql"
     schema_name: str = Field(default="public", pattern=r"^[a-z][a-z0-9_]{1,63}$")
 
 
@@ -156,42 +155,22 @@ class ResultTooLarge(ValueError):
 
 
 def connect(source: Datasource):
-    if source.driver == "postgresql":
-        return psycopg.connect(host=source.host, port=source.port, user=source.user,
-            password=source.password, dbname=source.database, connect_timeout=3,
-            sslmode="verify-full" if source.ssl_ca else "prefer", sslrootcert=source.ssl_ca,
-            options=f"-c search_path={source.schema_name},pg_catalog -c statement_timeout=10000 -c default_transaction_read_only=on",
-            row_factory=dict_row, autocommit=True)
-    return pymysql.connect(host=source.host, port=source.port, user=source.user, password=source.password, database=source.database, charset="utf8mb4", connect_timeout=3, read_timeout=12, write_timeout=3, cursorclass=pymysql.cursors.DictCursor, autocommit=True, ssl_ca=source.ssl_ca, ssl_verify_cert=bool(source.ssl_ca), ssl_verify_identity=bool(source.ssl_ca))
+    return psycopg.connect(host=source.host, port=source.port, user=source.user,
+        password=source.password, dbname=source.database, connect_timeout=3,
+        sslmode="verify-full" if source.ssl_ca else "prefer", sslrootcert=source.ssl_ca,
+        options=f"-c search_path={source.schema_name},pg_catalog -c statement_timeout=10000 -c default_transaction_read_only=on",
+        row_factory=dict_row, autocommit=True)
 
 
 def execute(source: Datasource, sql: str, params: list) -> list[dict]:
     with telemetry.stage("sql_validation"):
-        validate_sql(sql, params, overflow_probe=sql.endswith(" LIMIT 1001"), dialect="postgres" if source.driver == "postgresql" else "mysql")
-    if source.driver == "postgresql":
-        # 服务端语句超时之外再限制客户端等待，断网不能永久占用 Worker。
-        with asyncio.Runner(loop_factory=asyncio.SelectorEventLoop if os.name == "nt" else asyncio.new_event_loop) as runner:
-            rows = runner.run(asyncio.wait_for(execute_postgres(source, sql, params), timeout=15))
-        if len(rows) > 1000:
-            raise ResultTooLarge("结果超过 1000 组，请缩小日期范围或明确 Top N")
-        return normalize_rows(rows)
-    with telemetry.stage("db_connect"):
-        connection = connect(source)
-    try:
-        with connection.cursor() as cursor:
-            # 数据库账号仅获授权视图 SELECT；服务同时限制执行时间与返回规模。
-            # PyMySQL 的参数绑定使用百分号格式化，日期格式中的 % 必须先转义。
-            executable = sql.replace("%", "%%").replace("?", "%s")
-            if source.driver == "mysql":
-                executable = executable.replace("SELECT ", "SELECT /*+ MAX_EXECUTION_TIME(10000) */ ", 1)
-            with telemetry.stage("sql"):
-                cursor.execute(executable, params)
-                rows = cursor.fetchmany(1001)
-            if len(rows) > 1000:
-                raise ResultTooLarge("结果超过 1000 组，请缩小日期范围或明确 Top N")
-        return normalize_rows(rows)
-    finally:
-        connection.close()
+        validate_sql(sql, params, overflow_probe=sql.endswith(" LIMIT 1001"))
+    # 语句超时之外限制客户端等待，断网不能永久占用 Worker。
+    with asyncio.Runner(loop_factory=asyncio.SelectorEventLoop if os.name == "nt" else asyncio.new_event_loop) as runner:
+        rows = runner.run(asyncio.wait_for(execute_postgres(source, sql, params), timeout=15))
+    if len(rows) > 1000:
+        raise ResultTooLarge("结果超过 1000 组，请缩小日期范围或明确 Top N")
+    return normalize_rows(rows)
 
 
 async def execute_postgres(source, sql, params):
@@ -309,7 +288,7 @@ def execute_plan(source: Datasource, plan: QueryPlan, allowed_metrics: list[str]
         if any(m not in allowed_metrics for m in plan.metrics):
             raise HTTPException(403, "没有全部所请求指标的权限")
     with telemetry.stage("compile"):
-        sql, params = compile_plan(plan, dialect="postgres" if source.driver == "postgresql" else "mysql")
+        sql, params = compile_plan(plan)
     try:
         telemetry.update(sql_calls=1)
         rows = execute(source, sql, params)
@@ -319,8 +298,8 @@ def execute_plan(source: Datasource, plan: QueryPlan, allowed_metrics: list[str]
     except UnsafeSQL as exc:
         telemetry.update(error_code="sql_safety")
         raise HTTPException(403, "查询未通过安全校验") from exc
-    except (pymysql.MySQLError, psycopg.Error, TimeoutError) as exc:
-        timeout = isinstance(exc, psycopg.errors.QueryCanceled) or (exc.args and exc.args[0] in (3024, 1317))
+    except (psycopg.Error, TimeoutError) as exc:
+        timeout = isinstance(exc, psycopg.errors.QueryCanceled)
         telemetry.update(error_code="sql_timeout" if timeout else "db_error")
         raise HTTPException(503, "分析数据暂时不可用或查询超时，请联系数据管理员") from exc
     telemetry.update(rows=len(rows))

@@ -26,7 +26,7 @@ def rules(question, overrides=None, anchor=ANCHOR):
 def facts():
     db = sqlite3.connect(":memory:")
     db.row_factory = sqlite3.Row
-    db.create_function("DATE_FORMAT", 2, lambda value, fmt: value[:7])
+    db.create_function("TO_CHAR", 2, lambda value, fmt: value[:7])
     db.execute("CREATE TABLE metric_orders(order_status TEXT,item_amount REAL,delivery_days REAL,review_score REAL,customer_state TEXT,purchased_at TEXT)")
     db.executemany("INSERT INTO metric_orders VALUES(?,?,?,?,?,?)", [
         ("delivered", 150, 5, 4, "SP", "2018-07-02"),
@@ -141,15 +141,16 @@ def test_execution_refuses_group_overflow_and_closes_connection(monkeypatch, siz
     class Connection:
         closed = False
         def cursor(self): return self
-        def __enter__(self): return self
-        def __exit__(self, *args): pass
-        def execute(self, sql, params): pass
-        def fetchmany(self, count):
+        async def __aenter__(self): return self
+        async def __aexit__(self, *args): pass
+        async def execute(self, sql, params): pass
+        async def fetchmany(self, count):
             assert count == 1001
             return [{"d_day": "2018-08-01"}] * size
-        def close(self): self.closed = True
+        async def close(self): self.closed = True
     connection = Connection()
-    monkeypatch.setattr(runtime, "connect", lambda source: connection)
+    async def connect(**options): return connection
+    monkeypatch.setattr(runtime.psycopg.AsyncConnection, "connect", connect)
     sql, params = compile_plan(rules("本月 GMV 按日统计"))
     source = runtime.Datasource(host="unused", database="fixture", user="fixture", password="", analysis_date=ANCHOR)
     if size == 1001:

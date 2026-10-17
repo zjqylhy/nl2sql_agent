@@ -2,7 +2,6 @@
 from concurrent.futures import ThreadPoolExecutor, wait
 from threading import Lock
 
-import pymysql
 
 pool = ThreadPoolExecutor(max_workers=4, thread_name_prefix="readiness")
 lock = Lock()
@@ -13,15 +12,8 @@ BUDGET = 5
 def probe(source):
     connection = None
     try:
-        if getattr(source, "driver", "mysql") == "postgresql":
-            from .app import connect
-            connection = connect(source)
-        else:
-            connection = pymysql.connect(host=source.host, port=source.port, user=source.user,
-            password=source.password, database=source.database, charset="utf8mb4",
-            connect_timeout=1, read_timeout=1, write_timeout=1, autocommit=True,
-            ssl_ca=source.ssl_ca, ssl_verify_cert=bool(source.ssl_ca),
-            ssl_verify_identity=bool(source.ssl_ca))
+        from .app import connect
+        connection = connect(source)
         with connection.cursor() as cursor:
             cursor.execute("SELECT purchased_at,customer_state,order_status,item_amount,delivery_days,review_score FROM metric_orders LIMIT 0")
         return True

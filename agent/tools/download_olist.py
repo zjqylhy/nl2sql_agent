@@ -7,7 +7,7 @@ import urllib.request
 import zipfile
 from pathlib import Path
 
-from import_olist import TABLES
+from .olist_csv import TABLES
 
 URL = "https://www.kaggle.com/api/v1/datasets/download/olistbr/brazilian-ecommerce"
 
@@ -22,7 +22,7 @@ def main():
         shutil.copyfileobj(response, target)
     if not zipfile.is_zipfile(archive):
         raise SystemExit("官方下载未返回 ZIP，可能需要 Kaggle 登录；请手动下载并解压 CSV。")
-    names = [filename for filename, _, _ in TABLES.values()]
+    names = [filename for filename, _ in TABLES.values()]
     with zipfile.ZipFile(archive) as source:
         for name in names:
             info = source.getinfo(name)

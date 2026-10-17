@@ -18,11 +18,16 @@ class UnsafeSQL(ValueError):
     pass
 
 
-def validate_sql(sql: str, parameters: list, *, overflow_probe: bool = False, dialect="mysql") -> None:
+def postgres_sql(sql: str) -> str:
+    """已发布 v1 目录参与历史绑定，校验和执行共用 PG 日期渲染。"""
+    return sql.replace("DATE_FORMAT(purchased_at, '%Y-%m')", "TO_CHAR(purchased_at, 'YYYY-MM')")
+
+
+def validate_sql(sql: str, parameters: list, *, overflow_probe: bool = False) -> None:
     if len(sql) > 12000:
         raise UnsafeSQL("SQL 长度超限")
     try:
-        statements = parse(sql, read=dialect)
+        statements = parse(sql, read="postgres")
     except ParseError as exc:
         raise UnsafeSQL("SQL 无法解析") from exc
     if len(statements) != 1 or not isinstance(statements[0], exp.Select):

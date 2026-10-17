@@ -20,9 +20,9 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Gateway Compose configuration is invalid' }
     $startArgs = @('up', '-d', '--no-deps', '--force-recreate', '--wait', '--wait-timeout', '120')
     if ($Build) { $startArgs += '--build' }
-    $startArgs += 'agent'
+    $startArgs += @('api', 'worker')
     & docker @composeArgs @startArgs
-    if ($LASTEXITCODE -ne 0) { throw 'Gateway Agent activation failed' }
+    if ($LASTEXITCODE -ne 0) { throw 'Gateway API/Worker activation failed' }
 } finally {
     $env:NL2SQL_AGENT_API_KEY = $previousKey
     $env:GATEWAY_CA_FILE = $previousCa

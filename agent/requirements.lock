@@ -28,7 +28,7 @@ click==8.5.0
 colorama==0.4.6
     # via pytest
 cryptography==50.0.2
-    # via pymysql
+    # via nl2sql-agent-runtime (agent/pyproject.toml)
 distro==1.9.0
     # via langsmith
 fastapi==0.143.0
@@ -129,8 +129,6 @@ pydantic-core==2.50.0
     # via pydantic
 pygments==2.21.0
     # via pytest
-pymysql==1.2.3
-    # via nl2sql-agent-runtime (agent/pyproject.toml)
 pytest==9.1.1
     # via nl2sql-agent-runtime (agent/pyproject.toml)
 pyyaml==6.0.3

@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
-from .security import ALLOWED_COLUMNS, validate_sql
+from .security import ALLOWED_COLUMNS, postgres_sql, validate_sql
 
 
 class StrictModel(BaseModel):
@@ -58,7 +58,7 @@ class Catalog(StrictModel):
         expressions = [value for m in self.metrics.values() for value in (m.formula, m.sample)]
         expressions += [d.expression for d in self.dimensions.values()]
         for expression in expressions:
-            validate_sql(f"SELECT {expression} AS value FROM metric_orders WHERE purchased_at >= ? LIMIT 1", ["2000-01-01"])
+            validate_sql(postgres_sql(f"SELECT {expression} AS value FROM metric_orders WHERE purchased_at >= ? LIMIT 1"), ["2000-01-01"])
         return self
 
 

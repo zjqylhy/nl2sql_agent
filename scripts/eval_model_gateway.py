@@ -1,7 +1,6 @@
 """隔离镜像评测的模型转发器：真实响应透传，调用预算在出站前扣减。"""
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 import hmac
-import json
 import os
 from threading import Lock
 import urllib.error

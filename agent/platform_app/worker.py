@@ -69,7 +69,6 @@ def execute_query(repo, task):
             if not permitted(user, output):
                 raise HTTPException(403, "结果指标权限已撤销")
             conn.execute("UPDATE query_receipts SET status='completed',output=%s WHERE task_id=%s", (Jsonb(output), task["id"]))
-            conn.execute("UPDATE task_attempts SET telemetry=%s WHERE task_id=%s AND execution_version=%s", (Jsonb(trace), task["id"], task["execution_version"]))
     with repo.db.transaction() as conn:
         repo.finish(conn, task, output["status"], output)
 
