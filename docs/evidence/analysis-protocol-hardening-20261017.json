@@ -1,0 +1,2570 @@
+{
+  "regression": {
+    "mode": "live_http",
+    "platform": "python-langgraph-postgresql",
+    "source_commit": "24e8ba6ea9f5822a8b3958232c1dbe32355d875f",
+    "source_scope": "readonly_exported_commit",
+    "execution_tree_sha256": "7a3139992360a9c60a012f1b6d6b373e68580d2c53ab006e9de81e46aa43d421",
+    "annotation_status": "draft",
+    "split": "development",
+    "repeats": 1,
+    "model": "chat",
+    "provider_weight_version": "unknown",
+    "experiment_kind": "development_pilot",
+    "started_at": "2026-10-17T07:50:25.774850+00:00",
+    "case_interval_seconds": 20,
+    "case_ids": [
+      "analysis-13-1",
+      "analysis-13-2",
+      "analysis-19-1",
+      "analysis-19-2"
+    ],
+    "intent_groups": [
+      "intent-13",
+      "intent-19"
+    ],
+    "task_timeout_seconds": 360,
+    "dataset_sha256": "d3ead692901f29d315f303e4a7b1f4e1267584c223448ee84b3f94c5b3443132",
+    "runtime_lock_sha256": "8ee14cd4dd1ce62fbaf4cea2d859bdfe692011db17be74dc018796131c7c93be",
+    "pricing": {
+      "ANALYSIS_CURRENCY": "TEST_UNIT",
+      "ANALYSIS_PRICE_VERSION": "user-approved-server-test-units-20261017",
+      "ANALYSIS_INPUT_PRICE_MICROS": "1000000",
+      "ANALYSIS_OUTPUT_PRICE_MICROS": "1000000",
+      "ANALYSIS_MAX_COST_MICROS": "1000000"
+    },
+    "groups": {
+      "baseline": {
+        "results": [
+          {
+            "id": "analysis-13-1",
+            "repeat": 0,
+            "expected_complete": true,
+            "status": "completed",
+            "complete_success": true,
+            "behavior_correct": true,
+            "cost_known": true,
+            "duration_ms": 4713.671908015385,
+            "known_tokens": 1678,
+            "unknown_calls": 0,
+            "known_cost_micros": 1678,
+            "model_calls": 1,
+            "sql_calls": 1,
+            "attempts": 1,
+            "error_codes": [],
+            "tool_proposals": 1,
+            "observed_plan": {
+              "top_n": 1,
+              "filters": [],
+              "metrics": [
+                "gmv"
+              ],
+              "version": 1,
+              "order_by": [
+                {
+                  "field": "gmv",
+                  "direction": "desc"
+                }
+              ],
+              "dimensions": [
+                "state"
+              ],
+              "time_range": {
+                "start": "2018-07-01",
+                "end_exclusive": "2018-08-01"
+              }
+            },
+            "observed_rows": [
+              {
+                "label": "MG",
+                "values": {
+                  "gmv": {
+                    "value": "800.00",
+                    "sample_size": 10,
+                    "excluded_orders": 0
+                  }
+                },
+                "dimensions": {
+                  "state": "MG"
+                },
+                "total_orders": 10,
+                "unavailable_orders": 0
+              }
+            ],
+            "correct_parameters": 1,
+            "category": "supported",
+            "intent_group": "intent-13",
+            "fixture": "orders.csv"
+          },
+          {
+            "id": "analysis-13-2",
+            "repeat": 0,
+            "expected_complete": true,
+            "status": "completed",
+            "complete_success": true,
+            "behavior_correct": true,
+            "cost_known": true,
+            "duration_ms": 1804.677198000718,
+            "known_tokens": 1551,
+            "unknown_calls": 0,
+            "known_cost_micros": 1551,
+            "model_calls": 1,
+            "sql_calls": 1,
+            "attempts": 1,
+            "error_codes": [],
+            "tool_proposals": 1,
+            "observed_plan": {
+              "top_n": 1,
+              "filters": [],
+              "metrics": [
+                "gmv"
+              ],
+              "version": 1,
+              "order_by": [
+                {
+                  "field": "gmv",
+                  "direction": "desc"
+                }
+              ],
+              "dimensions": [
+                "state"
+              ],
+              "time_range": {
+                "start": "2018-07-01",
+                "end_exclusive": "2018-08-01"
+              }
+            },
+            "observed_rows": [
+              {
+                "label": "MG",
+                "values": {
+                  "gmv": {
+                    "value": "800.00",
+                    "sample_size": 10,
+                    "excluded_orders": 0
+                  }
+                },
+                "dimensions": {
+                  "state": "MG"
+                },
+                "total_orders": 10,
+                "unavailable_orders": 0
+              }
+            ],
+            "correct_parameters": 1,
+            "category": "supported",
+            "intent_group": "intent-13",
+            "fixture": "orders.csv"
+          },
+          {
+            "id": "analysis-19-1",
+            "repeat": 0,
+            "expected_complete": true,
+            "status": "needs_clarification",
+            "complete_success": false,
+            "behavior_correct": false,
+            "cost_known": true,
+            "duration_ms": 4379.762264026795,
+            "known_tokens": 2060,
+            "unknown_calls": 0,
+            "known_cost_micros": 2060,
+            "model_calls": 1,
+            "sql_calls": 0,
+            "attempts": 1,
+            "error_codes": [
+              "clarification"
+            ],
+            "tool_proposals": 0,
+            "observed_plan": null,
+            "observed_rows": [],
+            "correct_parameters": 0,
+            "category": "supported",
+            "intent_group": "intent-19",
+            "fixture": "orders.csv"
+          },
+          {
+            "id": "analysis-19-2",
+            "repeat": 0,
+            "expected_complete": true,
+            "status": "needs_clarification",
+            "complete_success": false,
+            "behavior_correct": false,
+            "cost_known": true,
+            "duration_ms": 8779.187404958066,
+            "known_tokens": 2926,
+            "unknown_calls": 0,
+            "known_cost_micros": 2926,
+            "model_calls": 1,
+            "sql_calls": 0,
+            "attempts": 1,
+            "error_codes": [
+              "clarification"
+            ],
+            "tool_proposals": 0,
+            "observed_plan": null,
+            "observed_rows": [],
+            "correct_parameters": 0,
+            "category": "supported",
+            "intent_group": "intent-19",
+            "fixture": "orders.csv"
+          }
+        ],
+        "summary": {
+          "supported_tasks": 4,
+          "complete_successes": 2,
+          "categories": {
+            "supported": {
+              "total": 4,
+              "behavior_correct": 2,
+              "supported": 4,
+              "complete_successes": 2
+            }
+          },
+          "complete_success_rate": 0.5,
+          "behavior_correct": 2,
+          "all_tasks": 4,
+          "tool_proposals": 2,
+          "correct_parameters": 2,
+          "parameter_correct_rate": 1.0,
+          "extra_calls_total": null,
+          "calls_above_minimum_total": null,
+          "latency_ms": {
+            "p50": 4379.762264026795,
+            "p95": 8779.187404958066,
+            "samples": 4
+          },
+          "known_tokens": 8215,
+          "unknown_calls": 0,
+          "model_calls": 4,
+          "sql_calls": 2,
+          "known_cost_micros": 8215,
+          "known_cost_per_complete_success": 4107.5,
+          "reserved_and_known_cost_micros": null,
+          "total_cost_known": true,
+          "not_run": 0
+        },
+        "provider_calls_issued": 4
+      },
+      "adaptive": {
+        "results": [
+          {
+            "id": "analysis-13-1",
+            "repeat": 0,
+            "expected_complete": true,
+            "status": "completed",
+            "complete_success": true,
+            "behavior_correct": true,
+            "cost_known": true,
+            "duration_ms": 73337.75932900608,
+            "tool_proposals": 4,
+            "correct_parameters": 3,
+            "extra_calls": 0,
+            "calls_above_minimum": 0,
+            "known_tokens": 5589,
+            "known_cost_micros": 5589,
+            "unknown_calls": 0,
+            "reserved_and_known_cost_micros": 5589,
+            "sql_calls": 1,
+            "model_calls": 4,
+            "error_codes": [
+              "invalid_arguments"
+            ],
+            "failure_code": null,
+            "failure_http_status": null,
+            "run_id": "dbcf0c3b00a385b335254be41316fff8805edd112f0df611",
+            "observed_spec": {
+              "n": 1,
+              "goal": "top_n_total",
+              "checks": [],
+              "current": {
+                "start": "2018-07-01",
+                "end_exclusive": "2018-08-01"
+              },
+              "filters": [],
+              "ranking": null,
+              "baseline": null
+            },
+            "observed_report": {
+              "goal": "top_n_total",
+              "rows": [
+                {
+                  "label": "MG",
+                  "values": {
+                    "gmv": {
+                      "value": "800.00",
+                      "sample_size": 10,
+                      "excluded_orders": 0
+                    }
+                  },
+                  "dimensions": {
+                    "state": "MG"
+                  },
+                  "total_orders": 10,
+                  "unavailable_orders": 0
+                }
+              ],
+              "total": {
+                "op": "sum",
+                "unit": "BRL",
+                "value": "800.00",
+                "cohort": {
+                  "period": {
+                    "start": "2018-07-01",
+                    "end_exclusive": "2018-08-01"
+                  },
+                  "filters": []
+                },
+                "metric": "gmv",
+                "states": [
+                  "MG"
+                ],
+                "source_ref": "9580118e0adecb873ca596f6ca258649e698c2c883febfd0210f5175e2472793",
+                "quality_complete": true
+              },
+              "extras": {},
+              "current": {
+                "start": "2018-07-01",
+                "end_exclusive": "2018-08-01"
+              },
+              "ranking": null,
+              "summary": "\u6240\u9009\u5dde GMV \u5408\u8ba1\uff0c\u4e0d\u4ee3\u8868\u5168\u5dde\u603b\u989d\u3002",
+              "baseline": null,
+              "complete": true,
+              "narrative": [
+                {
+                  "kind": "gmv_total",
+                  "text": "\u6240\u9009\u5dde MG \u7684 GMV \u5408\u8ba1\u4e3a 800.00 BRL\u3002",
+                  "state": null,
+                  "result_ref": "322f8071a2d0ae0f361ca3cb530dae9496b568ca3e4df40aa71e43216b0995ea"
+                }
+              ],
+              "current_days": 31,
+              "baseline_days": null,
+              "evidence_refs": [
+                "9580118e0adecb873ca596f6ca258649e698c2c883febfd0210f5175e2472793",
+                "322f8071a2d0ae0f361ca3cb530dae9496b568ca3e4df40aa71e43216b0995ea"
+              ],
+              "narrative_fallback": false
+            },
+            "tool_trace": [
+              {
+                "phase": "decide",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "query_metrics",
+                "arguments": {
+                  "plan": {
+                    "top_n": 1,
+                    "filters": [],
+                    "metrics": [
+                      "gmv"
+                    ],
+                    "version": 1,
+                    "order_by": [
+                      {
+                        "field": "gmv",
+                        "direction": "desc"
+                      }
+                    ],
+                    "dimensions": [
+                      "state"
+                    ],
+                    "time_range": {
+                      "start": "2018-07-01",
+                      "end_exclusive": "2018-08-01"
+                    }
+                  }
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "decide",
+                "action": null,
+                "arguments": null,
+                "status": "failed",
+                "error_code": "invalid_arguments",
+                "cached": false
+              },
+              {
+                "phase": "decide",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "calculate",
+                "arguments": {
+                  "op": "sum",
+                  "input": {
+                    "metric": "gmv",
+                    "result_ref": "9580118e0adecb873ca596f6ca258649e698c2c883febfd0210f5175e2472793"
+                  },
+                  "scope": "top_n",
+                  "selection_ref": null
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "decide",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "finish",
+                "arguments": {
+                  "findings": [
+                    {
+                      "kind": "gmv_total",
+                      "state": null,
+                      "result_ref": "322f8071a2d0ae0f361ca3cb530dae9496b568ca3e4df40aa71e43216b0995ea"
+                    }
+                  ],
+                  "evidence_refs": [
+                    "9580118e0adecb873ca596f6ca258649e698c2c883febfd0210f5175e2472793",
+                    "322f8071a2d0ae0f361ca3cb530dae9496b568ca3e4df40aa71e43216b0995ea"
+                  ]
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              }
+            ],
+            "narrative_fallback": false,
+            "category": "supported",
+            "intent_group": "intent-13",
+            "fixture": "orders.csv"
+          },
+          {
+            "id": "analysis-13-2",
+            "repeat": 0,
+            "expected_complete": true,
+            "status": "completed",
+            "complete_success": true,
+            "behavior_correct": true,
+            "cost_known": true,
+            "duration_ms": 46789.5856659743,
+            "tool_proposals": 3,
+            "correct_parameters": 3,
+            "extra_calls": 0,
+            "calls_above_minimum": 0,
+            "known_tokens": 3847,
+            "known_cost_micros": 3847,
+            "unknown_calls": 0,
+            "reserved_and_known_cost_micros": 3847,
+            "sql_calls": 1,
+            "model_calls": 3,
+            "error_codes": [],
+            "failure_code": null,
+            "failure_http_status": null,
+            "run_id": "8bcdaca0f1bb91a90ce7ace8fb96cf63e04e31babe827776",
+            "observed_spec": {
+              "n": 1,
+              "goal": "top_n_total",
+              "checks": [],
+              "current": {
+                "start": "2018-07-01",
+                "end_exclusive": "2018-08-01"
+              },
+              "filters": [],
+              "ranking": null,
+              "baseline": null
+            },
+            "observed_report": {
+              "goal": "top_n_total",
+              "rows": [
+                {
+                  "label": "MG",
+                  "values": {
+                    "gmv": {
+                      "value": "800.00",
+                      "sample_size": 10,
+                      "excluded_orders": 0
+                    }
+                  },
+                  "dimensions": {
+                    "state": "MG"
+                  },
+                  "total_orders": 10,
+                  "unavailable_orders": 0
+                }
+              ],
+              "total": {
+                "op": "sum",
+                "unit": "BRL",
+                "value": "800.00",
+                "cohort": {
+                  "period": {
+                    "start": "2018-07-01",
+                    "end_exclusive": "2018-08-01"
+                  },
+                  "filters": []
+                },
+                "metric": "gmv",
+                "states": [
+                  "MG"
+                ],
+                "source_ref": "9580118e0adecb873ca596f6ca258649e698c2c883febfd0210f5175e2472793",
+                "quality_complete": true
+              },
+              "extras": {},
+              "current": {
+                "start": "2018-07-01",
+                "end_exclusive": "2018-08-01"
+              },
+              "ranking": null,
+              "summary": "\u6240\u9009\u5dde GMV \u5408\u8ba1\uff0c\u4e0d\u4ee3\u8868\u5168\u5dde\u603b\u989d\u3002",
+              "baseline": null,
+              "complete": true,
+              "narrative": [
+                {
+                  "kind": "gmv_total",
+                  "text": "\u6240\u9009\u5dde MG \u7684 GMV \u5408\u8ba1\u4e3a 800.00 BRL\u3002",
+                  "state": null,
+                  "result_ref": "322f8071a2d0ae0f361ca3cb530dae9496b568ca3e4df40aa71e43216b0995ea"
+                }
+              ],
+              "current_days": 31,
+              "baseline_days": null,
+              "evidence_refs": [
+                "9580118e0adecb873ca596f6ca258649e698c2c883febfd0210f5175e2472793",
+                "322f8071a2d0ae0f361ca3cb530dae9496b568ca3e4df40aa71e43216b0995ea"
+              ],
+              "narrative_fallback": true
+            },
+            "tool_trace": [
+              {
+                "phase": "decide",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "query_metrics",
+                "arguments": {
+                  "plan": {
+                    "top_n": 1,
+                    "filters": [],
+                    "metrics": [
+                      "gmv"
+                    ],
+                    "version": 1,
+                    "order_by": [
+                      {
+                        "field": "gmv",
+                        "direction": "desc"
+                      }
+                    ],
+                    "dimensions": [
+                      "state"
+                    ],
+                    "time_range": {
+                      "start": "2018-07-01",
+                      "end_exclusive": "2018-08-01"
+                    }
+                  }
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "decide",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "calculate",
+                "arguments": {
+                  "op": "sum",
+                  "input": {
+                    "metric": "gmv",
+                    "result_ref": "9580118e0adecb873ca596f6ca258649e698c2c883febfd0210f5175e2472793"
+                  },
+                  "scope": "top_n",
+                  "selection_ref": null
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "decide",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "finish",
+                "arguments": {
+                  "findings": [
+                    {
+                      "kind": "gmv_total",
+                      "state": "MG",
+                      "result_ref": "322f8071a2d0ae0f361ca3cb530dae9496b568ca3e4df40aa71e43216b0995ea"
+                    }
+                  ],
+                  "evidence_refs": [
+                    "9580118e0adecb873ca596f6ca258649e698c2c883febfd0210f5175e2472793",
+                    "322f8071a2d0ae0f361ca3cb530dae9496b568ca3e4df40aa71e43216b0995ea"
+                  ]
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              }
+            ],
+            "narrative_fallback": true,
+            "category": "supported",
+            "intent_group": "intent-13",
+            "fixture": "orders.csv"
+          },
+          {
+            "id": "analysis-19-1",
+            "repeat": 0,
+            "expected_complete": true,
+            "status": "completed",
+            "complete_success": true,
+            "behavior_correct": true,
+            "cost_known": true,
+            "duration_ms": 180640.41874499526,
+            "tool_proposals": 8,
+            "correct_parameters": 8,
+            "extra_calls": 1,
+            "calls_above_minimum": 1,
+            "known_tokens": 15878,
+            "known_cost_micros": 15878,
+            "unknown_calls": 0,
+            "reserved_and_known_cost_micros": 15878,
+            "sql_calls": 1,
+            "model_calls": 8,
+            "error_codes": [],
+            "failure_code": null,
+            "failure_http_status": null,
+            "run_id": "1337c7fcfc920f949a938a48f8dbac74064c6d9c7b1b16d3",
+            "observed_spec": {
+              "n": 3,
+              "goal": "top_n_total",
+              "checks": [
+                "orders",
+                "aov",
+                "share"
+              ],
+              "current": {
+                "start": "2018-07-01",
+                "end_exclusive": "2018-08-01"
+              },
+              "filters": [],
+              "ranking": null,
+              "baseline": null
+            },
+            "observed_report": {
+              "goal": "top_n_total",
+              "rows": [
+                {
+                  "label": "MG",
+                  "values": {
+                    "gmv": {
+                      "value": "800.00",
+                      "sample_size": 10,
+                      "excluded_orders": 0
+                    },
+                    "orders": {
+                      "value": 10,
+                      "sample_size": 10,
+                      "excluded_orders": 0
+                    }
+                  },
+                  "dimensions": {
+                    "state": "MG"
+                  },
+                  "total_orders": 10,
+                  "unavailable_orders": 0
+                },
+                {
+                  "label": "RJ",
+                  "values": {
+                    "gmv": {
+                      "value": "800.00",
+                      "sample_size": 10,
+                      "excluded_orders": 0
+                    },
+                    "orders": {
+                      "value": 10,
+                      "sample_size": 10,
+                      "excluded_orders": 0
+                    }
+                  },
+                  "dimensions": {
+                    "state": "RJ"
+                  },
+                  "total_orders": 10,
+                  "unavailable_orders": 0
+                },
+                {
+                  "label": "SP",
+                  "values": {
+                    "gmv": {
+                      "value": "720.00",
+                      "sample_size": 8,
+                      "excluded_orders": 1
+                    },
+                    "orders": {
+                      "value": 8,
+                      "sample_size": 8,
+                      "excluded_orders": 1
+                    }
+                  },
+                  "dimensions": {
+                    "state": "SP"
+                  },
+                  "total_orders": 9,
+                  "unavailable_orders": 0
+                }
+              ],
+              "total": {
+                "op": "sum",
+                "unit": "BRL",
+                "value": "2320.00",
+                "cohort": {
+                  "period": {
+                    "start": "2018-07-01",
+                    "end_exclusive": "2018-08-01"
+                  },
+                  "filters": []
+                },
+                "metric": "gmv",
+                "states": [
+                  "MG",
+                  "RJ",
+                  "SP"
+                ],
+                "source_ref": "21b2325865533c8c8bddb18e1fabdabb12a8bf8d00117ff503a540ff340bd26f",
+                "quality_complete": true
+              },
+              "extras": {
+                "aov": {
+                  "op": "divide",
+                  "unit": "BRL/\u5355",
+                  "flags": [],
+                  "value": "82.857142857142857142857142857142857143",
+                  "cohort": {
+                    "period": {
+                      "start": "2018-07-01",
+                      "end_exclusive": "2018-08-01"
+                    },
+                    "filters": []
+                  },
+                  "inputs": [
+                    "85b5d76a3a7e3f3001b631b166dc7c617c70b3ac715df535cca93111f2e673a8",
+                    "7ba9810eb3a160495b632ee1a3e3c786ee1d7f4a9507fe1ae96542033b8988f7"
+                  ],
+                  "metric": "aov",
+                  "states": [
+                    "MG",
+                    "RJ",
+                    "SP"
+                  ],
+                  "quality_complete": true
+                },
+                "share": {
+                  "op": "divide",
+                  "unit": "ratio",
+                  "flags": [],
+                  "value": "0.97478991596638655462184873949579831933",
+                  "cohort": {
+                    "period": {
+                      "start": "2018-07-01",
+                      "end_exclusive": "2018-08-01"
+                    },
+                    "filters": []
+                  },
+                  "inputs": [
+                    "85b5d76a3a7e3f3001b631b166dc7c617c70b3ac715df535cca93111f2e673a8",
+                    "07c664342c311e45d93b55085d0252a3a21044e0a86effcd6aa46a808d227124"
+                  ],
+                  "metric": "ratio",
+                  "states": [
+                    "BA",
+                    "MG",
+                    "RJ",
+                    "SC",
+                    "SP"
+                  ],
+                  "quality_complete": true
+                },
+                "orders": {
+                  "op": "sum",
+                  "unit": "\u5355",
+                  "value": "28",
+                  "cohort": {
+                    "period": {
+                      "start": "2018-07-01",
+                      "end_exclusive": "2018-08-01"
+                    },
+                    "filters": []
+                  },
+                  "metric": "orders",
+                  "states": [
+                    "MG",
+                    "RJ",
+                    "SP"
+                  ],
+                  "source_ref": "21b2325865533c8c8bddb18e1fabdabb12a8bf8d00117ff503a540ff340bd26f",
+                  "quality_complete": true
+                }
+              },
+              "current": {
+                "start": "2018-07-01",
+                "end_exclusive": "2018-08-01"
+              },
+              "ranking": null,
+              "summary": "\u6240\u9009\u5dde GMV \u5408\u8ba1\uff0c\u4e0d\u4ee3\u8868\u5168\u5dde\u603b\u989d\u3002",
+              "baseline": null,
+              "complete": true,
+              "narrative": [
+                {
+                  "kind": "gmv_total",
+                  "text": "\u6240\u9009\u5dde MG, RJ, SP \u7684 GMV \u5408\u8ba1\u4e3a 2320.00 BRL\u3002",
+                  "state": null,
+                  "result_ref": "85b5d76a3a7e3f3001b631b166dc7c617c70b3ac715df535cca93111f2e673a8"
+                }
+              ],
+              "current_days": 31,
+              "baseline_days": null,
+              "evidence_refs": [
+                "85b5d76a3a7e3f3001b631b166dc7c617c70b3ac715df535cca93111f2e673a8",
+                "7ba9810eb3a160495b632ee1a3e3c786ee1d7f4a9507fe1ae96542033b8988f7",
+                "f866e8cbf6b7c75393569efacede87f71a0e154bdadb4c7745fb2a4bae4a7adb",
+                "07c664342c311e45d93b55085d0252a3a21044e0a86effcd6aa46a808d227124",
+                "8c4ea2dc9bac230a0275ffc33ba10f255dc8457b53c0ab883403a24785e2d90e",
+                "21b2325865533c8c8bddb18e1fabdabb12a8bf8d00117ff503a540ff340bd26f"
+              ],
+              "narrative_fallback": false
+            },
+            "tool_trace": [
+              {
+                "phase": "decide",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "query_metrics",
+                "arguments": {
+                  "plan": {
+                    "top_n": null,
+                    "filters": [],
+                    "metrics": [
+                      "gmv",
+                      "orders"
+                    ],
+                    "version": 1,
+                    "order_by": [
+                      {
+                        "field": "gmv",
+                        "direction": "desc"
+                      }
+                    ],
+                    "dimensions": [
+                      "state"
+                    ],
+                    "time_range": {
+                      "start": "2018-07-01",
+                      "end_exclusive": "2018-08-01"
+                    }
+                  }
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "decide",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "query_metrics",
+                "arguments": {
+                  "plan": {
+                    "top_n": null,
+                    "filters": [],
+                    "metrics": [
+                      "gmv",
+                      "orders"
+                    ],
+                    "version": 1,
+                    "order_by": [
+                      {
+                        "field": "gmv",
+                        "direction": "desc"
+                      }
+                    ],
+                    "dimensions": [
+                      "state"
+                    ],
+                    "time_range": {
+                      "start": "2018-07-01",
+                      "end_exclusive": "2018-08-01"
+                    }
+                  }
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": true
+              },
+              {
+                "phase": "decide",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "calculate",
+                "arguments": {
+                  "op": "sum",
+                  "input": {
+                    "metric": "gmv",
+                    "result_ref": "21b2325865533c8c8bddb18e1fabdabb12a8bf8d00117ff503a540ff340bd26f"
+                  },
+                  "scope": "top_n",
+                  "selection_ref": null
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "decide",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "calculate",
+                "arguments": {
+                  "op": "sum",
+                  "input": {
+                    "metric": "orders",
+                    "result_ref": "21b2325865533c8c8bddb18e1fabdabb12a8bf8d00117ff503a540ff340bd26f"
+                  },
+                  "scope": "top_n",
+                  "selection_ref": null
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "decide",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "calculate",
+                "arguments": {
+                  "op": "sum",
+                  "input": {
+                    "metric": "gmv",
+                    "result_ref": "21b2325865533c8c8bddb18e1fabdabb12a8bf8d00117ff503a540ff340bd26f"
+                  },
+                  "scope": "returned_groups",
+                  "selection_ref": null
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "decide",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "calculate",
+                "arguments": {
+                  "op": "divide",
+                  "left_ref": "85b5d76a3a7e3f3001b631b166dc7c617c70b3ac715df535cca93111f2e673a8",
+                  "right_ref": "07c664342c311e45d93b55085d0252a3a21044e0a86effcd6aa46a808d227124"
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "decide",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "calculate",
+                "arguments": {
+                  "op": "divide",
+                  "left_ref": "85b5d76a3a7e3f3001b631b166dc7c617c70b3ac715df535cca93111f2e673a8",
+                  "right_ref": "7ba9810eb3a160495b632ee1a3e3c786ee1d7f4a9507fe1ae96542033b8988f7"
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "decide",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "finish",
+                "arguments": {
+                  "findings": [
+                    {
+                      "kind": "gmv_total",
+                      "state": null,
+                      "result_ref": "85b5d76a3a7e3f3001b631b166dc7c617c70b3ac715df535cca93111f2e673a8"
+                    }
+                  ],
+                  "evidence_refs": [
+                    "85b5d76a3a7e3f3001b631b166dc7c617c70b3ac715df535cca93111f2e673a8",
+                    "7ba9810eb3a160495b632ee1a3e3c786ee1d7f4a9507fe1ae96542033b8988f7",
+                    "f866e8cbf6b7c75393569efacede87f71a0e154bdadb4c7745fb2a4bae4a7adb",
+                    "07c664342c311e45d93b55085d0252a3a21044e0a86effcd6aa46a808d227124",
+                    "8c4ea2dc9bac230a0275ffc33ba10f255dc8457b53c0ab883403a24785e2d90e",
+                    "21b2325865533c8c8bddb18e1fabdabb12a8bf8d00117ff503a540ff340bd26f"
+                  ]
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              }
+            ],
+            "narrative_fallback": false,
+            "category": "supported",
+            "intent_group": "intent-19",
+            "fixture": "orders.csv"
+          },
+          {
+            "id": "analysis-19-2",
+            "repeat": 0,
+            "expected_complete": true,
+            "status": "failed",
+            "complete_success": false,
+            "behavior_correct": false,
+            "cost_known": true,
+            "duration_ms": 57171.08797800029,
+            "tool_proposals": 3,
+            "correct_parameters": 3,
+            "extra_calls": 2,
+            "calls_above_minimum": 0,
+            "known_tokens": 5891,
+            "known_cost_micros": 5891,
+            "unknown_calls": 0,
+            "reserved_and_known_cost_micros": 5891,
+            "sql_calls": 1,
+            "model_calls": 3,
+            "error_codes": [],
+            "failure_code": null,
+            "failure_http_status": null,
+            "run_id": "ba4af0cf77f34d18e9213ca815fc2ac92396f262041acb7c",
+            "observed_spec": {
+              "n": 3,
+              "goal": "top_n_total",
+              "checks": [
+                "orders",
+                "aov",
+                "share"
+              ],
+              "current": {
+                "start": "2018-07-01",
+                "end_exclusive": "2018-08-01"
+              },
+              "filters": [],
+              "ranking": null,
+              "baseline": null
+            },
+            "observed_report": null,
+            "tool_trace": [
+              {
+                "phase": "decide",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "query_metrics",
+                "arguments": {
+                  "plan": {
+                    "top_n": null,
+                    "filters": [],
+                    "metrics": [
+                      "gmv",
+                      "orders"
+                    ],
+                    "version": 1,
+                    "order_by": [
+                      {
+                        "field": "gmv",
+                        "direction": "desc"
+                      }
+                    ],
+                    "dimensions": [
+                      "state"
+                    ],
+                    "time_range": {
+                      "start": "2018-07-01",
+                      "end_exclusive": "2018-08-01"
+                    }
+                  }
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "decide",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "query_metrics",
+                "arguments": {
+                  "plan": {
+                    "top_n": null,
+                    "filters": [],
+                    "metrics": [
+                      "gmv",
+                      "orders"
+                    ],
+                    "version": 1,
+                    "order_by": [
+                      {
+                        "field": "gmv",
+                        "direction": "desc"
+                      }
+                    ],
+                    "dimensions": [
+                      "state"
+                    ],
+                    "time_range": {
+                      "start": "2018-07-01",
+                      "end_exclusive": "2018-08-01"
+                    }
+                  }
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": true
+              },
+              {
+                "phase": "decide",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "query_metrics",
+                "arguments": {
+                  "plan": {
+                    "top_n": null,
+                    "filters": [],
+                    "metrics": [
+                      "gmv",
+                      "orders"
+                    ],
+                    "version": 1,
+                    "order_by": [
+                      {
+                        "field": "gmv",
+                        "direction": "desc"
+                      }
+                    ],
+                    "dimensions": [
+                      "state"
+                    ],
+                    "time_range": {
+                      "start": "2018-07-01",
+                      "end_exclusive": "2018-08-01"
+                    }
+                  }
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": true
+              }
+            ],
+            "narrative_fallback": null,
+            "category": "supported",
+            "intent_group": "intent-19",
+            "fixture": "orders.csv"
+          }
+        ],
+        "summary": {
+          "supported_tasks": 4,
+          "complete_successes": 3,
+          "categories": {
+            "supported": {
+              "total": 4,
+              "behavior_correct": 3,
+              "supported": 4,
+              "complete_successes": 3
+            }
+          },
+          "complete_success_rate": 0.75,
+          "behavior_correct": 3,
+          "all_tasks": 4,
+          "tool_proposals": 18,
+          "correct_parameters": 17,
+          "parameter_correct_rate": 0.9444444444444444,
+          "extra_calls_total": 3,
+          "calls_above_minimum_total": 1,
+          "latency_ms": {
+            "p50": 57171.08797800029,
+            "p95": 180640.41874499526,
+            "samples": 4
+          },
+          "known_tokens": 31205,
+          "unknown_calls": 0,
+          "model_calls": 18,
+          "sql_calls": 4,
+          "known_cost_micros": 31205,
+          "known_cost_per_complete_success": 10401.666666666666,
+          "reserved_and_known_cost_micros": 31205,
+          "total_cost_known": true,
+          "not_run": 0
+        },
+        "provider_calls_issued": 18
+      },
+      "fixed": {
+        "results": [
+          {
+            "id": "analysis-13-1",
+            "repeat": 0,
+            "expected_complete": true,
+            "status": "completed",
+            "complete_success": true,
+            "behavior_correct": true,
+            "cost_known": true,
+            "duration_ms": 5091.708954016212,
+            "tool_proposals": 3,
+            "correct_parameters": 3,
+            "extra_calls": 0,
+            "calls_above_minimum": 0,
+            "known_tokens": 641,
+            "known_cost_micros": 641,
+            "unknown_calls": 0,
+            "reserved_and_known_cost_micros": 641,
+            "sql_calls": 1,
+            "model_calls": 1,
+            "error_codes": [],
+            "failure_code": null,
+            "failure_http_status": null,
+            "run_id": "b0be5c6be6c2801e1bce6872024f75b3c3f58c9a7d4f140e",
+            "observed_spec": {
+              "n": 1,
+              "goal": "top_n_total",
+              "checks": [],
+              "current": {
+                "start": "2018-07-01",
+                "end_exclusive": "2018-08-01"
+              },
+              "filters": [],
+              "ranking": null,
+              "baseline": null
+            },
+            "observed_report": {
+              "goal": "top_n_total",
+              "rows": [
+                {
+                  "label": "MG",
+                  "values": {
+                    "gmv": {
+                      "value": "800.00",
+                      "sample_size": 10,
+                      "excluded_orders": 0
+                    }
+                  },
+                  "dimensions": {
+                    "state": "MG"
+                  },
+                  "total_orders": 10,
+                  "unavailable_orders": 0
+                }
+              ],
+              "total": {
+                "op": "sum",
+                "unit": "BRL",
+                "value": "800.00",
+                "cohort": {
+                  "period": {
+                    "start": "2018-07-01",
+                    "end_exclusive": "2018-08-01"
+                  },
+                  "filters": []
+                },
+                "metric": "gmv",
+                "states": [
+                  "MG"
+                ],
+                "source_ref": "cdb37df3bb6a34ed76c0c9a776d4339b27fad383b9554b2f8d4eb066c1dc5556",
+                "quality_complete": true
+              },
+              "extras": {},
+              "current": {
+                "start": "2018-07-01",
+                "end_exclusive": "2018-08-01"
+              },
+              "ranking": null,
+              "summary": "\u6240\u9009\u5dde GMV \u5408\u8ba1\uff0c\u4e0d\u4ee3\u8868\u5168\u5dde\u603b\u989d\u3002",
+              "baseline": null,
+              "complete": true,
+              "narrative": [
+                {
+                  "kind": "gmv_total",
+                  "text": "\u6240\u9009\u5dde MG \u7684 GMV \u5408\u8ba1\u4e3a 800.00 BRL\u3002",
+                  "state": null,
+                  "result_ref": "93b7332f272a327d96d9ae35efc9460c74685260a0fb50c359e08d907b45e98a"
+                }
+              ],
+              "current_days": 31,
+              "baseline_days": null,
+              "evidence_refs": [
+                "93b7332f272a327d96d9ae35efc9460c74685260a0fb50c359e08d907b45e98a"
+              ],
+              "narrative_fallback": true
+            },
+            "tool_trace": [
+              {
+                "phase": "decide",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "query_metrics",
+                "arguments": {
+                  "plan": {
+                    "top_n": null,
+                    "filters": [],
+                    "metrics": [
+                      "gmv"
+                    ],
+                    "version": 1,
+                    "order_by": [
+                      {
+                        "field": "state",
+                        "direction": "asc"
+                      }
+                    ],
+                    "dimensions": [
+                      "state"
+                    ],
+                    "time_range": {
+                      "start": "2018-07-01",
+                      "end_exclusive": "2018-08-01"
+                    }
+                  }
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "fixed",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "calculate",
+                "arguments": {
+                  "op": "sum",
+                  "input": {
+                    "metric": "gmv",
+                    "result_ref": "cdb37df3bb6a34ed76c0c9a776d4339b27fad383b9554b2f8d4eb066c1dc5556"
+                  },
+                  "scope": "top_n"
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "fixed",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "finish",
+                "arguments": {
+                  "evidence_refs": [
+                    "93b7332f272a327d96d9ae35efc9460c74685260a0fb50c359e08d907b45e98a"
+                  ]
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              }
+            ],
+            "narrative_fallback": true,
+            "category": "supported",
+            "intent_group": "intent-13",
+            "fixture": "orders.csv"
+          },
+          {
+            "id": "analysis-13-2",
+            "repeat": 0,
+            "expected_complete": true,
+            "status": "completed",
+            "complete_success": true,
+            "behavior_correct": true,
+            "cost_known": true,
+            "duration_ms": 2688.280568982009,
+            "tool_proposals": 3,
+            "correct_parameters": 3,
+            "extra_calls": 0,
+            "calls_above_minimum": 0,
+            "known_tokens": 671,
+            "known_cost_micros": 671,
+            "unknown_calls": 0,
+            "reserved_and_known_cost_micros": 671,
+            "sql_calls": 1,
+            "model_calls": 1,
+            "error_codes": [],
+            "failure_code": null,
+            "failure_http_status": null,
+            "run_id": "61868d1450ae5d42c65d6b23b8c1e01a312c6a3470d4f590",
+            "observed_spec": {
+              "n": 1,
+              "goal": "top_n_total",
+              "checks": [],
+              "current": {
+                "start": "2018-07-01",
+                "end_exclusive": "2018-08-01"
+              },
+              "filters": [],
+              "ranking": null,
+              "baseline": null
+            },
+            "observed_report": {
+              "goal": "top_n_total",
+              "rows": [
+                {
+                  "label": "MG",
+                  "values": {
+                    "gmv": {
+                      "value": "800.00",
+                      "sample_size": 10,
+                      "excluded_orders": 0
+                    }
+                  },
+                  "dimensions": {
+                    "state": "MG"
+                  },
+                  "total_orders": 10,
+                  "unavailable_orders": 0
+                }
+              ],
+              "total": {
+                "op": "sum",
+                "unit": "BRL",
+                "value": "800.00",
+                "cohort": {
+                  "period": {
+                    "start": "2018-07-01",
+                    "end_exclusive": "2018-08-01"
+                  },
+                  "filters": []
+                },
+                "metric": "gmv",
+                "states": [
+                  "MG"
+                ],
+                "source_ref": "cdb37df3bb6a34ed76c0c9a776d4339b27fad383b9554b2f8d4eb066c1dc5556",
+                "quality_complete": true
+              },
+              "extras": {},
+              "current": {
+                "start": "2018-07-01",
+                "end_exclusive": "2018-08-01"
+              },
+              "ranking": null,
+              "summary": "\u6240\u9009\u5dde GMV \u5408\u8ba1\uff0c\u4e0d\u4ee3\u8868\u5168\u5dde\u603b\u989d\u3002",
+              "baseline": null,
+              "complete": true,
+              "narrative": [
+                {
+                  "kind": "gmv_total",
+                  "text": "\u6240\u9009\u5dde MG \u7684 GMV \u5408\u8ba1\u4e3a 800.00 BRL\u3002",
+                  "state": null,
+                  "result_ref": "93b7332f272a327d96d9ae35efc9460c74685260a0fb50c359e08d907b45e98a"
+                }
+              ],
+              "current_days": 31,
+              "baseline_days": null,
+              "evidence_refs": [
+                "93b7332f272a327d96d9ae35efc9460c74685260a0fb50c359e08d907b45e98a"
+              ],
+              "narrative_fallback": true
+            },
+            "tool_trace": [
+              {
+                "phase": "decide",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "query_metrics",
+                "arguments": {
+                  "plan": {
+                    "top_n": null,
+                    "filters": [],
+                    "metrics": [
+                      "gmv"
+                    ],
+                    "version": 1,
+                    "order_by": [
+                      {
+                        "field": "state",
+                        "direction": "asc"
+                      }
+                    ],
+                    "dimensions": [
+                      "state"
+                    ],
+                    "time_range": {
+                      "start": "2018-07-01",
+                      "end_exclusive": "2018-08-01"
+                    }
+                  }
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "fixed",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "calculate",
+                "arguments": {
+                  "op": "sum",
+                  "input": {
+                    "metric": "gmv",
+                    "result_ref": "cdb37df3bb6a34ed76c0c9a776d4339b27fad383b9554b2f8d4eb066c1dc5556"
+                  },
+                  "scope": "top_n"
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "fixed",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "finish",
+                "arguments": {
+                  "evidence_refs": [
+                    "93b7332f272a327d96d9ae35efc9460c74685260a0fb50c359e08d907b45e98a"
+                  ]
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              }
+            ],
+            "narrative_fallback": true,
+            "category": "supported",
+            "intent_group": "intent-13",
+            "fixture": "orders.csv"
+          },
+          {
+            "id": "analysis-19-1",
+            "repeat": 0,
+            "expected_complete": true,
+            "status": "completed",
+            "complete_success": true,
+            "behavior_correct": true,
+            "cost_known": true,
+            "duration_ms": 3171.359253989067,
+            "tool_proposals": 7,
+            "correct_parameters": 7,
+            "extra_calls": 0,
+            "calls_above_minimum": 0,
+            "known_tokens": 751,
+            "known_cost_micros": 751,
+            "unknown_calls": 0,
+            "reserved_and_known_cost_micros": 751,
+            "sql_calls": 1,
+            "model_calls": 1,
+            "error_codes": [],
+            "failure_code": null,
+            "failure_http_status": null,
+            "run_id": "02a6355776c0e38168da89874e09f695763126f62135a6df",
+            "observed_spec": {
+              "n": 3,
+              "goal": "top_n_total",
+              "checks": [
+                "orders",
+                "aov",
+                "share"
+              ],
+              "current": {
+                "start": "2018-07-01",
+                "end_exclusive": "2018-08-01"
+              },
+              "filters": [],
+              "ranking": null,
+              "baseline": null
+            },
+            "observed_report": {
+              "goal": "top_n_total",
+              "rows": [
+                {
+                  "label": "MG",
+                  "values": {
+                    "gmv": {
+                      "value": "800.00",
+                      "sample_size": 10,
+                      "excluded_orders": 0
+                    },
+                    "orders": {
+                      "value": 10,
+                      "sample_size": 10,
+                      "excluded_orders": 0
+                    }
+                  },
+                  "dimensions": {
+                    "state": "MG"
+                  },
+                  "total_orders": 10,
+                  "unavailable_orders": 0
+                },
+                {
+                  "label": "RJ",
+                  "values": {
+                    "gmv": {
+                      "value": "800.00",
+                      "sample_size": 10,
+                      "excluded_orders": 0
+                    },
+                    "orders": {
+                      "value": 10,
+                      "sample_size": 10,
+                      "excluded_orders": 0
+                    }
+                  },
+                  "dimensions": {
+                    "state": "RJ"
+                  },
+                  "total_orders": 10,
+                  "unavailable_orders": 0
+                },
+                {
+                  "label": "SP",
+                  "values": {
+                    "gmv": {
+                      "value": "720.00",
+                      "sample_size": 8,
+                      "excluded_orders": 1
+                    },
+                    "orders": {
+                      "value": 8,
+                      "sample_size": 8,
+                      "excluded_orders": 1
+                    }
+                  },
+                  "dimensions": {
+                    "state": "SP"
+                  },
+                  "total_orders": 9,
+                  "unavailable_orders": 0
+                }
+              ],
+              "total": {
+                "op": "sum",
+                "unit": "BRL",
+                "value": "2320.00",
+                "cohort": {
+                  "period": {
+                    "start": "2018-07-01",
+                    "end_exclusive": "2018-08-01"
+                  },
+                  "filters": []
+                },
+                "metric": "gmv",
+                "states": [
+                  "MG",
+                  "RJ",
+                  "SP"
+                ],
+                "source_ref": "3af638cfe14a11545b633324b9b7831803f92d3319dccf0240df6925fc2157bb",
+                "quality_complete": true
+              },
+              "extras": {
+                "aov": {
+                  "op": "divide",
+                  "unit": "BRL/\u5355",
+                  "flags": [],
+                  "value": "82.857142857142857142857142857142857143",
+                  "cohort": {
+                    "period": {
+                      "start": "2018-07-01",
+                      "end_exclusive": "2018-08-01"
+                    },
+                    "filters": []
+                  },
+                  "inputs": [
+                    "c4ae9b000bf31fbc2bfe7c29fe1ad12e611101130f23ca2f4c587f457ef256ca",
+                    "cd6cd19d95faa89d21a439eac43b0e3bf93b1bb0ebd441b32f11d374f53890a4"
+                  ],
+                  "metric": "aov",
+                  "states": [
+                    "MG",
+                    "RJ",
+                    "SP"
+                  ],
+                  "quality_complete": true
+                },
+                "share": {
+                  "op": "divide",
+                  "unit": "ratio",
+                  "flags": [],
+                  "value": "0.97478991596638655462184873949579831933",
+                  "cohort": {
+                    "period": {
+                      "start": "2018-07-01",
+                      "end_exclusive": "2018-08-01"
+                    },
+                    "filters": []
+                  },
+                  "inputs": [
+                    "c4ae9b000bf31fbc2bfe7c29fe1ad12e611101130f23ca2f4c587f457ef256ca",
+                    "225f814e5aedc50629ada3588d81427c96b9b663e78f861ac4168982731eadca"
+                  ],
+                  "metric": "ratio",
+                  "states": [
+                    "BA",
+                    "MG",
+                    "RJ",
+                    "SC",
+                    "SP"
+                  ],
+                  "quality_complete": true
+                },
+                "orders": {
+                  "op": "sum",
+                  "unit": "\u5355",
+                  "value": "28",
+                  "cohort": {
+                    "period": {
+                      "start": "2018-07-01",
+                      "end_exclusive": "2018-08-01"
+                    },
+                    "filters": []
+                  },
+                  "metric": "orders",
+                  "states": [
+                    "MG",
+                    "RJ",
+                    "SP"
+                  ],
+                  "source_ref": "3af638cfe14a11545b633324b9b7831803f92d3319dccf0240df6925fc2157bb",
+                  "quality_complete": true
+                }
+              },
+              "current": {
+                "start": "2018-07-01",
+                "end_exclusive": "2018-08-01"
+              },
+              "ranking": null,
+              "summary": "\u6240\u9009\u5dde GMV \u5408\u8ba1\uff0c\u4e0d\u4ee3\u8868\u5168\u5dde\u603b\u989d\u3002",
+              "baseline": null,
+              "complete": true,
+              "narrative": [
+                {
+                  "kind": "gmv_total",
+                  "text": "\u6240\u9009\u5dde MG, RJ, SP \u7684 GMV \u5408\u8ba1\u4e3a 2320.00 BRL\u3002",
+                  "state": null,
+                  "result_ref": "c4ae9b000bf31fbc2bfe7c29fe1ad12e611101130f23ca2f4c587f457ef256ca"
+                }
+              ],
+              "current_days": 31,
+              "baseline_days": null,
+              "evidence_refs": [
+                "c4ae9b000bf31fbc2bfe7c29fe1ad12e611101130f23ca2f4c587f457ef256ca",
+                "cd6cd19d95faa89d21a439eac43b0e3bf93b1bb0ebd441b32f11d374f53890a4",
+                "5c1c82266edfa4022f5d83ae88ad73beb906530993f07ab1a81e4e66280ed1b8",
+                "2f231675c1f88bdb32f85853c7b8d0aa561f13d2a80125fd94d5785e136826f8"
+              ],
+              "narrative_fallback": true
+            },
+            "tool_trace": [
+              {
+                "phase": "decide",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "query_metrics",
+                "arguments": {
+                  "plan": {
+                    "top_n": null,
+                    "filters": [],
+                    "metrics": [
+                      "gmv",
+                      "orders"
+                    ],
+                    "version": 1,
+                    "order_by": [
+                      {
+                        "field": "state",
+                        "direction": "asc"
+                      }
+                    ],
+                    "dimensions": [
+                      "state"
+                    ],
+                    "time_range": {
+                      "start": "2018-07-01",
+                      "end_exclusive": "2018-08-01"
+                    }
+                  }
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "fixed",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "calculate",
+                "arguments": {
+                  "op": "sum",
+                  "input": {
+                    "metric": "gmv",
+                    "result_ref": "3af638cfe14a11545b633324b9b7831803f92d3319dccf0240df6925fc2157bb"
+                  },
+                  "scope": "top_n"
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "fixed",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "calculate",
+                "arguments": {
+                  "op": "sum",
+                  "input": {
+                    "metric": "orders",
+                    "result_ref": "3af638cfe14a11545b633324b9b7831803f92d3319dccf0240df6925fc2157bb"
+                  },
+                  "scope": "top_n"
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "fixed",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "calculate",
+                "arguments": {
+                  "op": "divide",
+                  "left_ref": "c4ae9b000bf31fbc2bfe7c29fe1ad12e611101130f23ca2f4c587f457ef256ca",
+                  "right_ref": "cd6cd19d95faa89d21a439eac43b0e3bf93b1bb0ebd441b32f11d374f53890a4"
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "fixed",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "calculate",
+                "arguments": {
+                  "op": "sum",
+                  "input": {
+                    "metric": "gmv",
+                    "result_ref": "3af638cfe14a11545b633324b9b7831803f92d3319dccf0240df6925fc2157bb"
+                  },
+                  "scope": "returned_groups"
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "fixed",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "calculate",
+                "arguments": {
+                  "op": "divide",
+                  "left_ref": "c4ae9b000bf31fbc2bfe7c29fe1ad12e611101130f23ca2f4c587f457ef256ca",
+                  "right_ref": "225f814e5aedc50629ada3588d81427c96b9b663e78f861ac4168982731eadca"
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "fixed",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "finish",
+                "arguments": {
+                  "evidence_refs": [
+                    "c4ae9b000bf31fbc2bfe7c29fe1ad12e611101130f23ca2f4c587f457ef256ca",
+                    "cd6cd19d95faa89d21a439eac43b0e3bf93b1bb0ebd441b32f11d374f53890a4",
+                    "5c1c82266edfa4022f5d83ae88ad73beb906530993f07ab1a81e4e66280ed1b8",
+                    "2f231675c1f88bdb32f85853c7b8d0aa561f13d2a80125fd94d5785e136826f8"
+                  ]
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              }
+            ],
+            "narrative_fallback": true,
+            "category": "supported",
+            "intent_group": "intent-19",
+            "fixture": "orders.csv"
+          },
+          {
+            "id": "analysis-19-2",
+            "repeat": 0,
+            "expected_complete": true,
+            "status": "completed",
+            "complete_success": true,
+            "behavior_correct": true,
+            "cost_known": true,
+            "duration_ms": 3165.6647520139813,
+            "tool_proposals": 7,
+            "correct_parameters": 7,
+            "extra_calls": 0,
+            "calls_above_minimum": 0,
+            "known_tokens": 763,
+            "known_cost_micros": 763,
+            "unknown_calls": 0,
+            "reserved_and_known_cost_micros": 763,
+            "sql_calls": 1,
+            "model_calls": 1,
+            "error_codes": [],
+            "failure_code": null,
+            "failure_http_status": null,
+            "run_id": "1f4743754338a89cae5dfe0a1591f923ea4450e5245664f9",
+            "observed_spec": {
+              "n": 3,
+              "goal": "top_n_total",
+              "checks": [
+                "orders",
+                "aov",
+                "share"
+              ],
+              "current": {
+                "start": "2018-07-01",
+                "end_exclusive": "2018-08-01"
+              },
+              "filters": [],
+              "ranking": null,
+              "baseline": null
+            },
+            "observed_report": {
+              "goal": "top_n_total",
+              "rows": [
+                {
+                  "label": "MG",
+                  "values": {
+                    "gmv": {
+                      "value": "800.00",
+                      "sample_size": 10,
+                      "excluded_orders": 0
+                    },
+                    "orders": {
+                      "value": 10,
+                      "sample_size": 10,
+                      "excluded_orders": 0
+                    }
+                  },
+                  "dimensions": {
+                    "state": "MG"
+                  },
+                  "total_orders": 10,
+                  "unavailable_orders": 0
+                },
+                {
+                  "label": "RJ",
+                  "values": {
+                    "gmv": {
+                      "value": "800.00",
+                      "sample_size": 10,
+                      "excluded_orders": 0
+                    },
+                    "orders": {
+                      "value": 10,
+                      "sample_size": 10,
+                      "excluded_orders": 0
+                    }
+                  },
+                  "dimensions": {
+                    "state": "RJ"
+                  },
+                  "total_orders": 10,
+                  "unavailable_orders": 0
+                },
+                {
+                  "label": "SP",
+                  "values": {
+                    "gmv": {
+                      "value": "720.00",
+                      "sample_size": 8,
+                      "excluded_orders": 1
+                    },
+                    "orders": {
+                      "value": 8,
+                      "sample_size": 8,
+                      "excluded_orders": 1
+                    }
+                  },
+                  "dimensions": {
+                    "state": "SP"
+                  },
+                  "total_orders": 9,
+                  "unavailable_orders": 0
+                }
+              ],
+              "total": {
+                "op": "sum",
+                "unit": "BRL",
+                "value": "2320.00",
+                "cohort": {
+                  "period": {
+                    "start": "2018-07-01",
+                    "end_exclusive": "2018-08-01"
+                  },
+                  "filters": []
+                },
+                "metric": "gmv",
+                "states": [
+                  "MG",
+                  "RJ",
+                  "SP"
+                ],
+                "source_ref": "3af638cfe14a11545b633324b9b7831803f92d3319dccf0240df6925fc2157bb",
+                "quality_complete": true
+              },
+              "extras": {
+                "aov": {
+                  "op": "divide",
+                  "unit": "BRL/\u5355",
+                  "flags": [],
+                  "value": "82.857142857142857142857142857142857143",
+                  "cohort": {
+                    "period": {
+                      "start": "2018-07-01",
+                      "end_exclusive": "2018-08-01"
+                    },
+                    "filters": []
+                  },
+                  "inputs": [
+                    "c4ae9b000bf31fbc2bfe7c29fe1ad12e611101130f23ca2f4c587f457ef256ca",
+                    "cd6cd19d95faa89d21a439eac43b0e3bf93b1bb0ebd441b32f11d374f53890a4"
+                  ],
+                  "metric": "aov",
+                  "states": [
+                    "MG",
+                    "RJ",
+                    "SP"
+                  ],
+                  "quality_complete": true
+                },
+                "share": {
+                  "op": "divide",
+                  "unit": "ratio",
+                  "flags": [],
+                  "value": "0.97478991596638655462184873949579831933",
+                  "cohort": {
+                    "period": {
+                      "start": "2018-07-01",
+                      "end_exclusive": "2018-08-01"
+                    },
+                    "filters": []
+                  },
+                  "inputs": [
+                    "c4ae9b000bf31fbc2bfe7c29fe1ad12e611101130f23ca2f4c587f457ef256ca",
+                    "225f814e5aedc50629ada3588d81427c96b9b663e78f861ac4168982731eadca"
+                  ],
+                  "metric": "ratio",
+                  "states": [
+                    "BA",
+                    "MG",
+                    "RJ",
+                    "SC",
+                    "SP"
+                  ],
+                  "quality_complete": true
+                },
+                "orders": {
+                  "op": "sum",
+                  "unit": "\u5355",
+                  "value": "28",
+                  "cohort": {
+                    "period": {
+                      "start": "2018-07-01",
+                      "end_exclusive": "2018-08-01"
+                    },
+                    "filters": []
+                  },
+                  "metric": "orders",
+                  "states": [
+                    "MG",
+                    "RJ",
+                    "SP"
+                  ],
+                  "source_ref": "3af638cfe14a11545b633324b9b7831803f92d3319dccf0240df6925fc2157bb",
+                  "quality_complete": true
+                }
+              },
+              "current": {
+                "start": "2018-07-01",
+                "end_exclusive": "2018-08-01"
+              },
+              "ranking": null,
+              "summary": "\u6240\u9009\u5dde GMV \u5408\u8ba1\uff0c\u4e0d\u4ee3\u8868\u5168\u5dde\u603b\u989d\u3002",
+              "baseline": null,
+              "complete": true,
+              "narrative": [
+                {
+                  "kind": "gmv_total",
+                  "text": "\u6240\u9009\u5dde MG, RJ, SP \u7684 GMV \u5408\u8ba1\u4e3a 2320.00 BRL\u3002",
+                  "state": null,
+                  "result_ref": "c4ae9b000bf31fbc2bfe7c29fe1ad12e611101130f23ca2f4c587f457ef256ca"
+                }
+              ],
+              "current_days": 31,
+              "baseline_days": null,
+              "evidence_refs": [
+                "c4ae9b000bf31fbc2bfe7c29fe1ad12e611101130f23ca2f4c587f457ef256ca",
+                "cd6cd19d95faa89d21a439eac43b0e3bf93b1bb0ebd441b32f11d374f53890a4",
+                "5c1c82266edfa4022f5d83ae88ad73beb906530993f07ab1a81e4e66280ed1b8",
+                "2f231675c1f88bdb32f85853c7b8d0aa561f13d2a80125fd94d5785e136826f8"
+              ],
+              "narrative_fallback": true
+            },
+            "tool_trace": [
+              {
+                "phase": "decide",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "query_metrics",
+                "arguments": {
+                  "plan": {
+                    "top_n": null,
+                    "filters": [],
+                    "metrics": [
+                      "gmv",
+                      "orders"
+                    ],
+                    "version": 1,
+                    "order_by": [
+                      {
+                        "field": "state",
+                        "direction": "asc"
+                      }
+                    ],
+                    "dimensions": [
+                      "state"
+                    ],
+                    "time_range": {
+                      "start": "2018-07-01",
+                      "end_exclusive": "2018-08-01"
+                    }
+                  }
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "fixed",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "calculate",
+                "arguments": {
+                  "op": "sum",
+                  "input": {
+                    "metric": "gmv",
+                    "result_ref": "3af638cfe14a11545b633324b9b7831803f92d3319dccf0240df6925fc2157bb"
+                  },
+                  "scope": "top_n"
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "fixed",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "calculate",
+                "arguments": {
+                  "op": "sum",
+                  "input": {
+                    "metric": "orders",
+                    "result_ref": "3af638cfe14a11545b633324b9b7831803f92d3319dccf0240df6925fc2157bb"
+                  },
+                  "scope": "top_n"
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "fixed",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "calculate",
+                "arguments": {
+                  "op": "divide",
+                  "left_ref": "c4ae9b000bf31fbc2bfe7c29fe1ad12e611101130f23ca2f4c587f457ef256ca",
+                  "right_ref": "cd6cd19d95faa89d21a439eac43b0e3bf93b1bb0ebd441b32f11d374f53890a4"
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "fixed",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "calculate",
+                "arguments": {
+                  "op": "sum",
+                  "input": {
+                    "metric": "gmv",
+                    "result_ref": "3af638cfe14a11545b633324b9b7831803f92d3319dccf0240df6925fc2157bb"
+                  },
+                  "scope": "returned_groups"
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "fixed",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "calculate",
+                "arguments": {
+                  "op": "divide",
+                  "left_ref": "c4ae9b000bf31fbc2bfe7c29fe1ad12e611101130f23ca2f4c587f457ef256ca",
+                  "right_ref": "225f814e5aedc50629ada3588d81427c96b9b663e78f861ac4168982731eadca"
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "fixed",
+                "action": null,
+                "arguments": null,
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              },
+              {
+                "phase": "tool",
+                "action": "finish",
+                "arguments": {
+                  "evidence_refs": [
+                    "c4ae9b000bf31fbc2bfe7c29fe1ad12e611101130f23ca2f4c587f457ef256ca",
+                    "cd6cd19d95faa89d21a439eac43b0e3bf93b1bb0ebd441b32f11d374f53890a4",
+                    "5c1c82266edfa4022f5d83ae88ad73beb906530993f07ab1a81e4e66280ed1b8",
+                    "2f231675c1f88bdb32f85853c7b8d0aa561f13d2a80125fd94d5785e136826f8"
+                  ]
+                },
+                "status": "completed",
+                "error_code": null,
+                "cached": false
+              }
+            ],
+            "narrative_fallback": true,
+            "category": "supported",
+            "intent_group": "intent-19",
+            "fixture": "orders.csv"
+          }
+        ],
+        "summary": {
+          "supported_tasks": 4,
+          "complete_successes": 4,
+          "categories": {
+            "supported": {
+              "total": 4,
+              "behavior_correct": 4,
+              "supported": 4,
+              "complete_successes": 4
+            }
+          },
+          "complete_success_rate": 1.0,
+          "behavior_correct": 4,
+          "all_tasks": 4,
+          "tool_proposals": 20,
+          "correct_parameters": 20,
+          "parameter_correct_rate": 1.0,
+          "extra_calls_total": 0,
+          "calls_above_minimum_total": 0,
+          "latency_ms": {
+            "p50": 3165.6647520139813,
+            "p95": 5091.708954016212,
+            "samples": 4
+          },
+          "known_tokens": 2826,
+          "unknown_calls": 0,
+          "model_calls": 4,
+          "sql_calls": 4,
+          "known_cost_micros": 2826,
+          "known_cost_per_complete_success": 706.5,
+          "reserved_and_known_cost_micros": 2826,
+          "total_cost_known": true,
+          "not_run": 0
+        },
+        "provider_calls_issued": 4
+      }
+    },
+    "completed": true,
+    "policy": {
+      "LLM_INTENT_MAX_TOKENS": "256",
+      "LLM_PLAN_MAX_TOKENS": "2048",
+      "ANALYSIS_MODEL_MAX_OUTPUT_TOKENS": "4096",
+      "ANALYSIS_MODEL_TIMEOUT_SECONDS": "45",
+      "ANALYSIS_MAX_TOKENS": "50000",
+      "ANALYSIS_MODEL_INTERVAL_SECONDS": "20"
+    },
+    "baseline_transport": {
+      "plan_max_tokens": 2048,
+      "client_segment_timeout_seconds": 20
+    },
+    "provider_call_budget": {
+      "maximum": 40,
+      "issued": 26,
+      "remaining": 14,
+      "scope": "whole_study_across_all_stopped_stacks"
+    },
+    "paired_adaptive_minus_baseline": {
+      "available": true,
+      "paired_tasks": 4,
+      "intent_groups": 2,
+      "difference": 0.25,
+      "cluster_bootstrap_95_interval": [
+        0.0,
+        0.5
+      ],
+      "seed": 20261017
+    },
+    "finished_at": "2026-10-17T08:01:07.438916+00:00"
+  },
+  "server_provenance": {
+    "verified_at": "2026-10-17T08:02:42.819985+00:00",
+    "archive": {
+      "commit": "24e8ba6ea9f5822a8b3958232c1dbe32355d875f",
+      "sha256": "17e282088dfd6af353bf3a2031c12957e6135f009ca17e1ddbdf1a3998c27249"
+    },
+    "full_pytest_summary": "410 passed, 12 skipped in 111.47s (0:01:51)",
+    "final_fixed_pytest_summary": "3 passed, 51 deselected in 6.49s",
+    "no_progress_pytest_summary": "1 passed, 54 deselected in 3.12s",
+    "diagnostics_patch": {
+      "scope": "structured no_progress feedback only; no additional live model run",
+      "commit": "b2d22d678d9fe4c466efee0a1a00c07e90b1eb0a"
+    },
+    "source_mode": "readonly exported commit mounted into existing Python validation image; not a production image release",
+    "production_source_commit": "54edc609d769a9af81b2c99e482dbff5c760b1c2",
+    "production_healthy": true,
+    "backup_timer_active": true,
+    "isolated_postgres": true,
+    "leftover_fixture_databases": 0,
+    "leftover_fixture_roles": 0,
+    "temporary_container_volume_and_credentials_removed": true
+  },
+  "limitations": [
+    "exposed development regression cases, not independent holdout",
+    "4 expressions, 2 intent groups, one repeat per group",
+    "no real currency cost measurement; TEST_UNIT only",
+    "fixed and adaptive use distinct prompts by design",
+    "same per-run model pacing; not a global gateway rate limiter",
+    "old pilot results retained without replacement",
+    "no production cutover in this iteration"
+  ]
+}

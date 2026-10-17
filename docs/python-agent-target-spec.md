@@ -174,3 +174,5 @@ flowchart TD
 已确认范围：**最终默认后端为 Python 单栈，采用 LangGraph，默认数据存储统一 PostgreSQL，保留原问数/多轮和授权语义。** 实施与验证结果记录在 `python-platform-implementation.md`，完成后按 AGENTS.md 提交代码与测试结果供人工验收。
 
 后续授权：用户要求“部署到服务器进行测试，不要在本地测试了”，允许以 TEST_UNIT 测试预算单位联调真实模型，并单独确认“授权切换入口并启用新备份定时器”。已按该范围完成 ECS 部署与切换，见 [服务器验收](python-platform-ecs-validation.md)。上述方案确认阶段的部署限制为历史授权边界；未授权 Git 推送或删除原数据。
+
+后续开发修正见 [协议与上下文修正](analysis-protocol-hardening-results.md)：固定流程纯规格解析、B/C 统一模型等待、短引用、TopN 等价输入和无进展错误码已经过服务器验证，尚未切换生产；不将开发题回归当成独立效果验收。
