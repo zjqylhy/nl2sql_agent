@@ -8,7 +8,7 @@ from langgraph.types import interrupt
 # 共享查询模块先完成初始化，再加载保留的内部工具适配器。
 from agent.runtime import app as runtime
 from agent.runtime.analysis import canonical
-from agent.runtime.analysis_api import Snapshot, ToolRequest, checked, decide, decision_prompt, fixed_decide, tool
+from agent.runtime.analysis_api import Snapshot, ToolRequest, checked, decide, decision_prompt, fixed_decide, parse_spec, spec_prompt, tool
 from .ledger import Ledger
 from .repository import identity
 
@@ -55,7 +55,8 @@ def build_graph(repo, task, saver):
         with repo.db.transaction() as conn:
             run = conn.execute("SELECT policy,state FROM analysis_runs WHERE id=%s", (task["id"],)).fetchone()
         seconds = run["policy"].get("model_interval_seconds", 0)
-        if seconds and run["policy"]["strategy"] == "adaptive" and run["state"]["model_calls"]:
+        needs_model = run['policy']['strategy'] != 'fixed' or state.get('spec') is None
+        if seconds and needs_model and run["state"]["model_calls"]:
             # 等待不占 Worker 线程，不预占尚未发送的模型费用，也不会重放已完成调用。
             interrupt({"kind": "backoff", "wait_id": state["op_id"], "seconds": seconds, "message": "等待已配置的模型调用间隔"})
         return {}
@@ -63,15 +64,17 @@ def build_graph(repo, task, saver):
     def decision(state):
         request, run = snapshot(state)
         fixed = run["policy"]["strategy"] == "fixed" and state.get("spec") is not None
+        spec_only = run['policy']['strategy'] == 'fixed' and not fixed
         phase = "fixed" if fixed else "decide"
         payload = {"spec": request["spec"], "answers": request["answers"], "feedback": request["feedback"], "artifact_refs": state.get("refs", [])}
         if not fixed:
             from datetime import date
-            prompt, question = decision_prompt(Snapshot.model_validate(request), date.fromisoformat(run["metadata"]["analysis_date"]))
+            prompt, question = (spec_prompt if spec_only else decision_prompt)(Snapshot.model_validate(request), date.fromisoformat(run["metadata"]["analysis_date"]))
             payload.update(prompt=prompt, question=question, model=run["metadata"]["model"],
+                decision_protocol='spec-only-v1' if spec_only else 'adaptive-short-refs-v2',
                 max_output_tokens=request["max_output_tokens"], model_timeout_seconds=request["model_timeout_seconds"])
         output = ledger.call(state["op_id"], phase, payload, state,
-            lambda: (fixed_decide if fixed else decide)(Snapshot.model_validate(request)))
+            lambda: (fixed_decide if fixed else parse_spec if spec_only else decide)(Snapshot.model_validate(request)))
         return {"output": output}
 
     def interpret(state):

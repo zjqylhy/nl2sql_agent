@@ -742,12 +742,13 @@ def test_multiple_workers_share_two_analysis_slots(platform):
         assert conn.execute("SELECT count(*) n FROM tasks WHERE status='querying' AND lease_until>now()").fetchone()["n"] == 2
 
 
-def test_fixed_strategy_ignores_initial_model_tool_choice(platform, monkeypatch):
+def test_fixed_strategy_parses_spec_without_agent_tool_choice(platform, monkeypatch):
     client, repo, _ = platform
     from agent.platform_app import graph
     client.app.state.policy = POLICY.model_copy(update={"strategy": "fixed"})
-    monkeypatch.setattr(graph, "decide", lambda request: {"status": "completed", "model_sent": True, "usage": {"prompt_tokens": 100, "completion_tokens": 50},
-        "decision": {"spec": spec(), "action": {"action": "lookup_metrics", "arguments": {"metrics": ["gmv"]}}}})
+    monkeypatch.setattr(graph, 'decide', lambda request: pytest.fail('固定流程不能请求 Agent 动作'))
+    monkeypatch.setattr(graph, 'parse_spec', lambda request: {'status':'completed','model_sent':True,'usage':{'prompt_tokens':100,'completion_tokens':50},
+        'decision':next_action(Spec.model_validate(spec()),request.artifacts)})
     run_id = client.post("/api/analysis-runs", json={"question": "固定流程对照", "request_id": str(uuid4())}).json()["id"]
     run_once(repo)
     run = client.get("/api/analysis-runs/"+run_id).json()
@@ -755,6 +756,43 @@ def test_fixed_strategy_ignores_initial_model_tool_choice(platform, monkeypatch)
     assert run["state"]["model_calls"] == 1
     assert next(s["action"] for s in run["steps"] if s["phase"] == "tool") == "query_metrics"
     assert run["state"]["actions"] == 7
+
+
+@pytest.mark.parametrize('first', ['repair','clarification'])
+def test_fixed_model_retry_and_answer_share_durable_pacing(platform, monkeypatch, first):
+    client, repo, _ = platform
+    from agent.platform_app import graph
+    client.app.state.policy = POLICY.model_copy(update={'strategy':'fixed','model_interval_seconds':20})
+    calls = []
+    def parse(request):
+        calls.append(request)
+        if len(calls)==1:
+            if first=='repair':
+                return {'status':'error','error_code':'invalid_arguments','model_sent':True,'usage':{'prompt_tokens':100,'completion_tokens':50}}
+            return {'status':'completed','model_sent':True,'usage':{'prompt_tokens':100,'completion_tokens':50},
+                'decision':{'spec':None,'action':{'action':'request_clarification','arguments':{'missing_fields':['current'],'message':'补充日期'}}}}
+        return {'status':'completed','model_sent':True,'usage':{'prompt_tokens':100,'completion_tokens':50},
+                'decision':next_action(Spec.model_validate(spec()),request.artifacts)}
+    monkeypatch.setattr(graph,'parse_spec',parse)
+    monkeypatch.setattr(graph,'decide',lambda request:pytest.fail('固定模式禁止 Agent 决策'))
+    run_id=client.post('/api/analysis-runs',json={'question':'补充或修复后继续','request_id':str(uuid4())}).json()['id']
+    run_once(repo)
+    value=client.get('/api/analysis-runs/'+run_id).json()
+    if first=='clarification':
+        assert value['status']=='needs_clarification'
+        client.post('/api/analysis-runs/'+run_id+'/answers',json={'request_id':str(uuid4()),'expected_version':value['version'],'answer':'2018年7月'})
+        run_once(repo)
+        value=client.get('/api/analysis-runs/'+run_id).json()
+    assert value['status']=='pending' and value['state']['phase']=='backoff'
+    assert len(calls)==1 and value['state']['tokens']==150 and value['usage']['unknown_calls']==0
+    assert repo.claim(True) is None
+    with repo.db.transaction() as conn:
+        conn.execute("UPDATE tasks SET ready_at=now()-interval '1 second' WHERE id=%s",(run_id,))
+    run_once(repo)
+    value=client.get('/api/analysis-runs/'+run_id).json()
+    assert value['status']=='completed' and len(calls)==2
+    assert value['state']['model_calls']==2 and value['state']['sql_calls']==1
+    assert value['state']['tokens']==300 and value['usage']['unknown_calls']==0
 
 
 def test_completed_history_survives_code_upgrade_but_cannot_resume(platform, monkeypatch):

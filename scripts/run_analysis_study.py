@@ -89,6 +89,7 @@ def main():
         temporary.replace(args.output)
     for group in ("baseline", "adaptive", "fixed"):
         results = []
+        calls_before_group = budget.issued
         def record(result):
             results.append(result)
             study['groups'][group] = {'results': results, 'summary': summary(results)}
@@ -108,7 +109,7 @@ def main():
                         record(dict(id=case['id'], repeat=repeat, intent_group=case['group'], category=case['category'], fixture=fixture,
                                     status='not_run', reason='whole_study_budget_exhausted', expected_complete=gold['complete'],
                                     complete_success=False, behavior_correct=False, cost_known=False))
-            study["groups"][group] = {"results": results, "summary": summary(results)}
+            study["groups"][group] = {"results": results, "summary": summary(results), 'provider_calls_issued':budget.issued-calls_before_group}
             save()
     study["paired_adaptive_minus_baseline"] = paired_difference(study["groups"]["baseline"]["results"], study["groups"]["adaptive"]["results"])
     study['completed'] = True

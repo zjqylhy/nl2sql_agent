@@ -286,7 +286,14 @@ def calculate(args, artifacts, spec, binding):
         elif args.selection_ref is not None:
             reject()
         elif args.scope == "top_n":
-            if spec.goal != "top_n_total" or "gmv" not in data["plan"]["metrics"] or data["coverage"] != "complete":
+            if spec.goal != "top_n_total" or "gmv" not in data["plan"]["metrics"]:
+                reject()
+            if data['coverage'] == 'selected_top_n':
+                # 查询内核保存的完整候选允许安全重选；不能把任意截断结果当成全集。
+                if data.get('requested_plan', {}).get('top_n') != spec.n or 'candidate_rows' not in data:
+                    reject(message='TopN 求和需要同一 N 的完整候选')
+                rows = list(rows_by_state({**data, 'rows':data['candidate_rows']}).values())
+            elif data['coverage'] != 'complete':
                 reject()
             rows = sorted_gmv(rows)[:spec.n]
         values = [decimal(r["values"][metric]["value"]) for r in rows]

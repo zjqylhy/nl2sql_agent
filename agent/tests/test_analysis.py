@@ -74,9 +74,11 @@ def test_sum_and_weighted_aov_not_mean_of_means():
         calculate(BinaryArgs(op="add", left_ref=artifacts[1]["result_ref"], right_ref=artifacts[1]["result_ref"]), artifacts, spec("top_n_total"), BINDING)
 
 
-def test_unknown_amount_outside_top_n_prevents_false_complete_total():
+@pytest.mark.parametrize('scope',['returned_groups','top_n'])
+def test_unknown_amount_outside_top_n_prevents_false_complete_total(scope):
     q = query(PERIODS[1], [("SP", ["100", "1", "100"]), ("RJ", [None, "1", None])], top=1)
-    scalar = calculate(SumArgs(op="sum", input={"result_ref": q["result_ref"], "metric": "gmv"}, scope="returned_groups"), [q], spec("top_n_total", n=1), BINDING)
+    q = artifact('query',{**q['data'],'requested_plan':{**q['data']['plan'],'top_n':1}},q['metrics_used'],BINDING)
+    scalar = calculate(SumArgs(op="sum", input={"result_ref": q["result_ref"], "metric": "gmv"}, scope=scope), [q], spec("top_n_total", n=1), BINDING)
     assert scalar["data"]["value"] == "100" and not scalar["data"]["quality_complete"]
     with pytest.raises(AnalysisError, match="完整"):
         finish(FinishArgs(evidence_refs=[scalar["result_ref"]]), [q, scalar], spec("top_n_total", n=1), BINDING)
@@ -215,3 +217,75 @@ def test_gateway_rejection_contract_does_not_retry_unknown_calls(client, monkeyp
     assert 'private-provider-detail' not in json.dumps(output)
     if known_rejection:
         assert output['retry_after_seconds'] == 120 and output['request_sent'] is True
+
+
+@pytest.mark.parametrize('bad', [None,'missing_candidates','wrong_n'])
+def test_topn_sum_accepts_matching_selection_only_with_full_candidates(bad):
+    selected=spec('top_n_total',n=1)
+    original=query(PERIODS[1],[('SP',['100','10','10']),('RJ',['80','2','40'])],top=1)
+    data={**original['data'],'requested_plan':{**original['data']['plan'],'top_n':1}}
+    if bad=='missing_candidates':data.pop('candidate_rows')
+    if bad=='wrong_n':data['requested_plan']['top_n']=2
+    source=artifact('query',data,original['metrics_used'],BINDING)
+    args=SumArgs(op='sum',input={'result_ref':source['result_ref'],'metric':'gmv'},scope='top_n')
+    if bad:
+        with pytest.raises(AnalysisError):calculate(args,[source],selected,BINDING)
+    else:
+        result=calculate(args,[source],selected,BINDING)
+        assert result['data']['value']=='100' and result['data']['states']==['SP']
+        assert finish(FinishArgs(evidence_refs=[result['result_ref']]),[source,result],selected,BINDING)['data']['complete']
+
+
+def test_short_refs_roundtrip_and_foreign_refs_are_rejected():
+    from runtime.analysis_api import resolve_action_refs
+    source=query(PERIODS[1],[('SP',['100','1','100'])])
+    action={'action':'finish','arguments':{'evidence_refs':['e1'],'findings':[{'kind':'gmv_total','result_ref':'e1','state':None}]}}
+    resolved=resolve_action_refs(action,[source])
+    assert resolved['arguments']['evidence_refs']==[source['result_ref']]
+    assert resolved['arguments']['findings'][0]['result_ref']==source['result_ref']
+    for value in ['e2','c'*64]:
+        with pytest.raises(AnalysisError):resolve_action_refs({'arguments':{'result_ref':value}},[source])
+
+
+def test_full_27_state_complex_trajectory_fits_context_without_losing_facts():
+    target=spec('top_n_total',n=3,checks=['orders','aov','share'])
+    states=['AC','AL','AP','AM','BA','CE','DF','ES','GO','MA','MT','MS','MG','PA','PB','PR','PE','PI','RJ','RN','RS','RO','RR','SC','SP','SE','TO']
+    source=query(PERIODS[1],[(s,[str(1000+i),str(i+1),'100']) for i,s in enumerate(states)])
+    artifacts=[artifact('catalog',{m:{'name':m,'unit':'BRL','definition':'有效订单金额或数量，不包括取消订单和运费'} for m in ['gmv','orders','aov']},['gmv','orders','aov'],BINDING),source]
+    request=Snapshot(tenant_id='alpha',role='ops',allowed_metrics=['gmv','orders','aov'],binding=BINDING,question='请帮我完成下面的经营分析，并附上数据依据：2018年7月 GMV 前三州合计，以及订单总量、整体客单价和占全范围GMV的比例。',spec=target)
+    for _ in range(10):
+        request.artifacts=artifacts
+        prompt,payload=decision_prompt(request,date(2018,8,31))
+        assert len(prompt.encode())+len(payload.encode())+256<=6000
+        assert [a['ref'] for a in json.loads(payload)['evidence']]==[f'e{i}' for i in range(1,len(artifacts)+1)]
+        assert len(source['data']['candidate_rows'])==27
+        action=Decision.model_validate(next_action(target,artifacts)).action
+        if action.action=='finish':
+            assert finish(action.arguments,artifacts,target,BINDING)['data']['complete']
+            break
+        artifacts.append(calculate(action.arguments,artifacts,target,BINDING))
+    else:pytest.fail('复杂计算链未结束')
+
+
+@pytest.mark.parametrize('kind',['spec','clarification','forbidden_action'])
+def test_fixed_parser_accepts_spec_or_clarification_without_tool_protocol(client,monkeypatch,kind):
+    import httpx
+    from runtime.analysis_api import parse_spec
+    from runtime.model_transport import ModelTransport
+    monkeypatch.setenv('LLM_BASE_URL','https://fixture.invalid/v1')
+    monkeypatch.setenv('LLM_MODEL','fixture')
+    monkeypatch.setenv('LLM_API_KEY','test-only-no-network')
+    raw={'spec':spec('top_n_total',n=1).model_dump(mode='json'),'clarification':None}
+    if kind=='clarification':raw={'spec':None,'clarification':{'missing_fields':['current'],'message':'补充日期'}}
+    if kind=='forbidden_action':raw['action']={'action':'query_metrics','arguments':{}}
+    sent=[]
+    def respond(request):
+        sent.append(json.loads(request.content))
+        return httpx.Response(200,json={'choices':[{'finish_reason':'stop','message':{'content':json.dumps(raw)}}],'usage':{'prompt_tokens':100,'completion_tokens':50}})
+    monkeypatch.setattr(ModelTransport,'bounded_client',lambda self,timeout=20:httpx.Client(transport=httpx.MockTransport(respond)))
+    identity={'tenant_id':'alpha','role':'ops','allowed_metrics':['gmv']}
+    request=Snapshot(**identity,binding=context(Identity.model_validate(identity))['binding'],question='GMV前一州合计')
+    result=parse_spec(request)
+    assert 'query_metrics' not in sent[0]['messages'][0]['content']
+    if kind=='forbidden_action':assert result['error_code']=='invalid_arguments'
+    else:assert result['decision']['action']['action']==('query_metrics' if kind=='spec' else 'request_clarification')
