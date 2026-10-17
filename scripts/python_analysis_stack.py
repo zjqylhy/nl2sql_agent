@@ -24,6 +24,23 @@ DATA = ROOT/"evals/analysis"
 HIDDEN = {"creationflags": subprocess.CREATE_NO_WINDOW} if os.name == "nt" else {}
 
 
+class StudyBudget:
+    """各栈顺序运行；停止子进程后结算，下一栈只领取全研究的剩余额度。"""
+    def __init__(self, maximum):
+        if type(maximum) is not int or maximum < 0:
+            raise ValueError("invalid_study_budget")
+        self.maximum, self.issued = maximum, 0
+
+    @property
+    def remaining(self):
+        return self.maximum - self.issued
+
+    def consume(self, issued):
+        if type(issued) is not int or not 0 <= issued <= self.remaining:
+            raise ValueError("invalid_study_budget_receipt")
+        self.issued += issued
+
+
 def uri_for(dsn, database):
     from urllib.parse import quote
     values = conninfo_to_dict(dsn)
@@ -34,15 +51,19 @@ def uri_for(dsn, database):
 
 
 @contextmanager
-def stack(fixture, strategy, max_calls):
+def stack(fixture, strategy, max_calls, *, budget=None):
     if fixture not in {"orders.csv", "edge-orders.csv"} or strategy not in {"adaptive", "fixed"}:
         raise ValueError("invalid_test_fixture")
+    if budget is not None:
+        max_calls = min(max_calls, budget.remaining)
+        if max_calls <= 0:
+            raise ValueError("study_budget_exhausted")
     from scripts.evaluate_agent import wait_health
     admin_dsn = os.environ["TEST_DATABASE_URL"]
     prefix = secrets.token_hex(8)
     name, role, tenant = "test_analysis_py_"+prefix, "test_analysis_ro_"+prefix, "ea_"+prefix
     readonly_password, login_password, key = [secrets.token_hex(24) for _ in range(3)]
-    processes, created = [], False
+    processes, created, budget_created = [], False, False
     old = {k: os.environ.get(k) for k in ("ANALYSIS_EVAL_TENANT", "ANALYSIS_EVAL_USER", "ANALYSIS_EVAL_PASSWORD", "SERVICE_KEY")}
     try:
         with psycopg.connect(admin_dsn, autocommit=True) as conn:
@@ -64,6 +85,7 @@ def stack(fixture, strategy, max_calls):
             conn.execute("INSERT INTO platform.users(id,tenant_id,username,password_hash,role,allowed_metrics) VALUES(%s,%s,'admin',%s,'admin',%s)", (prefix, tenant, bcrypt.hashpw(login_password.encode(), bcrypt.gensalt(rounds=4)), list(catalog().metrics)))
             conn.execute("CREATE TABLE platform.evaluation_budget(id integer PRIMARY KEY,issued integer NOT NULL,maximum integer NOT NULL)")
             conn.execute("INSERT INTO platform.evaluation_budget VALUES(1,0,%s)", (max_calls,))
+        budget_created = True
         params = conninfo_to_dict(admin_dsn)
         source = dict(driver="postgresql", host=params.get("host", "127.0.0.1"), port=int(params.get("port", 5432)), database=name,
             user=role, password=readonly_password, schema_name="analytics_fixture", analysis_date="2018-08-31", dataset_revision=hashlib.sha256((DATA/fixture).read_bytes()).hexdigest())
@@ -85,15 +107,25 @@ def stack(fixture, strategy, max_calls):
         for process in reversed(processes):
             if process.poll() is None:
                 process.terminate()
-            process.wait(timeout=15)
-        if created:
-            # 名称只来自本次随机生成值，绝不清理用户传入的数据库。
-            with psycopg.connect(admin_dsn, autocommit=True) as conn:
-                conn.execute(sql.SQL("DROP DATABASE {} WITH (FORCE)").format(sql.Identifier(name)))
-                if conn.execute("SELECT 1 FROM pg_roles WHERE rolname=%s", (role,)).fetchone():
-                    conn.execute(sql.SQL("DROP ROLE {}").format(sql.Identifier(role)))
-        for key, value in old.items():
-            if value is None:
-                os.environ.pop(key, None)
-            else:
-                os.environ[key] = value
+            try:
+                process.wait(timeout=15)
+            except subprocess.TimeoutExpired:
+                process.kill()
+                process.wait(timeout=5)
+        # 必须先停止所有潜在发送者；读数失败直接中止研究，不能把未知额度当成零。
+        try:
+            if budget is not None and budget_created:
+                with psycopg.connect(dsn) as conn:
+                    issued = conn.execute("SELECT issued FROM platform.evaluation_budget WHERE id=1").fetchone()[0]
+                budget.consume(issued)
+        finally:
+            if created:
+                with psycopg.connect(admin_dsn, autocommit=True) as conn:
+                    conn.execute(sql.SQL("DROP DATABASE {} WITH (FORCE)").format(sql.Identifier(name)))
+                    if conn.execute("SELECT 1 FROM pg_roles WHERE rolname=%s", (role,)).fetchone():
+                        conn.execute(sql.SQL("DROP ROLE {}").format(sql.Identifier(role)))
+            for key, value in old.items():
+                if value is None:
+                    os.environ.pop(key, None)
+                else:
+                    os.environ[key] = value

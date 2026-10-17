@@ -30,6 +30,9 @@ def parameter_correct(step, case, gold):
         return False
     if spec["goal"] == "compare_declines" and p.get("top_n") is not None:
         return False
+    if spec["goal"] == "top_n_total" and p.get("top_n") is not None:
+        if p["top_n"] != spec["n"] or p.get("order_by") != [{"field": "gmv", "direction": "desc"}]:
+            return False
     key = lambda f: json.dumps(f, sort_keys=True)
     base, actual = set(map(key, spec.get("filters", []))), set(map(key, p.get("filters", [])))
     if not base <= actual:
@@ -75,10 +78,35 @@ def baseline_observation(observer, task_id):
     cost = (trace.get('known_input_tokens',0)*input_price+trace.get('known_output_tokens',0)*output_price+999999)//1000000
     return {'known_tokens':trace.get('known_total_tokens',0),'unknown_calls':trace.get('unknown_usage_calls',0),
             'known_cost_micros':cost,'cost_known':trace.get('unknown_usage_calls',0)==0,
-            'model_calls':trace['model_calls'],'sql_calls':trace['sql_calls'],'attempts':trace['attempts']}
+            'model_calls':trace['model_calls'],'sql_calls':trace['sql_calls'],'attempts':trace['attempts'],
+            'error_codes':trace.get('error_codes',[])}
 
 
-def evaluate(base, group, cases, repeats, observer_url=None, fixture='orders.csv'):
+def negative_behavior_correct(run, result, case, group, gold):
+    """安全停止与正确理解题意分开；基础设施失败不能充当正确的业务拒绝。"""
+    if result.get('unknown_calls') or result.get('status') == 'timeout':
+        return False
+    if group == 'baseline':
+        return (case['category'] == 'unsupported' and run['status'] == 'needs_clarification'
+                and result.get('sql_calls') == 0 and 'unsupported' in result.get('error_codes', []))
+    code = run.get('state', {}).get('feedback', {}).get('error_code')
+    if code and code not in {'missing_evidence', 'no_data'}:
+        return False
+    proposals = [s for s in run.get('steps', []) if s['phase'] == 'tool']
+    if case['category'] == 'unsupported':
+        return (run['status'] == 'needs_clarification' and result.get('sql_calls') == 0
+                and any(s['action'] == 'request_clarification' and s['status'] == 'completed'
+                        and set((s.get('arguments') or {}).get('missing_fields', [])) & {'goal', 'expression'} for s in proposals))
+    if case['category'] == 'data_boundary' and spec_correct(run.get('state', {}).get('spec'), case.get('spec')):
+        queries = [a['data'] for a in run.get('artifacts', []) if a['kind'] == 'query']
+        negative = any(q.get('outcome') == 'no_data' or q.get('quality_complete') is False
+                       or any(r.get('values', {}).get('gmv', {}).get('value', 'absent') is None for r in q.get('rows', [])) for q in queries)
+        valid_query = any(s['action'] == 'query_metrics' and parameter_correct(s, case, gold) for s in proposals)
+        return run['status'] in {'failed', 'needs_clarification'} and negative and valid_query
+    return False
+
+
+def evaluate(base, group, cases, repeats, observer_url=None, fixture='orders.csv', *, on_result=None, task_timeout=240, case_interval=0):
     import httpx
     if urlparse(base).hostname not in {"127.0.0.1", "localhost", "::1"}:
         raise ValueError("dedicated_loopback_test_stack_required")
@@ -89,15 +117,22 @@ def evaluate(base, group, cases, repeats, observer_url=None, fixture='orders.csv
     if group=='baseline' and not observer:
         raise ValueError('baseline_requires_observer_url')
     try:
-        return evaluate_authenticated(base, group, cases, repeats, observer, fixture)
+        return evaluate_authenticated(base, group, cases, repeats, observer, fixture, on_result=on_result, task_timeout=task_timeout, case_interval=case_interval)
     finally:
         if observer:
             observer.close()
 
 
-def evaluate_authenticated(base, group, cases, repeats, observer, fixture):
+def evaluate_authenticated(base, group, cases, repeats, observer, fixture, *, on_result=None, task_timeout=240, case_interval=0):
     import httpx
     results=[]
+    def record(result, case):
+        result.update(category=case['category'], intent_group=case['group'], fixture=case['fixture'])
+        results.append(result)
+        if on_result:
+            on_result(result)
+        if case_interval:
+            time.sleep(case_interval)
     with httpx.Client(base_url=base, headers={"Origin": base.rstrip("/")}, timeout=40, follow_redirects=False, trust_env=False) as client:
         auth = {"tenant": os.environ["ANALYSIS_EVAL_TENANT"], "username": os.environ["ANALYSIS_EVAL_USER"], "password": os.environ["ANALYSIS_EVAL_PASSWORD"]}
         response = client.post("/api/login", json=auth)
@@ -107,7 +142,7 @@ def evaluate_authenticated(base, group, cases, repeats, observer, fixture):
                 spec = case.get("spec")
                 gold = expected(DATA / case["fixture"], spec) if spec else {"complete": False}
                 if case["fixture"] != fixture:
-                    results.append({"id": case["id"], "repeat": repeat, "status": "not_run", "reason": "requires_separate_edge_datasource", "expected_complete": gold["complete"]})
+                    record({"id": case["id"], "repeat": repeat, "status": "not_run", "reason": "requires_separate_edge_datasource", "expected_complete": gold["complete"]}, case)
                     continue
                 started = time.monotonic()
                 result = {"id": case["id"], "repeat": repeat, "expected_complete": gold["complete"], "status": "failed", "complete_success": False, "behavior_correct": False, "cost_known": False}
@@ -120,11 +155,11 @@ def evaluate_authenticated(base, group, cases, repeats, observer, fixture):
                     response = client.post(endpoint, json=body)
                     if response.status_code != 202:
                         result.update(http_status=response.status_code, duration_ms=(time.monotonic()-started)*1000)
-                        results.append(result)
+                        record(result, case)
                         continue
                     run = response.json()
                     answers = iter(case.get("answers", []))
-                    deadline = time.monotonic()+240
+                    deadline = time.monotonic()+task_timeout
                     while time.monotonic() < deadline:
                         response = client.get(endpoint+"/"+run["id"])
                         response.raise_for_status()
@@ -154,12 +189,21 @@ def evaluate_authenticated(base, group, cases, repeats, observer, fixture):
                         proposals = [s for s in run.get("steps", []) if s["phase"] == "tool"]
                         invalid = sum(s["phase"] == "decide" and s.get("error_code") in {"invalid_arguments", "model_format"} for s in run.get("steps", []))
                         result.update(tool_proposals=len(proposals)+invalid, correct_parameters=sum(parameter_correct(s, case, gold) for s in proposals) if spec else sum(s["action"] == "request_clarification" for s in proposals),
-                                      extra_calls=sum(bool(s.get("cached")) or not parameter_correct(s,case,gold) for s in proposals) if spec else None,
+                                      extra_calls=sum(bool(s.get("cached")) for s in proposals) if spec else None,
                                       calls_above_minimum=max(0,len(proposals)-case.get("minimum_tools",len(proposals))) if gold["complete"] else None,
                                       known_tokens=run.get("usage", {}).get("known_tokens", 0), known_cost_micros=run.get("usage", {}).get("known_cost_micros", 0),
                                       unknown_calls=run.get("usage", {}).get("unknown_calls", 0), cost_known=run.get("usage", {}).get("unknown_calls", 0) == 0,
                                       reserved_and_known_cost_micros=run.get('state',{}).get('cost',0),
                                       sql_calls=run.get("state", {}).get("sql_calls"), model_calls=run.get("state", {}).get("model_calls"))
+                        result['error_codes'] = [s['error_code'] for s in run.get('steps', []) if s.get('error_code')]
+                        feedback = run.get('state', {}).get('feedback', {})
+                        result['failure_code'] = feedback.get('error_code')
+                        result['failure_http_status'] = feedback.get('http_status')
+                        result['run_id'] = run['id']
+                        result['observed_spec'] = run.get('state', {}).get('spec')
+                        result['observed_report'] = report
+                        result['tool_trace'] = [{k:s.get(k) for k in ('phase','action','arguments','status','error_code','cached')}
+                                                for s in run.get('steps', [])]
                         result['narrative_fallback']=report.get('narrative_fallback') if report else None
                         if case['category']=='clarification':
                             clarify_index=next((i for i,s in enumerate(proposals) if s['action']=='request_clarification'),None)
@@ -171,14 +215,16 @@ def evaluate_authenticated(base, group, cases, repeats, observer, fixture):
                         # 单步返回多行不等于已经完成合计或两期核查，不能由判分器替它补算。
                         result['tool_proposals']=result['sql_calls']
                         plan=(run.get('result') or {}).get('plan')
+                        result['observed_plan'] = plan
+                        result['observed_rows'] = (run.get('result') or {}).get('rows', [])
                         result['correct_parameters']=int(bool(plan) and bool(spec) and parameter_correct({'status':'completed','action':'query_metrics','arguments':{'plan':plan}},case,gold))
                     result["status"] = result.get("status") if result.get("status") == "timeout" else run["status"]
-                    result["behavior_correct"] = result["complete_success"] if gold["complete"] else run["status"] in {"needs_clarification", "failed"}
+                    result["behavior_correct"] = result["complete_success"] if gold["complete"] else negative_behavior_correct(run, result, case, group, gold)
                     if case.get("requires_no_sql") and result.get('sql_calls',run.get("state",{}).get("sql_calls",0))>0:
                         result["behavior_correct"]=False
                     if run["status"] == "needs_clarification":
                         client.post("/api/tasks/"+run["id"]+"/stop", json={})
-                    results.append(result)
+                    record(result, case)
                 except httpx.HTTPError as exc:
                     result.update(status='failed', complete_success=False, behavior_correct=False,
                                   error_code=type(exc).__name__, cost_known=False,
@@ -188,11 +234,7 @@ def evaluate_authenticated(base, group, cases, repeats, observer, fixture):
                             client.post('/api/tasks/'+run['id']+'/stop', json={})
                         except httpx.HTTPError:
                             pass
-                    results.append(result)
-    by_id={c['id']:c for c in cases}
-    for result in results:
-        case=by_id[result['id']]
-        result.update(category=case['category'],intent_group=case['group'],fixture=case['fixture'])
+                    record(result, case)
     return results
 
 

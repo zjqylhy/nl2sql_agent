@@ -15,6 +15,7 @@ def summary(results):
     extra = [r.get("extra_calls") for r in results if r.get("extra_calls") is not None]
     upper = [r.get("calls_above_minimum") for r in results if r.get("calls_above_minimum") is not None]
     known_cost = sum(r.get("known_cost_micros", 0) for r in results)
+    reserved = [r.get('reserved_and_known_cost_micros') for r in results]
     categories={}
     for row in results:
         category=categories.setdefault(row.get('category','unknown'),{'total':0,'behavior_correct':0,'supported':0,'complete_successes':0})
@@ -30,9 +31,11 @@ def summary(results):
             "calls_above_minimum_total": sum(upper) if upper else None,
             "latency_ms": {"p50": percentile(.5), "p95": percentile(.95), "samples": len(latencies)},
             "known_tokens": sum(r.get("known_tokens", 0) for r in results), "unknown_calls": unknown,
+            "model_calls": sum(r.get('model_calls') or 0 for r in results),
+            "sql_calls": sum(r.get('sql_calls') or 0 for r in results),
             "known_cost_micros": known_cost,
             "known_cost_per_complete_success": known_cost/successes if successes else None,
-            "reserved_and_known_cost_micros": sum(r.get("reserved_and_known_cost_micros", 0) for r in results),
+            "reserved_and_known_cost_micros": sum(reserved) if reserved and all(v is not None for v in reserved) else None,
             "total_cost_known": unknown == 0 and all(r.get("cost_known", False) for r in results),
             "not_run": sum(r.get("status") == "not_run" for r in results)}
 

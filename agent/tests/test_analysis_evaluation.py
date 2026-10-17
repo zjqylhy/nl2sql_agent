@@ -6,7 +6,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 from evals.analysis.dataset import ROOT, load
 from evals.analysis.oracle import expected, score
 from evals.analysis.report import paired_difference, summary
-from scripts.evaluate_analysis import baseline_complete, parameter_correct
+from scripts.evaluate_analysis import baseline_complete, parameter_correct, negative_behavior_correct
 
 
 def test_intent_splits_and_manual_annotation_status():
@@ -40,6 +40,7 @@ def test_failure_and_not_run_stay_in_complete_task_denominator():
     assert result["parameter_correct_rate"] == 3 / 4
     assert result["not_run"] == 1 and result["latency_ms"]["p95"] == 30
     assert not result["total_cost_known"]
+    assert result['reserved_and_known_cost_micros'] is None
     assert summary([])["complete_success_rate"] is None
 
 
@@ -52,6 +53,7 @@ def test_baseline_not_penalized_for_single_state_and_sql_timeout_not_bad_paramet
     assert baseline_complete(task,spec,gold)
     spec['n']=2
     assert not baseline_complete(task,spec,gold)
+    spec['n']=1
     step={'status':'failed','error_code':'sql_timeout','action':'query_metrics','arguments':{'plan':plan}}
     assert parameter_correct(step,{'spec':spec},gold)
     step['arguments']['plan']['time_range']={'start':'2017-01-01','end_exclusive':'2017-02-01'}
@@ -63,3 +65,61 @@ def test_paired_report_rejects_different_task_sets():
     b=[{**a[0],'complete_success':True}]
     assert paired_difference(a,b)['difference']==1
     assert not paired_difference(a,[])['available']
+
+
+def test_wrong_topn_and_order_are_not_correct_tool_parameters():
+    case = next(c for c in load()['cases'] if c['id'] == 'analysis-14-1')
+    plan = {'time_range':case['spec']['current'], 'metrics':['gmv'], 'dimensions':['state'], 'filters':[],
+            'top_n':1, 'order_by':[{'field':'gmv','direction':'desc'}]}
+    step = {'status':'completed', 'action':'query_metrics', 'arguments':{'plan':plan}}
+    assert not parameter_correct(step, case, {'states':['SP','RJ','MG']})
+    plan['top_n'] = 3
+    assert parameter_correct(step, case, {})
+    plan['order_by'][0]['direction'] = 'asc'
+    assert not parameter_correct(step, case, {})
+
+
+def test_negative_case_requires_domain_evidence_not_gateway_failure():
+    case = next(c for c in load()['cases'] if c['id'] == 'analysis-37-1')
+    run = {'status':'failed', 'state':{'feedback':{'error_code':'unknown_execution'}}, 'steps':[]}
+    assert not negative_behavior_correct(run, {'unknown_calls':1}, case, 'adaptive', {'complete':False})
+    run = {'status':'needs_clarification', 'state':{}, 'steps':[{'phase':'tool', 'action':'request_clarification',
+           'status':'completed', 'arguments':{'missing_fields':['expression']}}]}
+    assert negative_behavior_correct(run, {'unknown_calls':0,'sql_calls':0}, case, 'adaptive', {'complete':False})
+    run['steps'][0]['arguments']['missing_fields'] = ['current']
+    assert not negative_behavior_correct(run, {'sql_calls':0}, case, 'adaptive', {'complete':False})
+    assert not negative_behavior_correct({'status':'failed'}, {'sql_calls':0,'error_codes':['model_http']}, case, 'baseline', {})
+    assert negative_behavior_correct({'status':'needs_clarification'}, {'sql_calls':0,'error_codes':['unsupported']}, case, 'baseline', {})
+
+
+def test_no_data_behavior_requires_correct_scope_and_observed_empty_query():
+    case = next(c for c in load()['cases'] if c['id'] == 'analysis-29-1')
+    plan = {'time_range':case['spec']['current'], 'metrics':['gmv'], 'dimensions':['state'], 'filters':[], 'top_n':None}
+    run = {'status':'needs_clarification','state':{'spec':case['spec']},
+           'steps':[{'phase':'tool','action':'query_metrics','status':'completed','arguments':{'plan':plan}}],
+           'artifacts':[{'kind':'query','data':{'outcome':'no_data'}}]}
+    assert negative_behavior_correct(run, {}, case, 'adaptive', {'complete':False})
+    run['state']['feedback'] = {'error_code':'input_limit'}
+    assert not negative_behavior_correct(run, {}, case, 'adaptive', {})
+    run['state'].pop('feedback')
+    run['artifacts'] = []
+    assert not negative_behavior_correct(run, {}, case, 'adaptive', {})
+
+
+def test_pilot_selects_entire_groups_and_exported_source_is_bound(monkeypatch, tmp_path):
+    import pytest
+    from scripts import run_analysis_study as study
+    selected = study.select_cases(load(), 'development', ['intent-01', 'intent-13'])
+    assert {c['id'] for c in selected} == {'analysis-01-1','analysis-01-2','analysis-13-1','analysis-13-2'}
+    with pytest.raises(ValueError, match='intent_group_not_in_split'):
+        study.select_cases(load(), 'development', ['intent-02'])
+    monkeypatch.setattr(study, 'ROOT', tmp_path)
+    monkeypatch.delenv('STUDY_SOURCE_COMMIT', raising=False)
+    with pytest.raises(ValueError, match='exported_commit_identity_required'):
+        study.source_identity()
+    monkeypatch.setenv('STUDY_SOURCE_COMMIT', 'a'*40)
+    (tmp_path/'agent').mkdir()
+    (tmp_path/'agent/test.py').write_text('version1')
+    before = study.source_identity()
+    (tmp_path/'agent/test.py').write_text('version2')
+    assert before['execution_tree_sha256'] != study.source_identity()['execution_tree_sha256']

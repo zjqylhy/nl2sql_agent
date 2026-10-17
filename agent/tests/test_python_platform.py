@@ -550,6 +550,37 @@ def test_new_eval_stack_is_python_pg_and_zero_provider_calls(monkeypatch):
             assert result["issued_calls"] == 0
 
 
+def test_study_budget_survives_fixture_switch_and_error_cleanup(monkeypatch):
+    if not os.getenv('TEST_DATABASE_URL'):
+        pytest.skip('isolated TEST_DATABASE_URL required')
+    from scripts import python_analysis_stack as study
+    budget = study.StudyBudget(3)
+    original, dsns = study.migrate, []
+    def capture(dsn):
+        dsns.append(dsn)
+        original(dsn)
+    monkeypatch.setattr(study, 'migrate', capture)
+    monkeypatch.delenv('LLM_API_KEY', raising=False)
+    for key, value in {'ANALYSIS_CURRENCY':'test', 'ANALYSIS_PRICE_VERSION':'fixture', 'LLM_MODEL':'fixture',
+                       'ANALYSIS_TOKENIZER':'byte_bpe_upper_bound', 'ANALYSIS_INPUT_PRICE_MICROS':'1000000',
+                       'ANALYSIS_OUTPUT_PRICE_MICROS':'1000000', 'ANALYSIS_MAX_COST_MICROS':'1000000'}.items():
+        monkeypatch.setenv(key, value)
+    for fixture, issued in [('orders.csv',2),('edge-orders.csv',1)]:
+        with pytest.raises(RuntimeError, match='simulated_driver_exit'):
+            with study.stack(fixture, 'adaptive', 3, budget=budget):
+                with psycopg.connect(dsns[-1]) as conn:
+                    assert conn.execute('SELECT maximum FROM platform.evaluation_budget').fetchone()[0] == budget.remaining
+                    conn.execute('UPDATE platform.evaluation_budget SET issued=%s', (issued,))
+                raise RuntimeError('simulated_driver_exit')
+    assert budget.issued == 3 and budget.remaining == 0
+    with pytest.raises(ValueError, match='study_budget_exhausted'):
+        with study.stack('orders.csv', 'adaptive', 3, budget=budget):
+            pytest.fail('budget exhausted stack must not start')
+    assert len(dsns) == 2
+    with pytest.raises(ValueError, match='invalid_study_budget_receipt'):
+        budget.consume(1)
+
+
 def test_legacy_adoption_preserves_login_sessions_and_history(platform):
     _, _, source = platform
     from scripts.python_analysis_stack import uri_for
