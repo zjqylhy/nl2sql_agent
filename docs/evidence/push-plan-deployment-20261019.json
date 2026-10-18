@@ -1,0 +1,152 @@
+{
+  "date": "2026-10-19",
+  "deployed_runtime_commit": "18b23e960566d0f714e2e5b6be644b68bec12e5b",
+  "source_archive_sha256": "e15bf3650b5ea2cd4a51610536cbd15ac1ce1eae8089bb11ce50e176811a8bee",
+  "pull_request": "https://github.com/zjqylhy/nl2sql_agent/pull/8",
+  "release_directory": "/srv/olist/python/releases/18b23e960566d0f714e2e5b6be644b68bec12e5b",
+  "deployment_directory": "/srv/olist/python/deployments/20261019-18b23e9",
+  "real_model_called_during_deployment": false,
+  "build": {
+    "exit_code": 0,
+    "source_commit": "18b23e960566d0f714e2e5b6be644b68bec12e5b",
+    "identical_dependency_lock": true
+  },
+  "gate": {
+    "passed": true,
+    "exit_code": 0,
+    "backend_files_verified": 81,
+    "dependencies_match_tested_image": true,
+    "sources_match_426_snapshot_after_newline_normalization": true,
+    "real_model_called": false
+  },
+  "switch": {
+    "passed": true,
+    "source_commit": "18b23e960566d0f714e2e5b6be644b68bec12e5b",
+    "previous_source_commit": "b617488571087a302a2b12d262cf63be52d3ff2c",
+    "pre_backup_sha256": "6b1a5e12ee0060f504df028044bf22404c13050ad09bc4284feae2a2f6cb6586",
+    "postgres_container_unchanged": true,
+    "existing_rows_unchanged": true,
+    "tables_compared": 19,
+    "waiting_tasks_preserved": 2,
+    "datasource_mapping_unchanged": true,
+    "schema_unchanged": "0004_push_tree"
+  },
+  "smoke": {
+    "passed": true,
+    "source_commit": "18b23e960566d0f714e2e5b6be644b68bec12e5b",
+    "real_model_called": false,
+    "homepage_and_health": true,
+    "structured_query": true,
+    "send_count": 3720,
+    "observation_hours": 48,
+    "sse": true,
+    "tree_restore": true,
+    "invalid_plan_clarifies": true,
+    "original_failed_task_preserved": true,
+    "legacy_reports_verified": 2,
+    "smoke_task_id": "db915e69a05bee36241b2979a295f370c8f33c7688a9de5a",
+    "smoke_thread_id": "c7aab7feaa84354053a4d528a4b15132e65569671a5c80df"
+  },
+  "postcheck": {
+    "passed": true,
+    "source_commit": "18b23e960566d0f714e2e5b6be644b68bec12e5b",
+    "backend_files_verified": 81,
+    "images": {
+      "api": {
+        "id": "sha256:70ef62dde70f6414d0951ffb2ffff16cfa578573ed58ec0e470f1af7e8f11d7a",
+        "commit": "18b23e960566d0f714e2e5b6be644b68bec12e5b"
+      },
+      "worker": {
+        "id": "sha256:70ef62dde70f6414d0951ffb2ffff16cfa578573ed58ec0e470f1af7e8f11d7a",
+        "commit": "18b23e960566d0f714e2e5b6be644b68bec12e5b"
+      },
+      "web": {
+        "id": "sha256:d4d46a0aeb072a4d464b2f3af2eacdb24bf0b786cea5fc04f54b95b796e7b255",
+        "commit": "18b23e960566d0f714e2e5b6be644b68bec12e5b"
+      }
+    },
+    "only_loopback_http": true,
+    "backup_timer_active": true,
+    "post_backup_sha256": "7681b3c26f0a112a062bd66a2d39361cd3d6d53c0f216a020d03b1b60b9786bd",
+    "backup_tables": 47,
+    "isolated_restore_all_counts_matched": true,
+    "model_configuration_unchanged": true,
+    "real_model_called": false
+  },
+  "quality_baseline": {
+    "cases": 50,
+    "passed": 50,
+    "summary": {
+      "supported_correct": 25,
+      "supported_total": 25,
+      "answered_correct": 25,
+      "answered_total": 25,
+      "categories": {
+        "rules": {
+          "passed": 25,
+          "total": 25
+        },
+        "paraphrase": {
+          "passed": 0,
+          "total": 0
+        },
+        "clarification": {
+          "passed": 10,
+          "total": 10
+        },
+        "unsupported": {
+          "passed": 9,
+          "total": 9
+        },
+        "permission": {
+          "passed": 6,
+          "total": 6
+        }
+      }
+    }
+  },
+  "quality_candidate": {
+    "cases": 50,
+    "passed": 50,
+    "summary": {
+      "supported_correct": 25,
+      "supported_total": 25,
+      "answered_correct": 25,
+      "answered_total": 25,
+      "categories": {
+        "rules": {
+          "passed": 25,
+          "total": 25
+        },
+        "paraphrase": {
+          "passed": 0,
+          "total": 0
+        },
+        "clarification": {
+          "passed": 10,
+          "total": 10
+        },
+        "unsupported": {
+          "passed": 9,
+          "total": 9
+        },
+        "permission": {
+          "passed": 6,
+          "total": 6
+        }
+      }
+    }
+  },
+  "regression": {
+    "passed": 426,
+    "skipped": 0,
+    "seconds": 251.34,
+    "evidence": "push-plan-validation-20261019.json"
+  },
+  "live_model_limitations": {
+    "distinct_cases": 20,
+    "passed": 9,
+    "truncated": 1,
+    "rate_limited_incomplete": 10
+  }
+}
