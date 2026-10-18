@@ -106,9 +106,9 @@ class Threads:
         thread = self.authorize(conn, user, thread_id, True)
         if thread['version'] != expected_version or thread['active_task_id']:
             raise HTTPException(409, '会话已变化；执行或等待补充时请先停止任务')
-        node = conn.execute('SELECT r.message_id FROM push_revisions r WHERE r.thread_id=%s AND r.message_id=%s', (thread_id,node_id)).fetchone()
+        node = conn.execute("SELECT id FROM push_messages WHERE thread_id=%s AND id=%s AND role='assistant' AND kind IN ('answer','failed','canceled')", (thread_id,node_id)).fetchone()
         if not node:
-            raise HTTPException(404, '请选择本会话已完成的回答版本')
+            raise HTTPException(404, '请选择本会话已完成或已停止的回答位置')
         # 切到其他分支头时选中该分支；回到历史中间节点仍保留原分支头。
         branch = conn.execute('SELECT id FROM push_branches WHERE thread_id=%s AND head_message_id=%s ORDER BY id LIMIT 1', (thread_id,node_id)).fetchone()
         conn.execute('UPDATE push_threads SET cursor_id=%s,active_branch_id=%s,version=version+1 WHERE id=%s',

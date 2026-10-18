@@ -149,7 +149,7 @@ def test_tree_enforces_identity_binding_and_permissions(push_platform,monkeypatc
 
 def test_tree_rejects_cross_branch_base_and_unknown_receipt(push_platform,monkeypatch):
     client,repo,_=push_platform
-    tree=root(client,repo)
+    tree=root(client,repo); first=tree['cursor_id']
     mock_model(monkeypatch,[{'action':'query','patch':{'observation_hours':48},'base_message_id':'a'*48}])
     tree,_=send(client,tree,'改成48小时')
     task=run_once(repo); tree=get(client,tree)
@@ -160,6 +160,10 @@ def test_tree_rejects_cross_branch_base_and_unknown_receipt(push_platform,monkey
         conn.execute("INSERT INTO query_receipts(task_id,status) VALUES(%s,'running')",(task_id,))
     run_once(repo); tree=get(client,tree)
     assert tree['active_task_id'] is None and tree['messages'][-1]['kind']=='failed'
+    failed=tree['cursor_id']
+    tree=seek(client,tree,first)
+    tree=seek(client,tree,failed)
+    assert failed in tree['path_ids'] and tree['result']['plan']['filters']==[]
 
 
 def test_tree_long_history_summary_is_branch_scoped_and_originals_remain(push_platform,monkeypatch):
