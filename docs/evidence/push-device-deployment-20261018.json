@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-18",
+  "passed": true,
+  "pull_request": "https://github.com/zjqylhy/nl2sql_agent/pull/6",
+  "source_commit": "898da60d894ec373d00f4a5c67dd58b9342da376",
+  "previous_source_commit": "0c895a1efe1f1834987d0a732f2e0cefe69136f6",
+  "source_archive_sha256": "220d9ed68c4543c30d8380d9c1030e820c9f497697f8c811329f9ba53a58925a",
+  "server_tests": {"passed": 373, "skipped": 0, "seconds": 160.66},
+  "frozen_quality": {"baseline_passed": 50, "candidate_passed": 50, "total": 50, "mode": "deterministic", "split": "development", "contract_unchanged": true},
+  "github_checks_at_runtime_commit": {"push": "success", "pull_request": "success", "agent_quality": "success"},
+  "deployment": {"project": "olist-python-agent", "postgres_container_unchanged": true, "legacy_tables_unchanged_before_smoke": true, "old_mapping_preserved": true, "new_tenant": "push", "new_username": "admin", "schema": "analytics_push_20261018", "is_synthetic": true, "only_loopback_http": true},
+  "http": {"homepage_status": 200, "health_status": "ok", "runtime": "python-langgraph", "push_login": true, "alpha_login": true, "custom_push_windows_verified": 4, "device_query_verified": true, "sse_replay": true, "legacy_reports_unchanged": true, "device_july_totals": {"devices": 600, "valid_devices": 370, "invalid_devices": 208, "unknown_devices": 22, "active_devices": 579}},
+  "images": {"api_worker": "sha256:bbe31bdb097174190c06044b58f151cfa0d616105f9c8134e716dd438d7aeb28", "web": "sha256:743d42388fbfd9feec831a2e532defce2759e1e83acdf2561ff32c4684153830", "revision_labels_match": true, "backend_files_verified": 72, "backend_code_digest": "893cfc1941f6e97d4e7fed416c5a5ee000b6f27f67d6827c0238dc09605a41d0", "runtime_and_validation_dependencies_match": true, "requirements_sha256": "3d0c9756b7523a28c8670040ca50cb5bb3ffb58e3a620ab260987ff3f4d120b5"},
+  "backup": {"pre_sha256": "faa8484989a4ac529155148b0ab2910eab3dc30deeabdb107babbbe950fcbfc7", "post_sha256": "b69a6ed9d519cfb7615a7e1799defe07be37f7c22a621e425b60c5dbb9175072", "tables": 38, "order_facts": 99441, "push_devices": 600, "push_deliveries": 21960, "timer_active": true, "isolated_empty_database_restore": true, "all_counts_matched": true, "kept_on_server": true},
+  "first_switch_attempt": {"stopped_before_import": true, "reason": "validation container missing PYTHONPATH=/app", "previous_services_restored": true, "corrected_and_retried": true},
+  "limitations": {"real_model_smoke": "not_run_external_call_approval_required", "actual_model_cost_verified": false, "reboot_test": false, "public_https": false}
+}
