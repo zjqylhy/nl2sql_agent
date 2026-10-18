@@ -73,8 +73,24 @@ def new_state(spec=None):
                 sql_calls=0, repairs=0, sql_retries=0, model_retries=0, clarifications=0, active_ms=0, tokens=0, cost=0, message="")
 
 
+def query_clarification(task):
+    result = task.get("result") or {}
+    available = (task["kind"] == "query" and not task["conversation_id"]
+                 and not task["input"].get("push_plan") and result.get("usage", {}).get("parser") == "llm")
+    reason = ""
+    if task.get("query_version", 0) >= 2:
+        reason = "本次查询已补充 2 次，请修改原问题后新建查询。"
+    elif (datetime.now(timezone.utc)-task["updated_at"]).total_seconds() > 86400:
+        reason = "等待补充已超过 24 小时，请新建查询。"
+    return dict(version=task.get("query_version", 0), turns=task.get("query_dialogue", []),
+                can_answer=available and task["status"] == "needs_clarification" and not reason, reason=reason)
+
+
 def public_task(task):
-    return {key: value for key, value in task.items() if key not in {"conversation_context", "admission_version", "lease_until", "next_seq", "ready_at"}}
+    value = {key: value for key, value in task.items() if key not in {"conversation_context", "admission_version", "lease_until", "next_seq", "ready_at", "query_dialogue", "query_version", "push_turn_context"}}
+    if task["kind"] == "query" and not task["conversation_id"]:
+        value["clarification"] = query_clarification(task)
+    return value
 
 
 def public_conversation(value):
@@ -99,7 +115,7 @@ class Repository:
         task = conn.execute("SELECT * FROM tasks WHERE id=%s AND tenant_id=%s" + (" FOR UPDATE" if lock else ""), (run_id, user["tenant_id"])).fetchone()
         if not task:
             raise HTTPException(404, "任务不存在或无权访问")
-        private = task["kind"] == "analysis" or bool(task["conversation_id"])
+        private = task["kind"] == "analysis" or bool(task["conversation_id"]) or bool(task.get('push_thread_id'))
         if task["user_id"] != user["id"] and (private or user["role"] not in {"admin", "data"}):
             raise HTTPException(404, "任务不存在或无权访问")
         if not permitted(user, [task["input"], task["result"] if task["kind"] == "query" else None, task["conversation_context"]]):
@@ -114,6 +130,9 @@ class Repository:
             self.conversation(conn, user, task["conversation_id"])
         elif task.get("query_binding") and (task["query_role"] != user["role"] or task["query_binding"] != binding(user)["binding"]):
             raise HTTPException(404, "任务角色或数据绑定已变化")
+        if task.get('push_thread_id'):
+            from .push_threads import Threads
+            Threads(self).authorize(conn,user,task['push_thread_id'])
         return task
 
     def conversation(self, conn, user, conversation_id, *, lock=False):
@@ -210,6 +229,9 @@ class Repository:
                 else:
                     c["pending"] = result.get("multiturn", {}).get("pending", c["pending"])
             conn.execute("UPDATE conversations SET plan=%s,pending=%s,active_task_id=NULL,version=version+1,updated_at=now() WHERE id=%s", (Jsonb(c["plan"]), Jsonb(c["pending"]), c["id"]))
+        if task.get('push_thread_id'):
+            from .push_threads import Threads
+            Threads(self).finish(conn,task,status,result,message)
         conn.execute("UPDATE tasks SET status=%s,result=%s,error=%s,lease_until=NULL,updated_at=now() WHERE id=%s", (status, Jsonb(result), message, task["id"]))
         conn.execute("UPDATE task_attempts SET state=%s,ended_at=now() WHERE task_id=%s AND execution_version=%s", (status if status != "pending" else "completed", task["id"], task["execution_version"]))
         if status not in ACTIVE or (status == "needs_clarification" and task["kind"] == "query"):

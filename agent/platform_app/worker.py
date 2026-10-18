@@ -43,22 +43,37 @@ def heartbeat(repo, task):
 def execute_query(repo, task):
     with repo.db.transaction() as conn:
         user = repo.execution(conn, task)
-        receipt = conn.execute("SELECT * FROM query_receipts WHERE task_id=%s FOR UPDATE", (task["id"],)).fetchone()
+        # 首轮回执维持旧契约；显式补充按版本分开，不能复用上一轮澄清结果。
+        version = task["query_version"]
+        table = "query_followup_receipts" if version else "query_receipts"
+        where = "task_id=%s AND version=%s" if version else "task_id=%s"
+        keys = (task["id"], version) if version else (task["id"],)
+        receipt = conn.execute(f"SELECT * FROM {table} WHERE {where} FOR UPDATE", keys).fetchone()
         if receipt and receipt["status"] == "running":
             # 原单步解析也可能调用模型，不能因 Worker 崩溃自动重发。
+            if task.get('push_thread_id'):
+                conn.execute("UPDATE push_model_calls SET status='unknown' WHERE task_id=%s AND status='running'",(task['id'],))
             repo.finish(conn, task, "failed", message="上次问数调用结果未知，请新建任务")
             return
         if receipt:
             output = receipt["output"]
         else:
-            conn.execute("INSERT INTO query_receipts(task_id,status) VALUES(%s,'running')", (task["id"],))
+            if version:
+                conn.execute("INSERT INTO query_followup_receipts(task_id,version,status) VALUES(%s,%s,'running')", keys)
+            else:
+                conn.execute("INSERT INTO query_receipts(task_id,status) VALUES(%s,'running')", keys)
             output = None
     if output is None:
         request = runtime.QueryRequest(tenant_id=user["tenant_id"], role=user["role"], allowed_metrics=user["allowed_metrics"],
-            input=task["input"], execution={"task_id": task["id"], "execution_version": task["execution_version"]}, context=task["conversation_context"])
+            input=task["input"], execution={"task_id": task["id"], "execution_version": task["execution_version"]}, context=task["conversation_context"],
+            **({"push_dialogue": task["query_dialogue"]} if task["query_dialogue"] else {}))
         try:
             with telemetry.capture(request.execution) as trace:
-                output = runtime.run_query(request)
+                if task.get('push_turn_context'):
+                    from .push_thread_runtime import run_tree_query
+                    output = run_tree_query(repo,task,request)
+                else:
+                    output = runtime.run_query(request)
         finally:
             with repo.db.transaction() as conn:
                 conn.execute("UPDATE task_attempts SET telemetry=%s,error_code=%s WHERE task_id=%s AND execution_version=%s", (Jsonb(trace), trace.get("error_code", ""), task["id"], task["execution_version"]))
@@ -68,7 +83,7 @@ def execute_query(repo, task):
             from .repository import permitted
             if not permitted(user, output):
                 raise HTTPException(403, "结果指标权限已撤销")
-            conn.execute("UPDATE query_receipts SET status='completed',output=%s WHERE task_id=%s", (Jsonb(output), task["id"]))
+            conn.execute(f"UPDATE {table} SET status='completed',output=%s WHERE {where}", (Jsonb(output), *keys))
     with repo.db.transaction() as conn:
         repo.finish(conn, task, output["status"], output)
 
