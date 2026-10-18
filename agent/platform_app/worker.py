@@ -63,7 +63,8 @@ def execute_query(repo, task):
             output = None
     if output is None:
         request = runtime.QueryRequest(tenant_id=user["tenant_id"], role=user["role"], allowed_metrics=user["allowed_metrics"],
-            input=task["input"], execution={"task_id": task["id"], "execution_version": task["execution_version"]}, context=task["conversation_context"], push_dialogue=task["query_dialogue"])
+            input=task["input"], execution={"task_id": task["id"], "execution_version": task["execution_version"]}, context=task["conversation_context"],
+            **({"push_dialogue": task["query_dialogue"]} if task["query_dialogue"] else {}))
         try:
             with telemetry.capture(request.execution) as trace:
                 output = runtime.run_query(request)

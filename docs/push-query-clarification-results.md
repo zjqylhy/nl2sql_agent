@@ -13,3 +13,21 @@
 需要补充时直接填写追问下方的“回答这条追问”，点击“补充并继续查询”。顶部原问题只读，“修改原问题并新建查询”明确创建另一任务。当前任务最多补充 2 次，每次等待 24 小时。
 
 普通推送查询将原问题、追问/回答、版本和操作回执保存在 PostgreSQL；模型收到有界的原问题和补充记录，并重新生成受限查询计划。工具分析另有结构化状态、证据引用与 LangGraph PostgreSQL 检查点。浏览器 localStorage 仅定位当前任务，数据仍从服务端读取。当前没有跨任务的个人偏好记忆、向量库检索或把整个聊天历史永久放入模型上下文的机制。
+
+## 实际存储结构
+
+| 存储 | 主要字段与用途 |
+|---|---|
+| `tasks` | `input.question` 原问题，`query_dialogue` 追问/回答数组，`query_version` 补充轮次，`result` 查询计划与结果，`status` 执行状态 |
+| `query_receipts` / `query_followup_receipts` | 首轮/补充轮的 `status + output`；保护调用恢复，避免把上一轮澄清结果当成新回答的执行结果 |
+| `query_answers` | 请求标识、回答摘要、版本；用于提交幂等，回答正文在 `query_dialogue` |
+| `analysis_runs` | `state` 中的条件、回答、反馈与预算计数；另存授权/数据绑定、策略和版本 |
+| `analysis_steps` | `phase` 区分模型决策与工具执行；模型步的 `input.prompt/question` 保存系统提示词及实际用户上下文，工具说明嵌在提示词中；`output` 保存校验后的模型决策或错误；工具步保存 `input.action/arguments` 与 `output` |
+| `analysis_artifacts` | `result_ref + body` 保存完整查询、比较、排名和报告等证据 |
+| `agent_checkpoint` | LangGraph 原生 `checkpoints/checkpoint_blobs/checkpoint_writes` 保存序列化图状态、通道版本及待提交写入，以恢复中断与节点执行 |
+
+不是所有路径都保存供应商原始消息。普通推送查询不逐次落库系统提示词和原始模型响应；工具分析会保存发送的提示词/上下文及解析后的决策，但不保存供应商原始响应全文或隐藏推理。
+
+模型传输当前每轮实际构造两条消息：`system=规则与工具协议`，`user=本轮上下文 JSON`。上下文包含原问题、已确认条件、补充回答、反馈和证据摘要/引用，不把全部历史消息、完整结果反复拼入 `messages`。工具调用是经校验的 JSON `action`，不是依赖 SDK 自动保存的 `tool_calls` 对话记录。PostgreSQL 检查点也不会自动替业务层收集所有消息。
+
+分析任务等待补充 24 小时后过期，终态 30 天后清理详细步骤、证据和检查点，保留报告与归档用量；普通查询的 24 小时是继续补充的有效期，不是删除历史数据的期限。
