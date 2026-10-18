@@ -28,7 +28,7 @@ from agent.runtime.push import DEFINITIONS, DIMENSIONS, ENUMS
 from agent.runtime.push_analysis import PushSpec, plans as push_plans
 from .database import Database
 from .policy import Policy
-from .repository import ACTIVE, Repository, binding, identity, permitted, public_conversation, public_task
+from .repository import ACTIVE, Repository, binding, identity, permitted, public_conversation, public_task, query_clarification
 
 UUID = r"^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$"
 DUMMY_HASH = bcrypt.hashpw(b"invalid-login-placeholder", bcrypt.gensalt(rounds=12))
@@ -269,6 +269,33 @@ def create_app(db=None, policy=None, *, origin=None, secure_cookie=None, trusted
     @app.get("/api/tasks/{run_id}")
     def task(run_id: str, user=Depends(current_user), repository=Depends(repo)):
         with repository.db.transaction() as conn:
+            return public_task(repository.task(conn, user, run_id))
+
+    @app.post("/api/tasks/{run_id}/answers", status_code=202)
+    def query_answer(run_id: str, body: Answer, user=Depends(current_user), repository=Depends(repo)):
+        if not body.answer.strip():
+            raise HTTPException(400, "请输入补充内容")
+        digest = hashlib.sha256(body.answer.encode()).hexdigest()
+        with repository.db.transaction() as conn:
+            # 与领取任务采用相同锁顺序；恢复的仍是当前任务，不新增计费调用意图。
+            conn.execute("SELECT pg_advisory_xact_lock(710091)")
+            value = repository.task(conn, user, run_id, lock=True)
+            source = runtime.sources().get(user["tenant_id"]+":"+user["role"])
+            if value["user_id"] != user["id"] or value["kind"] != "query" or value["conversation_id"] or not source or source.domain != "push" or value["input"].get("push_plan"):
+                raise HTTPException(403, "只能补充自己的推送自然语言查询")
+            old = conn.execute("SELECT body_hash FROM query_answers WHERE task_id=%s AND request_id=%s", (run_id, body.request_id)).fetchone()
+            if old:
+                if old["body_hash"] != digest:
+                    raise HTTPException(409, "重复请求的补充内容不同")
+                return public_task(value)
+            if value["query_version"] != body.expected_version or not query_clarification(value)["can_answer"]:
+                raise HTTPException(409, "任务已更新、补充已过期或轮数耗尽，请刷新任务")
+            repository.capacity(conn, user)
+            dialogue = [*value["query_dialogue"], {"question": value["result"]["message"], "answer": body.answer}]
+            conn.execute("UPDATE tasks SET query_dialogue=%s,query_version=query_version+1,status='pending',ready_at=now(),updated_at=now(),error='' WHERE id=%s", (Jsonb(dialogue), run_id))
+            conn.execute("INSERT INTO query_answers VALUES(%s,%s,%s,%s)", (run_id, body.request_id, digest, value["query_version"]+1))
+            conn.execute("UPDATE task_outbox SET delivered_at=NULL WHERE task_id=%s", (run_id,))
+            repository.event(conn, run_id, "accepted", {"status": "pending"})
             return public_task(repository.task(conn, user, run_id))
 
     @app.post("/api/tasks/{run_id}/stop")

@@ -245,3 +245,161 @@ def test_import_is_immutable_readonly_and_app_scoped(push_platform, bundle):
             conn.execute('SELECT * FROM push_events LIMIT 1')
         with pytest.raises((psycopg.errors.ReadOnlySqlTransaction, psycopg.errors.InsufficientPrivilege)):
             conn.execute("DELETE FROM metric_device_activity")
+
+
+def clarification_model(monkeypatch, responses):
+    calls = []
+    def respond(request):
+        body = json.loads(request.content)
+        calls.append(body['messages'])
+        value = responses[len(calls)-1]
+        return httpx.Response(200, json={'choices':[{'finish_reason':'stop', 'message':{'content':json.dumps(value)}}],
+                                       'usage':{'prompt_tokens':100,'completion_tokens':50,'total_tokens':150}})
+    monkeypatch.setattr(ModelTransport, 'client', lambda self:httpx.Client(transport=httpx.MockTransport(respond)))
+    return calls
+
+
+def start_clarification(client, repo):
+    question = '查询最近两个月 app_1 各厂商发送量、到达率和点击率，按日查看'
+    response = client.post('/api/tasks', json={'question':question})
+    assert response.status_code == 202, response.text
+    run_once(repo)
+    task = client.get('/api/tasks/'+response.json()['id']).json()
+    assert task['status'] == 'needs_clarification', task
+    return task
+
+
+def answer_body(task, answer='观察时长24小时，统计2026年7月'):
+    return {'answer':answer, 'expected_version':task['clarification']['version'], 'request_id':str(uuid4())}
+
+
+def test_query_clarification_persists_same_task_and_both_rounds(push_platform, monkeypatch):
+    client, repo, _ = push_platform
+    final = plan(['sent','delivered','delivery_rate','clicked','click_rate'], dimensions=['manufacturer','day'],
+                 filters=[{'field':'app_id','values':['app_1']}]).model_dump(mode='json')
+    calls = clarification_model(monkeypatch, [{'clarification':'请确认日期和回执观察时长'},
+                                             {'clarification':'确认按设备厂商分组？'}, {'plan':final}])
+    task = start_clarification(client, repo)
+    url = '/api/tasks/'+task['id']
+    original = task['input']
+    for text in ['观察时长24小时，统计2026年7月', '是，按设备厂商和日分组，保留 app_1']:
+        body = answer_body(task, text)
+        response = client.post(url+'/answers', json=body)
+        assert response.status_code == 202, response.text
+        assert response.json()['id'] == task['id']
+        assert response.json()['status'] == 'pending'
+        assert client.post(url+'/answers', json=body).json()['clarification'] == response.json()['clarification']
+        assert client.post(url+'/answers', json={**body,'answer':'不同内容'}).status_code == 409
+        assert client.post(url+'/answers', json=answer_body(task)).status_code == 409
+        run_once(repo)
+        task = client.get(url).json()
+        assert task['input'] == original
+    assert task['status'] == 'completed', task
+    assert task['result']['plan'] == final
+    assert task['result']['totals']['sent']['value'] == '1240'
+    assert len(calls) == 3
+    context = json.loads(calls[-1][1]['content'])
+    assert context['original_question'] == original['question']
+    assert context['clarifications'] == task['clarification']['turns']
+    assert len(context['clarifications']) == 2
+    assert 'event: done' in client.get(url+'/events').text
+    assert client.post(url+'/answers', json=answer_body(task)).status_code == 409
+    saved = next(t for t in client.get('/api/tasks').json() if t['id'] == task['id'])
+    assert saved['clarification'] == task['clarification']
+    with repo.db.transaction() as conn:
+        assert conn.execute('SELECT count(*) n FROM query_receipts').fetchone()['n'] == 1
+        assert conn.execute('SELECT count(*) n FROM query_followup_receipts').fetchone()['n'] == 2
+        assert conn.execute('SELECT count(*) n FROM tasks').fetchone()['n'] == 1
+
+
+@pytest.mark.parametrize('guard', ['expired','canceled','limit','binding','owner','tenant'])
+def test_query_clarification_rejects_invalid_resume(push_platform, monkeypatch, guard):
+    client, repo, source = push_platform
+    calls = clarification_model(monkeypatch, [{'clarification':'确认观察时长？'}]*3)
+    task = start_clarification(client, repo)
+    url = '/api/tasks/'+task['id']
+    expected = 409
+    if guard == 'expired':
+        with repo.db.transaction() as conn:
+            conn.execute("UPDATE tasks SET updated_at=now()-interval '25 hours' WHERE id=%s", (task['id'],))
+    elif guard == 'canceled':
+        assert client.post(url+'/stop').status_code == 200
+    elif guard == 'limit':
+        for _ in range(2):
+            assert client.post(url+'/answers', json=answer_body(task)).status_code == 202
+            run_once(repo)
+            task = client.get(url).json()
+        assert not task['clarification']['can_answer']
+    elif guard == 'binding':
+        monkeypatch.setattr(runtime, 'sources', lambda:{'demo:admin':source.model_copy(update={'context_revision':2})})
+        expected = 404
+    else:
+        if guard == 'owner':
+            # 同租户管理员可看单次查询，但不能代替任务所有者补充条件。
+            with repo.db.transaction() as conn:
+                conn.execute("INSERT INTO users(id,tenant_id,username,password_hash,role,allowed_metrics) SELECT 'peer',tenant_id,'peer',password_hash,role,allowed_metrics FROM users WHERE id='admin'")
+            login = {'tenant':'demo','username':'peer','password':'fixture-password'}
+            expected = 403
+        else:
+            login = {'tenant':'other','username':'admin','password':'fixture-password'}
+            expected = 404
+        assert client.post('/api/login',json=login).status_code == 200
+    assert client.post(url+'/answers',json=answer_body(task)).status_code == expected
+    assert len(calls) == (3 if guard == 'limit' else 1)
+
+
+@pytest.mark.parametrize('completed', [False, True])
+def test_query_clarification_crash_receipts_do_not_repeat_model(push_platform, monkeypatch, completed):
+    client, repo, _ = push_platform
+    calls = clarification_model(monkeypatch, [{'clarification':'确认日期？'}, {'plan':plan().model_dump(mode='json')}])
+    task = start_clarification(client, repo)
+    url = '/api/tasks/'+task['id']
+    assert client.post(url+'/answers',json=answer_body(task)).status_code == 202
+    if completed:
+        finish = repo.finish
+        monkeypatch.setattr(repo, 'finish', lambda *args,**kwargs:(_ for _ in ()).throw(RuntimeError('crash after receipt')))
+        run_once(repo)
+        monkeypatch.setattr(repo, 'finish', finish)
+        with repo.db.transaction() as conn:
+            conn.execute("UPDATE tasks SET lease_until=now()-interval '1 second' WHERE id=%s", (task['id'],))
+    else:
+        with repo.db.transaction() as conn:
+            conn.execute("INSERT INTO query_followup_receipts(task_id,version,status) VALUES(%s,1,'running')", (task['id'],))
+    run_once(repo)
+    task = client.get(url).json()
+    assert task['status'] == ('completed' if completed else 'failed'), task
+    assert len(calls) == (2 if completed else 1)
+    if not completed:
+        assert '结果未知' in task['error']
+
+
+def test_query_clarification_rechecks_permissions_and_legacy_wait(push_platform, monkeypatch):
+    client, repo, _ = push_platform
+    # 升级前仅有旧回执的等待任务，通过新列默认值就能继续。
+    response = client.post('/api/tasks',json={'question':'升级前的发送量查询'})
+    task_id = response.json()['id']
+    with repo.db.transaction() as conn:
+        from psycopg.types.json import Jsonb
+        output = {'status':'needs_clarification','message':'确认日期？','usage':{'parser':'llm','tokens':150}}
+        conn.execute("INSERT INTO query_receipts(task_id,status,output) VALUES(%s,'completed',%s)", (task_id,Jsonb(output)))
+    calls = clarification_model(monkeypatch, [{'plan':plan().model_dump(mode='json')}])
+    run_once(repo)
+    task = client.get('/api/tasks/'+task_id).json()
+    assert task['clarification']['can_answer']
+    assert client.post('/api/tasks/'+task_id+'/answers',json=answer_body(task)).status_code == 202
+    with repo.db.transaction() as conn:
+        conn.execute("UPDATE users SET allowed_metrics='{}' WHERE id='admin'")
+    run_once(repo)
+    task = client.get('/api/tasks/'+task_id).json()
+    assert task['status'] == 'failed', task
+    assert len(calls) == 1
+
+
+def test_query_clarification_requires_actual_question_and_server_context(push_platform, monkeypatch):
+    client, repo, _ = push_platform
+    assert client.post('/api/tasks',json={'question':'x','push_dialogue':[{'question':'x','answer':'x'}]}).status_code == 400
+    calls = clarification_model(monkeypatch, [{'clarification':'  '}])
+    created = client.post('/api/tasks',json={'question':'没有有效追问'})
+    run_once(repo)
+    assert client.get('/api/tasks/'+created.json()['id']).json()['status'] == 'failed'
+    assert len(calls) == 1

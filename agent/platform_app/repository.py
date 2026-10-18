@@ -73,8 +73,24 @@ def new_state(spec=None):
                 sql_calls=0, repairs=0, sql_retries=0, model_retries=0, clarifications=0, active_ms=0, tokens=0, cost=0, message="")
 
 
+def query_clarification(task):
+    result = task.get("result") or {}
+    available = (task["kind"] == "query" and not task["conversation_id"]
+                 and not task["input"].get("push_plan") and result.get("usage", {}).get("parser") == "llm")
+    reason = ""
+    if task.get("query_version", 0) >= 2:
+        reason = "本次查询已补充 2 次，请修改原问题后新建查询。"
+    elif (datetime.now(timezone.utc)-task["updated_at"]).total_seconds() > 86400:
+        reason = "等待补充已超过 24 小时，请新建查询。"
+    return dict(version=task.get("query_version", 0), turns=task.get("query_dialogue", []),
+                can_answer=available and task["status"] == "needs_clarification" and not reason, reason=reason)
+
+
 def public_task(task):
-    return {key: value for key, value in task.items() if key not in {"conversation_context", "admission_version", "lease_until", "next_seq", "ready_at"}}
+    value = {key: value for key, value in task.items() if key not in {"conversation_context", "admission_version", "lease_until", "next_seq", "ready_at", "query_dialogue", "query_version"}}
+    if task["kind"] == "query" and not task["conversation_id"]:
+        value["clarification"] = query_clarification(task)
+    return value
 
 
 def public_conversation(value):

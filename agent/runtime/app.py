@@ -52,6 +52,16 @@ class QueryRequest(BaseModel):
     input: QueryInput
     execution: Execution | None = None
     context: QueryContext | None = None
+    push_dialogue: list["PushClarification"] = Field(default_factory=list, max_length=2)
+
+
+class PushClarification(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    question: str = Field(min_length=1, max_length=200)
+    answer: str = Field(min_length=1, max_length=1000)
+
+
+QueryRequest.model_rebuild()
 
 
 class Datasource(BaseModel):

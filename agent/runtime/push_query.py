@@ -23,6 +23,7 @@ def run_push_query(request, source):
                   '不允许 SQL、代码、数据源、租户、未支持条件和因果归因。所有明确条件必须保留；有无法表示的条件就澄清。'
                   '时间带时区，中文日期按 +08:00，结束不含。日期、指标、范围或观察时长缺失就澄清，不默认七天或24小时。'
                   '只能使用授权指标。设备与推送指标不能混查。'
+                  '如收到原问题和补充记录，结合全部已确认条件解析；补充回答用于消除对应歧义，不能丢弃原问题的指标、分组、时间和筛选条件。'
                   'PLAN schema='+json.dumps(PushPlan.model_json_schema(), ensure_ascii=False)+
                   '\n指标='+json.dumps({k: v for k, v in DEFINITIONS.items() if k in request.allowed_metrics}, ensure_ascii=False)+
                   '\n维度='+json.dumps(DIMENSIONS, ensure_ascii=False)+
@@ -31,7 +32,11 @@ def run_push_query(request, source):
             transport = ModelTransport.from_env()
             telemetry.update(parser='llm', model=transport.model, model_calls=1, total_tokens=None)
             with transport.client() as client:
-                response = transport.post(client, prompt, request.input.question, transport.plan_max_tokens)
+                question = request.input.question
+                if request.push_dialogue:
+                    question = json.dumps({'original_question': question,
+                        'clarifications': [turn.model_dump() for turn in request.push_dialogue]}, ensure_ascii=False)
+                response = transport.post(client, prompt, question, transport.plan_max_tokens)
                 response.raise_for_status()
                 raw = response.json()
             telemetry.usage(raw.get('usage') or {})
@@ -39,7 +44,7 @@ def run_push_query(request, source):
             if raw['choices'][0].get('finish_reason') == 'length':
                 raise ValueError('计划输出被截断')
             value = json.loads(raw['choices'][0]['message']['content'])
-            if set(value) == {'clarification'} and isinstance(value['clarification'], str):
+            if set(value) == {'clarification'} and isinstance(value['clarification'], str) and value['clarification'].strip():
                 return {'status': 'needs_clarification', 'message': value['clarification'][:200], 'usage': usage}
             if set(value) != {'plan'}:
                 raise ValueError('计划结构无效')
