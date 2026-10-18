@@ -51,6 +51,8 @@ def execute_query(repo, task):
         receipt = conn.execute(f"SELECT * FROM {table} WHERE {where} FOR UPDATE", keys).fetchone()
         if receipt and receipt["status"] == "running":
             # 原单步解析也可能调用模型，不能因 Worker 崩溃自动重发。
+            if task.get('push_thread_id'):
+                conn.execute("UPDATE push_model_calls SET status='unknown' WHERE task_id=%s AND status='running'",(task['id'],))
             repo.finish(conn, task, "failed", message="上次问数调用结果未知，请新建任务")
             return
         if receipt:
@@ -67,7 +69,11 @@ def execute_query(repo, task):
             **({"push_dialogue": task["query_dialogue"]} if task["query_dialogue"] else {}))
         try:
             with telemetry.capture(request.execution) as trace:
-                output = runtime.run_query(request)
+                if task.get('push_turn_context'):
+                    from .push_thread_runtime import run_tree_query
+                    output = run_tree_query(repo,task,request)
+                else:
+                    output = runtime.run_query(request)
         finally:
             with repo.db.transaction() as conn:
                 conn.execute("UPDATE task_attempts SET telemetry=%s,error_code=%s WHERE task_id=%s AND execution_version=%s", (Jsonb(trace), trace.get("error_code", ""), task["id"], task["execution_version"]))

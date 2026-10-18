@@ -1,12 +1,13 @@
 import {useEffect,useRef,useState} from 'react'
+import PushThread from './PushThread'
 
 type Api=<T>(path:string,body?:unknown,method?:string)=>Promise<T>
 type Metric={id:string;name:string;unit:string;definition:string}
 type Capabilities={domain:string;data_start:string|null;data_cutoff:string;is_synthetic:boolean;metrics:Metric[];enums:Record<string,string[]>}
 type Cell={value?:string|null;baseline?:string|null;current?:string|null;delta?:string|null;rate?:string|null;delta_unit?:string}
 type Row={label:string;values:Record<string,Cell>}
-type Result={domain?:string;rows:Row[];metrics:Metric[];totals?:Record<string,Cell>;summary?:string;message?:string;limitations?:string[];sql?:string;parameters?:string[];is_synthetic?:boolean;period?:{start:string;end_exclusive:string}}
-type Task={id:string;input:{question:string;push_plan?:unknown};status:string;error?:string;result:Result|{message?:string}|null;kind:string;clarification?:{version:number;turns:{question:string;answer:string}[];can_answer:boolean;reason:string}}
+export type Result={domain?:string;rows:Row[];metrics:Metric[];totals?:Record<string,Cell>;summary?:string;message?:string;limitations?:string[];sql?:string;parameters?:string[];is_synthetic?:boolean;period?:{start:string;end_exclusive:string};presentation?:{layout:string;detail:string};context_compacted?:boolean}
+type Task={id:string;input:{question:string;push_plan?:unknown};status:string;error?:string;result:Result|{message?:string}|null;kind:string;push_thread_id?:string;clarification?:{version:number;turns:{question:string;answer:string}[];can_answer:boolean;reason:string}}
 type Run={id:string;question:string;status:string;version:number;state:{message?:string;model_calls:number;sql_calls:number;tokens:number;answers:string[]};usage?:{unknown_calls:number};artifacts:{kind:string;result_ref:string;data:Result}[];steps:{id:string;phase:string;action:string;status:string}[]}
 const states:Record<string,string>={pending:'排队中',querying:'执行中',completed:'已完成',needs_clarification:'需要补充',failed:'执行失败',canceled:'已停止',unknown:'结果未知',running:'执行中'}
 const actions:Record<string,string>={query_metrics:'查询指标',lookup_metrics:'查看口径',compare_periods:'比较两期',rank_declines:'选择下降分组',finish:'核验完成依据'}
@@ -15,15 +16,15 @@ const deviceMetrics=new Set(['devices','valid_devices','invalid_devices','unknow
 const format=(value:string|null|undefined)=>value===null||value===undefined?'无样本':Number(value).toLocaleString('zh-CN',{maximumFractionDigits:2})
 const instant=(date:string)=>date+'T00:00:00+08:00'
 
-function Evidence({result}:{result:Result}){
+export function Evidence({result}:{result:Result}){
   const comparison=result.rows.some(r=>Object.values(r.values).some(v=>'delta'in v))
   return <article className="answer"><h3>{result.summary??'查询结果'}</h3>
     {result.is_synthetic&&<p className="badge">模拟数据 · 不代表真实厂商表现</p>}
     {result.period&&<p className="muted">{result.period.start} 至 {result.period.end_exclusive}（结束时刻不含）</p>}
-    {result.totals&&<div className="metric-cards">{result.metrics.map(m=><div key={m.id}><strong>{m.name}</strong><div className="metric-value">{format(result.totals?.[m.id]?.value)}<span>{m.unit}</span></div></div>)}</div>}
-    <div className="table-scroll"><table><thead><tr><th>分组</th><th>指标</th>{comparison?<><th>基期</th><th>报告期</th><th>差值</th><th>相对变化率</th></>:<th>结果</th>}</tr></thead><tbody>{result.rows.flatMap((row,i)=>result.metrics.map(m=>{const c=row.values[m.id];return <tr key={i+m.id}><td>{row.label}</td><td>{m.name}</td>{comparison?<><td>{format(c?.baseline)}</td><td>{format(c?.current)}</td><td>{format(c?.delta)} {c?.delta_unit}</td><td>{format(c?.rate)}{c?.rate!=null?'%':''}</td></>:<td>{format(c?.value)} {m.unit}</td>}</tr>}))}</tbody></table>{result.rows.length===0&&<p className="muted">该范围无可展示分组。</p>}</div>
+    {result.presentation?.layout!=='table'&&result.totals&&<div className="metric-cards">{result.metrics.map(m=><div key={m.id}><strong>{m.name}</strong><div className="metric-value">{format(result.totals?.[m.id]?.value)}<span>{m.unit}</span></div></div>)}</div>}
+    <div hidden={result.presentation?.layout==='cards'} className="table-scroll"><table><thead><tr><th>分组</th><th>指标</th>{comparison?<><th>基期</th><th>报告期</th><th>差值</th><th>相对变化率</th></>:<th>结果</th>}</tr></thead><tbody>{result.rows.flatMap((row,i)=>result.metrics.map(m=>{const c=row.values[m.id];return <tr key={i+m.id}><td>{row.label}</td><td>{m.name}</td>{comparison?<><td>{format(c?.baseline)}</td><td>{format(c?.current)}</td><td>{format(c?.delta)} {c?.delta_unit}</td><td>{format(c?.rate)}{c?.rate!=null?'%':''}</td></>:<td>{format(c?.value)} {m.unit}</td>}</tr>}))}</tbody></table>{result.rows.length===0&&<p className="muted">该范围无可展示分组。</p>}</div>
     {result.limitations?.map(t=><p key={t} className="muted">{t}</p>)}
-    <details><summary>指标口径与数据依据</summary>{result.metrics.map(m=><p key={m.id}><strong>{m.name}：</strong>{m.definition}</p>)}{result.sql&&<><pre>{result.sql}</pre><p>绑定参数：{JSON.stringify(result.parameters)}</p></>}</details>
+    <details open={result.presentation?.detail==='detailed'}><summary>指标口径与数据依据</summary>{result.metrics.map(m=><p key={m.id}><strong>{m.name}：</strong>{m.definition}</p>)}{result.sql&&<><pre>{result.sql}</pre><p>绑定参数：{JSON.stringify(result.parameters)}</p></>}</details>
   </article>
 }
 
@@ -36,10 +37,11 @@ export default function PushWorkspace({api,storageKey}:{api:Api;storageKey:strin
   const[top,setTop]=useState(false),[rankMetric,setRankMetric]=useState('delivery_rate'),[n,setN]=useState(3),[question,setQuestion]=useState('')
   const[task,setTask]=useState<Task|null>(null),[run,setRun]=useState<Run|null>(null),[history,setHistory]=useState<Task[]>([]),[answer,setAnswer]=useState('')
   const[busy,setBusy]=useState(false),[error,setError]=useState('')
+  const[threadId,setThreadId]=useState<string|null>(null)
   // 网络中断后重用同一提交标识，服务端不会把重试当成下一轮回答。
   const answerRequest=useRef<{id:string;version:number;answer:string;request_id:string}|null>(null)
   const refresh=()=>api<Task[]>('/tasks').then(setHistory)
-  const load=async(id:string,kind:string,select=true)=>{if(kind==='analysis'){const value=await api<Run>('/analysis-runs/'+id);setTask(null);setRun(value)}else{const value=await api<Task>('/tasks/'+id);setRun(null);setTask(value);if(select){setWorkflow(value.input.push_plan?'query':'natural');setQuestion(value.input.question)}}localStorage.setItem(storageKey,JSON.stringify({id,kind}))}
+  const load=async(id:string,kind:string,select=true)=>{if(kind==='tree'){setThreadId(id);setTask(null);setRun(null)}else if(kind==='analysis'){const value=await api<Run>('/analysis-runs/'+id);setTask(null);setRun(value)}else{const value=await api<Task>('/tasks/'+id);if(value.push_thread_id&&select){setThreadId(value.push_thread_id);localStorage.setItem(storageKey,JSON.stringify({id:value.push_thread_id,kind:'tree'}));return}setRun(null);setTask(value);if(select){setWorkflow(value.input.push_plan?'query':'natural');setQuestion(value.input.question)}}localStorage.setItem(storageKey,JSON.stringify({id,kind}))}
   useEffect(()=>{void Promise.all([api<Capabilities>('/query-capabilities').then(setCaps),api<{enabled:boolean}>('/analysis-capabilities').then(c=>setEnabled(c.enabled)),refresh()]).then(()=>{const saved=localStorage.getItem(storageKey);if(saved){try{const {id,kind}=JSON.parse(saved);void load(id,kind).catch(e=>setError(e.message))}catch{localStorage.removeItem(storageKey)}}}).catch(e=>setError(e.message))},[storageKey])
   const current=run??task
   const contextVersion=run?.version??task?.clarification?.version??0
@@ -90,6 +92,7 @@ export default function PushWorkspace({api,storageKey}:{api:Api;storageKey:strin
   const continuing=workflow==='natural'&&Boolean(task)
   const report=run?.artifacts.find(a=>a.kind==='report')?.data
   const result=task?.result&&'rows'in task.result?task.result:null
+  if(threadId)return <section className="push-workspace"><div className="answer-heading"><h2>推送与设备分析会话</h2><button onClick={()=>{setThreadId(null);newQuery()}}>返回查询</button></div><PushThread api={api} id={threadId}/></section>
   return <section className="push-workspace">
     <div className="answer-heading"><div><h2>推送与设备分析</h2><p className="muted">查看发送、到达、点击和设备覆盖；支持自定义时间与两期比较。</p></div><button disabled={busy} onClick={()=>newQuery()}>新建查询</button></div>
     {caps?.is_synthetic&&<div className="notice">当前使用模拟数据。发送样本覆盖 2026 年 4—9 月，数据截止 {caps.data_cutoff}。通道表现为人工模拟。</div>}
@@ -111,7 +114,7 @@ export default function PushWorkspace({api,storageKey}:{api:Api;storageKey:strin
       {task&&Boolean(task.clarification?.turns.length)&&<article aria-label="已提交的补充记录"><h3>补充记录</h3>{task.clarification!.turns.map((turn,index)=><div key={index}><p className="notice"><strong>助手追问：</strong>{turn.question}</p><p><strong>你的补充：</strong>{turn.answer}</p></div>)}</article>}
       {task?.status==='needs_clarification'&&task.result&&'message'in task.result&&task.result.message&&<div className="notice"><h3>需要你补充</h3><p>{task.result.message}</p>{task.clarification?.can_answer?<form onSubmit={supplement} className="analysis-form"><label>回答这条追问<textarea autoFocus rows={3} value={answer} onChange={e=>setAnswer(e.target.value)} maxLength={1000} placeholder="例如：观察时长24小时，统计2026年8月1日至10月1日（结束不含）" required/></label><p className="muted">只需回答缺少的条件，无需重复原问题。最多补充2次，每次请在24小时内回复。</p><button className="primary" disabled={busy||!answer.trim()}>{busy?'正在提交…':'补充并继续查询'}</button></form>:<p className="muted">{task.clarification?.reason||'请使用表单明确查询条件。'}</p>}</div>}
       {run&&<><p className="muted">模型调用 {run.state.model_calls} · SQL {run.state.sql_calls} · Token 预留与已知消耗 {run.state.tokens}</p>{run.state.message&&<p className="notice">{run.state.message}</p>}{Boolean(run.usage?.unknown_calls)&&<p className="notice">存在用量未知调用，保留预留，不自动重发。</p>}{run.status==='needs_clarification'&&<form onSubmit={supplement}><label>补充条件<textarea value={answer} onChange={e=>setAnswer(e.target.value)} maxLength={1000} required/></label><button disabled={busy}>补充并继续</button></form>}{run.status==='failed'&&<p className="notice">任务未完整完成；下方仅保留已取得的证据。</p>}</>}
-      {result&&<Evidence result={result}/>} {report&&<Evidence result={report}/>}
+      {result&&<><Evidence result={result}/><button disabled={busy} onClick={async()=>{setBusy(true);try{const value=await api<{id:string}>('/push-threads',{task_id:task!.id});await load(value.id,'tree')}catch(e){setError((e as Error).message)}finally{setBusy(false)}}}>继续追问或调整回答</button></>} {report&&<Evidence result={report}/>}
       {run&&<><details open><summary>执行步骤</summary><ol>{run.steps.map(s=><li key={s.id}>{actions[s.action]??(s.phase==='decide'?'模型选择下一步':'准备动作')} · {states[s.status]??s.status}</li>)}</ol></details><details><summary>已保存证据</summary>{run.artifacts.filter(a=>a.kind!=='report').map(a=><details key={a.result_ref}><summary>{a.kind} · {a.result_ref.slice(0,12)}</summary>{a.kind==='query'?<Evidence result={a.data}/>:<pre>{JSON.stringify(a.data,null,2)}</pre>}</details>)}</details></>}
     </>}
   </section>

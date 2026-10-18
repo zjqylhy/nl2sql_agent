@@ -63,6 +63,19 @@ class Answer(Version):
     answer: str = Field(min_length=1, max_length=1000)
 
 
+class PushThreadInput(StrictModel):
+    task_id: str = Field(pattern=r'^[a-f0-9]{48}$')
+
+
+class PushTreeTurn(Version):
+    request_id: str = Field(pattern=UUID)
+    question: str = Field(min_length=1,max_length=2000)
+
+
+class PushTreeCursor(Version):
+    message_id: str = Field(pattern=r'^[a-f0-9]{48}$')
+
+
 class Turn(Input, Version):
     request_id: str = Field(pattern=UUID)
 
@@ -271,6 +284,32 @@ def create_app(db=None, policy=None, *, origin=None, secure_cookie=None, trusted
         with repository.db.transaction() as conn:
             return public_task(repository.task(conn, user, run_id))
 
+    @app.post('/api/push-threads', status_code=201)
+    def push_thread_create(body: PushThreadInput,user=Depends(current_user),repository=Depends(repo)):
+        from .push_threads import Threads
+        with repository.db.transaction() as conn:
+            return Threads(repository).adopt(conn,user,body.task_id)
+
+    @app.get('/api/push-threads/{thread_id}')
+    def push_thread_get(thread_id: str,user=Depends(current_user),repository=Depends(repo)):
+        from .push_threads import Threads
+        with repository.db.transaction() as conn:
+            return Threads(repository).get(conn,user,thread_id)
+
+    @app.post('/api/push-threads/{thread_id}/turns',status_code=202)
+    def push_thread_turn(thread_id: str,body: PushTreeTurn,user=Depends(current_user),repository=Depends(repo)):
+        if not body.question.strip():
+            raise HTTPException(400,'请输入后续问题')
+        from .push_threads import Threads
+        with repository.db.transaction() as conn:
+            return Threads(repository).turn(conn,user,thread_id,body)
+
+    @app.post('/api/push-threads/{thread_id}/cursor')
+    def push_thread_cursor(thread_id: str,body: PushTreeCursor,user=Depends(current_user),repository=Depends(repo)):
+        from .push_threads import Threads
+        with repository.db.transaction() as conn:
+            return Threads(repository).seek(conn,user,thread_id,body.expected_version,body.message_id)
+
     @app.post("/api/tasks/{run_id}/answers", status_code=202)
     def query_answer(run_id: str, body: Answer, user=Depends(current_user), repository=Depends(repo)):
         if not body.answer.strip():
@@ -291,6 +330,9 @@ def create_app(db=None, policy=None, *, origin=None, secure_cookie=None, trusted
             if value["query_version"] != body.expected_version or not query_clarification(value)["can_answer"]:
                 raise HTTPException(409, "任务已更新、补充已过期或轮数耗尽，请刷新任务")
             repository.capacity(conn, user)
+            if value.get('push_thread_id'):
+                from .push_threads import Threads
+                Threads(repository).answer(conn,user,value,body.answer)
             dialogue = [*value["query_dialogue"], {"question": value["result"]["message"], "answer": body.answer}]
             conn.execute("UPDATE tasks SET query_dialogue=%s,query_version=query_version+1,status='pending',ready_at=now(),updated_at=now(),error='' WHERE id=%s", (Jsonb(dialogue), run_id))
             conn.execute("INSERT INTO query_answers VALUES(%s,%s,%s,%s)", (run_id, body.request_id, digest, value["query_version"]+1))
@@ -312,6 +354,9 @@ def create_app(db=None, policy=None, *, origin=None, secure_cookie=None, trusted
                     conn.execute("UPDATE conversations SET active_task_id=NULL,version=version+1,updated_at=now() WHERE id=%s AND active_task_id=%s", (value["conversation_id"], run_id))
                 if value["kind"] == "analysis":
                     conn.execute("UPDATE analysis_runs SET state=jsonb_set(jsonb_set(state,'{phase}','\"canceled\"'),'{message}','\"任务已停止\"'),version=version+1 WHERE id=%s", (run_id,))
+                if value.get('push_thread_id'):
+                    from .push_threads import Threads
+                    Threads(repository).finish(conn,value,'canceled',None,'任务已停止')
                 repository.event(conn, run_id, "canceled", {"message": "任务已停止"})
         return {"ok": True}
 
