@@ -44,6 +44,13 @@ ENUMS = {'manufacturer': ['huawei', 'xiaomi', 'oppo', 'vivo', 'apple'],
          'channel': ['huawei_push', 'xiaomi_push', 'oppo_push', 'vivo_push', 'apns', 'fcm']}
 
 
+class PlanIssue(ValueError):
+    """固定错误标识供自然语言入口追问；表单仍沿用严格校验。"""
+    def __init__(self, code, message, fields):
+        super().__init__(message)
+        self.code, self.fields = code, fields
+
+
 class Period(StrictModel):
     start: datetime
     end_exclusive: datetime
@@ -76,7 +83,7 @@ class PushPlan(StrictModel):
     dimensions: list[str] = Field(default_factory=list, max_length=2)
     time_range: Period
     observation_hours: int = Field(default=24, ge=1, le=8760, strict=True)
-    as_of: datetime | None = None
+    as_of: datetime | None = Field(default=None, description='仅用于设备状态指标的带时区时点；推送消息指标必须省略或为 null，不是数据截止时间')
     filters: list[PushFilter] = Field(default_factory=list, max_length=8)
 
     @model_validator(mode='after')
@@ -85,14 +92,14 @@ class PushPlan(StrictModel):
             raise ValueError('未知或重复推送指标')
         device = bool(set(self.metrics) & DEVICE_METRICS)
         if device and not set(self.metrics) <= DEVICE_METRICS:
-            raise ValueError('设备与消息为不同粒度，请分别查询')
+            raise PlanIssue('mixed_grain', '设备与消息为不同粒度，请分别查询', ['metrics'])
         permitted = {'app_id', 'manufacturer'} if device else set(DIMENSIONS)
         if len(set(self.dimensions)) != len(self.dimensions) or not set(self.dimensions) <= permitted or {'day', 'month'} <= set(self.dimensions):
             raise ValueError('分组维度不符合当前数据粒度')
         if device and any(f.field not in {'app_id', 'manufacturer'} for f in self.filters):
             raise ValueError('设备指标不按多值通道或推送失败原因筛选')
         if self.as_of is not None and (self.as_of.tzinfo is None or not device):
-            raise ValueError('设备状态时点必须带时区，且只能用于设备指标')
+            raise PlanIssue('device_as_of', '设备状态时点必须带时区，且只能用于设备指标', ['as_of'])
         # 同字段所有包含/排除条件必须有可能同时满足。
         for field in {f.field for f in self.filters}:
             include = [set(f.values) for f in self.filters if f.field == field and f.op == 'in']
@@ -114,14 +121,14 @@ class PushPlan(StrictModel):
         if source.domain != 'push' or cutoff is None:
             raise ValueError('推送数据源必须配置带时区截止时刻')
         if self.time_range.end_exclusive > cutoff or (self.device and self.state_at > cutoff):
-            raise ValueError('查询时间或设备时点超出已发布数据截止时间')
+            raise PlanIssue('source_cutoff', '查询时间或设备时点超出已发布数据截止时间', ['time_range', 'as_of'])
         if source.data_start and self.time_range.start < source.data_start:
-            raise ValueError('查询开始早于已发布数据范围')
+            raise PlanIssue('source_start', '查询开始早于已发布数据范围', ['time_range.start'])
         # 逐投递确认成熟，不能仅因结束时间早于截止就当作完整观察。
         if not self.device and self.time_range.end_exclusive + timedelta(hours=self.observation_hours) > cutoff:
-            raise ValueError('发送区间后的回执观察窗口尚未成熟，请缩短范围或观察时长')
+            raise PlanIssue('observation_pending', '发送区间后的回执观察窗口尚未成熟，请缩短范围或观察时长', ['time_range.end_exclusive', 'observation_hours'])
         if self.device and self.state_at < self.time_range.end_exclusive - timedelta(microseconds=1) and set(self.metrics) & {'active_devices', 'active_valid_devices', 'active_rate'}:
-            raise ValueError('活跃窗口不能晚于所选设备状态时点')
+            raise PlanIssue('activity_as_of', '活跃窗口不能晚于所选设备状态时点', ['time_range', 'as_of'])
 
 
 def required_metrics(plan):

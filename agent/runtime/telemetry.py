@@ -6,7 +6,7 @@ from contextvars import ContextVar
 from time import perf_counter
 
 current = ContextVar("query_telemetry", default=None)
-FIELDS = ("version", "task_id", "execution_version", "parser", "model_calls", "model", "input_tokens", "output_tokens", "total_tokens", "stages_ms", "error_code", "rows")
+FIELDS = ("version", "task_id", "execution_version", "parser", "model_calls", "model", "input_tokens", "output_tokens", "total_tokens", "stages_ms", "error_code", "error_fields", "rows")
 logger = logging.getLogger("olist.telemetry")
 if not logger.handlers:
     handler = logging.StreamHandler()
@@ -62,13 +62,14 @@ def model_error(exc):
     else:
         code = "model_format"
     update(error_code=code)
+    return code
 
 
 @contextmanager
 def capture(execution):
     value = {"version": 1, "task_id": execution.task_id if execution else "", "execution_version": execution.execution_version if execution else 0,
              "parser": "unknown", "model_calls": 0, "model": "", "input_tokens": 0, "output_tokens": 0,
-             "total_tokens": 0, "stages_ms": {}, "error_code": "", "rows": None}
+             "total_tokens": 0, "stages_ms": {}, "error_code": "", "error_fields": [], "rows": None}
     reset = current.set(value)
     try:
         yield value

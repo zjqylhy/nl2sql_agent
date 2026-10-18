@@ -403,3 +403,48 @@ def test_query_clarification_requires_actual_question_and_server_context(push_pl
     run_once(repo)
     assert client.get('/api/tasks/'+created.json()['id']).json()['status'] == 'failed'
     assert len(calls) == 1
+
+
+@pytest.mark.parametrize('with_as_of', [False, True])
+def test_invalid_model_plan_clarifies_and_resumes_same_task(push_platform, monkeypatch, with_as_of):
+    client, repo, _ = push_platform
+    invalid = plan(['sent','delivery_rate','click_rate'], dimensions=['day','manufacturer'], observation_hours=48).model_dump(mode='json')
+    invalid['time_range'] = {'start':'2026-08-15T00:00:00+08:00','end_exclusive':'2026-10-15T00:00:00+08:00'}
+    if with_as_of:
+        invalid['as_of'] = '2026-10-15T00:00:00+08:00'
+    final = {**invalid,'as_of':None,'time_range':{'start':'2026-08-01T00:00:00+08:00','end_exclusive':'2026-10-01T00:00:00+08:00'}}
+    calls = clarification_model(monkeypatch,[{'clarification':'请确认观察时长'}, {'plan':invalid}, {'plan':final}])
+    task = start_clarification(client, repo)
+    original = task['input']
+    url = '/api/tasks/'+task['id']
+    assert client.post(url+'/answers',json=answer_body(task,'48小时')).status_code == 202
+    claimed = run_once(repo)
+    task = client.get(url).json()
+    assert task['status'] == 'needs_clarification' and task['clarification']['can_answer'], task
+    assert '2026-10-13T00:00+08:00' in task['result']['message']
+    assert task['input'] == original
+    assert len(calls) == 2
+    with repo.db.transaction() as conn:
+        trace = conn.execute('SELECT telemetry FROM task_attempts WHERE task_id=%s AND execution_version=%s', (task['id'],claimed['execution_version'])).fetchone()['telemetry']
+        assert trace['error_code'] == ('plan_device_as_of' if with_as_of else 'plan_observation_pending')
+        assert trace.get('sql_calls',0) == 0
+    assert client.post(url+'/answers',json=answer_body(task,'统计2026年8月1日至10月1日，结束不含，仍观察48小时')).status_code == 202
+    run_once(repo)
+    task = client.get(url).json()
+    assert task['status'] == 'completed' and task['result']['plan']['observation_hours'] == 48, task
+    assert task['result']['plan']['dimensions'] == ['day','manufacturer']
+    assert task['input'] == original and task['clarification']['turns'][0]['answer'] == '48小时'
+    assert task['result']['totals']['sent']['value'] == '7320'
+    assert len(calls) == 3 and repo.claim(True) is None
+
+
+def test_structured_invalid_observation_still_fails_without_model(push_platform, monkeypatch):
+    client, repo, _ = push_platform
+    calls = clarification_model(monkeypatch,[])
+    invalid = plan(observation_hours=48).model_dump(mode='json')
+    invalid['time_range']['end_exclusive'] = '2026-10-15T00:00:00+08:00'
+    created = client.post('/api/tasks',json={'question':'固定表单无效时间','push_plan':invalid}).json()
+    run_once(repo)
+    task = client.get('/api/tasks/'+created['id']).json()
+    assert task['status'] == 'failed' and '尚未成熟' in task['error']
+    assert calls == []
