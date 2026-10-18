@@ -261,3 +261,30 @@ def test_tree_conflicting_parallel_turns_admit_only_one(push_platform,monkeypatc
     assert sorted(statuses)==[202,409]
     current=get(client,tree)
     assert len([m for m in current['messages'] if m['role']=='user'])==2
+
+
+def test_tree_sequence_works_with_actual_api_database_role(push_platform,monkeypatch):
+    from fastapi.testclient import TestClient
+    from psycopg.conninfo import make_conninfo
+    from agent.platform_app.__main__ import provision_roles
+    from agent.platform_app.database import Database
+    from agent.platform_app.api import create_app
+    from agent.tests.test_python_platform import POLICY
+    client,repo,source=push_platform
+    task=client.post('/api/tasks',json={'question':'运行身份验收','push_plan':plan().model_dump(mode='json')}).json()
+    run_once(repo)
+    password='tree-runtime-test-password'
+    monkeypatch.setenv('POSTGRES_API_PASSWORD',password)
+    monkeypatch.setenv('POSTGRES_WORKER_PASSWORD',password)
+    api_role,worker_role=source.user+'_api',source.user+'_worker'
+    provision_roles(repo.db.dsn,api_role,worker_role)
+    db=Database(make_conninfo(repo.db.dsn,user=api_role,password=password))
+    try:
+        with TestClient(create_app(db,POLICY,origin='http://testserver')) as runtime_client:
+            runtime_client.headers['Origin']='http://testserver'
+            assert runtime_client.post('/api/login',json={'tenant':'demo','username':'admin','password':'fixture-password'}).status_code==200
+            response=runtime_client.post('/api/push-threads',json={'task_id':task['id']})
+            assert response.status_code==201,response.text
+            assert len(response.json()['messages'])==4
+    finally:
+        db.close()

@@ -28,6 +28,8 @@ def provision_roles(dsn, api_role="platform_api", worker_role="platform_worker")
                 conn.execute(sql.SQL("CREATE ROLE {} LOGIN PASSWORD {} NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT").format(sql.Identifier(role), sql.Literal(password)))
             conn.execute(sql.SQL("GRANT USAGE ON SCHEMA platform TO {};").format(sql.Identifier(role)))
             conn.execute(sql.SQL("GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA platform TO {}").format(sql.Identifier(role)))
+            # 消息顺序号由平台序列生成，运行身份需要取号权限，不获得结构变更权限。
+            conn.execute(sql.SQL("GRANT USAGE,SELECT ON ALL SEQUENCES IN SCHEMA platform TO {}").format(sql.Identifier(role)))
         conn.execute("REVOKE ALL ON SCHEMA agent_checkpoint FROM PUBLIC")
         conn.execute(sql.SQL("GRANT USAGE ON SCHEMA agent_checkpoint TO {}").format(sql.Identifier(worker_role)))
         conn.execute(sql.SQL("GRANT SELECT,INSERT,UPDATE,DELETE ON ALL TABLES IN SCHEMA agent_checkpoint TO {}").format(sql.Identifier(worker_role)))
