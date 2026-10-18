@@ -42,6 +42,7 @@ def main():
     parser.add_argument("--username", default="admin")
     parser.add_argument("--host", default="0.0.0.0")
     parser.add_argument("--port", type=int, default=8080)
+    parser.add_argument('--domain', choices=['push', 'orders'], default='push', help='新账号的指标数据域')
     args = parser.parse_args()
     if args.command == "api":
         import uvicorn
@@ -56,12 +57,14 @@ def main():
     db = Database()
     try:
         if args.command == "seed":
+            from agent.runtime.push import DEFINITIONS
+            metric_ids = list(DEFINITIONS) if args.domain == 'push' else list(catalog().metrics)
             password = os.getenv("BOOTSTRAP_PASSWORD") or getpass.getpass("初始管理员密码: ")
             if not 12 <= len(password.encode()) <= 72:
                 raise ValueError("管理员密码必须为 12–72 字节")
             with db.transaction() as conn:
                 conn.execute("INSERT INTO tenants VALUES(%s,%s) ON CONFLICT DO NOTHING", (args.tenant, args.tenant))
-                conn.execute("INSERT INTO users(id,tenant_id,username,password_hash,role,allowed_metrics) VALUES(%s,%s,%s,%s,'admin',%s)", (secrets.token_hex(24), args.tenant, args.username, bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12)), list(catalog().metrics)))
+                conn.execute("INSERT INTO users(id,tenant_id,username,password_hash,role,allowed_metrics) VALUES(%s,%s,%s,%s,'admin',%s)", (secrets.token_hex(24), args.tenant, args.username, bcrypt.hashpw(password.encode(), bcrypt.gensalt(rounds=12)), metric_ids))
         elif args.command == "prune":
             from .retention import prune
             prune(Repository(db))
