@@ -24,6 +24,8 @@ from agent.runtime import app as runtime
 from agent.runtime.analysis import AnalysisError, Spec, metric_ids
 from agent.runtime.analysis_api import context as analysis_context
 from agent.runtime.catalog import StrictModel, catalog
+from agent.runtime.push import DEFINITIONS, DIMENSIONS, ENUMS
+from agent.runtime.push_analysis import PushSpec, plans as push_plans
 from .database import Database
 from .policy import Policy
 from .repository import ACTIVE, Repository, binding, identity, permitted, public_conversation, public_task
@@ -49,7 +51,7 @@ class Input(runtime.QueryInput):
 class AnalysisInput(StrictModel):
     question: str = Field(min_length=1, max_length=2000)
     request_id: str = Field(pattern=UUID)
-    spec: Spec | None = None
+    spec: Spec | PushSpec | None = None
 
 
 class Version(StrictModel):
@@ -73,7 +75,7 @@ class UserInput(StrictModel):
 
     @model_validator(mode="after")
     def valid_user(self):
-        if len(self.password.encode()) > 72 or not set(self.allowed_metrics) <= set(catalog().metrics):
+        if len(self.password.encode()) > 72 or not set(self.allowed_metrics) <= set(catalog().metrics) | set(DEFINITIONS):
             raise ValueError("密码字节数或指标权限无效")
         return self
 
@@ -129,7 +131,7 @@ def create_app(db=None, policy=None, *, origin=None, secure_cookie=None, trusted
             if owned:
                 app.state.repo.db.close()
 
-    app = FastAPI(title="Olist Agent 平台", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
+    app = FastAPI(title="推送与设备分析助手", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
 
     @app.middleware("http")
     async def boundary(request, call_next):
@@ -230,7 +232,19 @@ def create_app(db=None, policy=None, *, origin=None, secure_cookie=None, trusted
 
     @app.get("/api/metrics")
     def metrics(user=Depends(current_user)):
+        source = runtime.sources().get(user['tenant_id']+':'+user['role'])
+        if source and source.domain == 'push':
+            return [{'id': k, **v} for k, v in DEFINITIONS.items() if k in user['allowed_metrics']]
         return [{"id": k, "name": v.name, "version": v.version} for k, v in catalog().metrics.items() if k in user["allowed_metrics"]]
+
+    @app.get('/api/query-capabilities')
+    def query_capabilities(user=Depends(current_user)):
+        source = runtime.sources().get(user['tenant_id']+':'+user['role'])
+        if source is None:
+            raise HTTPException(403, '尚未配置授权数据源')
+        meta = binding(user)
+        return {**meta, 'domain': source.domain, 'dimensions': DIMENSIONS if source.domain == 'push' else {},
+                'enums': ENUMS if source.domain == 'push' else {}, 'metrics': metrics(user)}
 
     @app.get("/api/tasks")
     def tasks(user=Depends(current_user), repository=Depends(repo)):
@@ -249,7 +263,7 @@ def create_app(db=None, policy=None, *, origin=None, secure_cookie=None, trusted
             raise HTTPException(403, "没有该指标权限")
         with repository.db.transaction() as conn:
             repository.capacity(conn, user)
-            run_id = repository.insert_task(conn, user, body.model_dump())
+            run_id = repository.insert_task(conn, user, body.model_dump(mode='json'))
             return public_task(repository.task(conn, user, run_id))
 
     @app.get("/api/tasks/{run_id}")
@@ -326,7 +340,19 @@ def create_app(db=None, policy=None, *, origin=None, secure_cookie=None, trusted
         if not body.question.strip():
             raise HTTPException(400, "请输入有效问题")
         if body.spec:
-            body.spec.check_anchor(date.fromisoformat(binding(user, True)["analysis_date"]))
+            source = runtime.sources()[user['tenant_id']+':'+user['role']]
+            if isinstance(body.spec, PushSpec) != (source.domain == 'push'):
+                raise HTTPException(400, '任务规格与授权数据域不一致')
+            try:
+                body.spec.check_anchor(date.fromisoformat(binding(user, True)["analysis_date"]))
+            except ValueError as exc:
+                raise HTTPException(400, str(exc)) from exc
+            if isinstance(body.spec, PushSpec):
+                try:
+                    for plan in push_plans(body.spec):
+                        plan.check_source(source)
+                except ValueError as exc:
+                    raise HTTPException(400, str(exc)) from exc
             if not set(metric_ids(body.spec)) <= set(user["allowed_metrics"]):
                 raise HTTPException(403, "没有任务所需全部指标权限")
         with repository.db.transaction() as conn:
@@ -466,7 +492,7 @@ def create_app(db=None, policy=None, *, origin=None, secure_cookie=None, trusted
     @app.patch("/api/users/{user_id}")
     def update_user(user_id: str, body: Permissions, user=Depends(current_user), repository=Depends(repo)):
         admin(user)
-        if user_id == user["id"] or not set(body.allowed_metrics) <= set(catalog().metrics):
+        if user_id == user["id"] or not set(body.allowed_metrics) <= set(catalog().metrics) | set(DEFINITIONS):
             raise HTTPException(400, "不能修改自身或使用未知指标")
         with repository.db.transaction() as conn:
             tag = conn.execute("UPDATE users SET enabled=%s,allowed_metrics=%s WHERE tenant_id=%s AND id=%s", (body.enabled, body.allowed_metrics, user["tenant_id"], user_id))

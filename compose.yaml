@@ -1,6 +1,6 @@
-name: olist-python-agent
+name: push-analysis-agent
 x-application: &application
-  image: olist-python-platform:${APP_TAG:-local}
+  image: push-analysis-platform:${APP_TAG:-local}
   build:
     context: .
     dockerfile: deploy/Dockerfile.platform
@@ -90,12 +90,12 @@ services:
   import:
     <<: *application
     profiles: [maintenance]
-    entrypoint: ["python", "-m", "agent.tools.import_olist_postgres"]
-    command: ["--csv-dir", "/data", "--schema", "analytics_alpha_v1", "--readonly-user", "alpha_ro"]
+    entrypoint: ["python", "-m", "agent.tools.import_push_postgres"]
+    command: ["--data-dir", "/data", "--schema", "analytics_push_v1", "--readonly-user", "push_alpha_ro"]
     environment:
       IMPORT_DATABASE_URL: postgresql://platform_migrator:${POSTGRES_ADMIN_PASSWORD:?required}@postgres:5432/platform?sslmode=disable
-      OLIST_READONLY_PASSWORD: ${OLIST_READONLY_PASSWORD:?required}
-    volumes: ["./data/olist:/data:ro"]
+      PUSH_READONLY_PASSWORD: ${PUSH_READONLY_PASSWORD:-}
+    volumes: ["./data/push/data:/data:ro"]
     depends_on:
       roles: {condition: service_completed_successfully}
   seed:

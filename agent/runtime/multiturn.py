@@ -123,6 +123,14 @@ def filter_id(value):
 
 
 def source_metadata(source, tenant, role):
+    if getattr(source, 'domain', 'orders') == 'push':
+        from .push import metadata_payload
+        directory = hashlib.sha256(json.dumps(metadata_payload(), sort_keys=True).encode()).hexdigest()
+        values = [tenant, role, source.host, source.port, source.database, source.user, source.schema_name,
+                  source.context_revision, source.domain, source.dataset_revision, str(source.data_start), str(source.data_cutoff), directory, source.is_synthetic]
+        return {'binding': hashlib.sha256(json.dumps(values).encode()).hexdigest(), 'analysis_date': str(source.analysis_date),
+                'catalog_hash': directory, 'domain': 'push', 'data_start': str(source.data_start) if source.data_start else None,
+                'data_cutoff': str(source.data_cutoff), 'is_synthetic': source.is_synthetic}
     directory = hashlib.sha256(json.dumps(catalog().model_dump(), sort_keys=True).encode()).hexdigest()
     values = [tenant, role, source.host, source.port, source.database, source.user, source.context_revision, str(source.analysis_date), directory]
     values += [source.driver, source.schema_name]

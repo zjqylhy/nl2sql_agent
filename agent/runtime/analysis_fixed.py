@@ -3,6 +3,9 @@ from .analysis import Spec
 
 
 def next_action(spec: Spec, artifacts):
+    if getattr(spec, 'domain', None) == 'push':
+        from .push_analysis import next_action as push_next
+        return push_next(spec, artifacts)
     def result(action, args):
         return {"spec": spec.model_dump(mode="json"), "action": {"action": action, "arguments": args}}
 

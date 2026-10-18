@@ -21,7 +21,7 @@ jobs:
       - run: docker compose --env-file .env.example config --quiet
       - run: docker compose --env-file .env.example build api worker web
       # 使用运行镜像的依赖和配套 PG 客户端，覆盖真实检查点及备份恢复。
-      - run: docker build --build-arg PLATFORM_IMAGE=olist-python-platform:local -f deploy/Dockerfile.validation -t olist-python-validation:ci .
+      - run: docker build --build-arg PLATFORM_IMAGE=push-analysis-platform:local -f deploy/Dockerfile.validation -t olist-python-validation:ci .
       - name: Python tests with PostgreSQL
         run: >-
           docker run --rm --network host --read-only --tmpfs /tmp:exec

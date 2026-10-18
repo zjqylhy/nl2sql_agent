@@ -1,128 +1,88 @@
-# Olist 经营分析助手
+# 推送效果与设备分析助手
 
-后端为 **Python + FastAPI + LangGraph + PostgreSQL**，前端 React。API 和 Worker 使用同一镜像、分进程运行。
+基于 **Python、FastAPI、LangGraph、PostgreSQL 和 React**，按应用、设备厂商、实际通道与用户指定时间查询推送效果和设备覆盖。模型只能选择注册工具，查询、计算与证据完成条件由代码验证。
 
-支持原单次/多轮问数，以及范围有限的经营分析：比较两个时间段各州 GMV、按下降金额或比例排名并核查订单量和客单价；汇总 GMV 前 N 州的金额、订单量、整体客单价和占比。模型选择下一步，数字由受限 SQL 与 Decimal 工具计算；指标变化只作描述性分析。
+- 推送：发送量、受理量、已确认到达、点击、已知失败、未知到达、平均到达时延，及到达率、点击/发送率和点击/到达率。
+- 设备：指定时点的总量、有效、无效、未知设备，自定义期间的活跃和活跃有效设备。按应用与设备 ID 去重，活跃依据应用前台事件。
+- 分析：单期汇总、Top N 及所选分组合计；比较两期同口径推送指标，按下降差值选组并展示核查指标。比率差值为百分点，不作因果归因。
+- 表单查询无需模型；自然语言解析和工具分析需要模型配置。分析包含两轮补充、图检查点、持久回执、预算、租约和执行围栏。调用结果未知时停止并保留预留。
 
-需求与边界见[实施规格](docs/python-agent-target-spec.md)，实现见[实施记录](docs/python-platform-implementation.md)，当前云端结果及限制见[增量发布验收](docs/python-platform-release-20261017.md)。Go/MySQL 源码、部署与执行链已退役；历史结果和冻结数据保留，旧版本可通过 Git 历史复现，详见[清理结果](docs/runtime-cleanup-results.md)。
+需求与验收依据见 [推送与设备规格](docs/push-device-spec.md)。
 
-## 运行边界
+## 数据与指标口径
 
-- API 只做认证、授权、幂等接纳和结果读取。任务/outbox 在同一事务写入；Worker 领取后执行整张 StateGraph。
-- PostgreSQL 分 `platform`、`agent_checkpoint`、`analytics_*` 三个权限域。API 无图状态权限，分析查询账号仅能读取授权视图；schema 不提供 CPU/I/O 故障隔离。
-- 图保存下一节点和 interrupt；操作账本保存预算、执行回执和证据。恢复先核账，已完成操作复用回执，模型调用结果未知时停止。
-- 默认上限：模型 10 次、工具 12 次、SQL 6 次、全局参数修正 1 次、SQL 重试 1 次、活跃执行 180 秒、30000 Token、并行分析 2 个。价格和模型映射随任务冻结。
-- 输出上限、单次截止、Token 总预算及调用间隔在任务接纳时冻结。明确的网关执行前拒绝最多退避一次；通用 429、503、断连和超时不推断为零费用。
-- 固定模式只用模型解析规格；自适应模式使用短证据引用选择工具。修复与失败见[协议修正记录](docs/analysis-protocol-hardening-results.md)，当前服务器版本与验证边界见[增量发布验收](docs/python-platform-release-20261017.md)。
-- 两轮补充、等待最长 24 小时。详细证据与图线程保留 30 天，最终报告及已知/未知用量汇总保留。
+内置数据由固定种子 `20261018` 生成，全部标为模拟数据，不代表真实厂商效果。3 个虚构应用，600 条应用设备记录对应 400 个模拟物理设备，21,960 条逻辑推送，另含 Token/权限历史、应用活跃、重试及原始回执。设备 ID 为直接生成的业务标识，不包含真实 IMEI、广告 ID 或可用 Token。
 
-## Windows 本地启动
+发送样本为 `[2026-04-01,2026-10-01)`，快照为 `2026-10-15T00:00:00+08:00`。用户自定义带时区的 `[start,end_exclusive)`，没有固定周限制。发送期间、回执观察时长、设备状态时点分别指定；超出快照、早于数据范围或观察未成熟时明确拒绝。前端日期使用上海时区。
 
-需要 Python 3.12、Node.js，以及 PostgreSQL。容器启动需 Docker Desktop Linux containers。
+到达回执缺失保留未知，不等于失败。点击/到达率使用“有到达回执且点击”的交集作为分子，缺到达回执的点击单列。比率按总分子/总分母重算，零分母为无样本。有效设备要求权限明确开启且至少一个有效 Token；权限关闭或全部 Token 明确失效为无效，其余未知。历史存量按时点查询，不累加每日设备数。
 
-```powershell
-if (-not (Test-Path .env)) { Copy-Item .env.example .env }
-# 已有 .env 时保留原配置，按新版字段补齐；也可另存并用 --env-file 指定。
-# 为各账号分别生成随机十六进制密码，替换 .env 占位值。
-docker compose config --quiet
-docker compose up -d --build
-```
+公开数据检索与字段参考见 [数据说明](evals/push/README.txt)。公开研究数据不完整覆盖该业务，当前模拟数据与历史 Olist 评测成绩分别记录。
 
-打开 [本地工作台](http://localhost:8088)。新栈名称 `olist-python-agent`、数据卷 `python_postgres_data`；不会复用或覆盖旧 Go/MySQL 栈的数据卷。首次启动后还需导入数据、配置映射并创建账号。
+## Windows 本地运行
 
-### 初始化数据与账号
-
-下载官方 [Olist 数据集](https://www.kaggle.com/datasets/olistbr/brazilian-ecommerce)，按其许可使用，四份必需 CSV 放入 `data/olist`。
+需要 Python 3.12、Node.js、PostgreSQL，或 Docker Desktop Linux containers。首次配置从 `.env.example` 复制 `.env`；已有 `.env` 请保留并补充所需字段。各账号使用独立随机密码。
 
 ```powershell
 python -m venv .venv
 .venv/Scripts/python.exe -m pip install -r agent/requirements.lock
-.venv/Scripts/python.exe -m agent.tools.download_olist --output data/olist
+.venv/Scripts/python.exe -m agent.tools.generate_push --output data/push
+docker compose up -d --build
 docker compose run --rm import
 docker compose run --rm seed
 ```
 
-导入器输出实际 CSV 的 SHA256 版本摘要，拒绝覆盖已有 schema。将以下映射作为单行 `TENANT_DATASOURCES` 写入本地 `.env`，替换密码和版本；每个启用角色显式配置可信映射：
+导入输出不可变数据版本 SHA256。把如下可信映射作为单行 `TENANT_DATASOURCES` 写入本地 `.env`，替换密码和摘要。不要将配置或凭据提交 Git。
 
 ```json
-{
-  "alpha:admin": {
-    "driver": "postgresql",
-    "host": "postgres",
-    "port": 5432,
-    "database": "platform",
-    "schema_name": "analytics_alpha_v1",
-    "user": "alpha_ro",
-    "password": "替换为 OLIST_READONLY_PASSWORD",
-    "analysis_date": "2018-08-31",
-    "dataset_revision": "替换为导入器输出的64位摘要"
-  }
-}
+{"alpha:admin":{"domain":"push","driver":"postgresql","host":"postgres","port":5432,"database":"platform","schema_name":"analytics_push_v1","user":"push_alpha_ro","password":"替换为 PUSH_READONLY_PASSWORD","analysis_date":"2026-10-14","data_start":"2026-04-01T00:00:00+08:00","data_cutoff":"2026-10-15T00:00:00+08:00","is_synthetic":true,"dataset_revision":"替换为导入器输出的64位摘要"}}
 ```
 
 ```powershell
 docker compose up -d --force-recreate api worker
 ```
 
-使用 `alpha / admin` 和 `.env` 的 `BOOTSTRAP_PASSWORD` 登录。可查询六指标：GMV、有效订单量、客单价、取消率、平均交付时长、平均评分。`seed` 不会覆盖已有账号。数据库密码和 DSN 不进入浏览器；不要分享 `.env` 或完整 Compose 配置输出。
+访问 [工作台](http://localhost:8088)，使用 `alpha / admin` 和 `BOOTSTRAP_PASSWORD`。平台任务与数据使用新项目 `push-analysis-agent` 的独立数据卷。API 与 Worker 使用同一镜像、分进程运行；API 不执行 Agent。只启动 API 时任务会排队。
 
-数据发布先按订单聚合商品，再关联每单最新有效评价，避免重复累计。带州限制的数据源可用新的 schema/只读账号导入并指定 `--states SP RJ`。每个新快照使用新 schema 和版本；修改绑定后旧任务不能继续执行。
-
-### 模型与分析开关
-
-原问数的完整规则表达不调用模型；陌生表达可以由配置的网关模型兜底。经营分析需配置 `NL2SQL_AGENT_API_KEY`、`LLM_BASE_URL`、`LLM_MODEL`，并确认 tokenizer 映射、真实价格与总预算后设置 `ANALYSIS_ENABLED=true`。
-
-`ANALYSIS_INPUT_PRICE_MICROS` / `OUTPUT_PRICE_MICROS` 表示每百万 Token 的微货币单位价格，1000000 微单位等于 1 货币单位。预留与已知用量不等于供应商最终账单。示例中的空价格不能当作免费价格使用。默认策略 `adaptive`，`fixed` 用于对照实验。
-
-模型网关默认示例为 `https://localhost:9443/v1`。容器中 `localhost` 指容器本身，需按实际网络配置可达地址、TLS CA 和连接覆盖。Windows 隧道使用 `deploy/compose.gateway-local.yaml`，作用于 API 和 Worker；服务器使用 `deploy/compose.python-private.yaml`。不能关闭 TLS 校验绕过证书问题。
-
-### 源码调试
-
-在项目根目录、分别设置环境变量的终端运行。API 使用平台 API 账号；Worker 使用平台 Worker 账号；`TENANT_DATASOURCES` 使用只读分析账号。管理员连接只用于迁移和初始化。
+原生启动使用以下命令，各进程分别配置数据库账号。管理员 `DATABASE_URL` 仅用于维护；API 用 `platform_api`，Worker 和检查点用 `platform_worker`，数据源映射使用只读账号。
 
 ```powershell
-# 维护终端：DATABASE_URL 为管理员 DSN。
+# 维护终端，管理员 DATABASE_URL。
 .venv/Scripts/python.exe -m agent.platform_app migrate
 .venv/Scripts/python.exe -m agent.platform_app provision-roles
-
-# API 终端：DATABASE_URL 为 platform_api DSN。
-$env:PUBLIC_ORIGIN='http://localhost:5173'
+# IMPORT_DATABASE_URL 为管理员连接，PUSH_READONLY_PASSWORD 为新只读账号密码。
+.venv/Scripts/python.exe -m agent.tools.import_push_postgres --data-dir data/push/data --schema analytics_push_v1 --readonly-user push_alpha_ro
+.venv/Scripts/python.exe -m agent.platform_app seed --tenant alpha --username admin --domain push
+# API 终端，PUBLIC_ORIGIN=http://localhost:5173。
 .venv/Scripts/python.exe -m agent.platform_app api --host 127.0.0.1 --port 8080
-
-# Worker 终端：DATABASE_URL 和 CHECKPOINT_DATABASE_URL 为 platform_worker DSN。
+# 独立 Worker 终端。
 .venv/Scripts/python.exe -m agent.platform_app worker
-
-# 前端终端。
-Set-Location web
+# 前端终端，在 web 目录。
 npm ci
 npm run dev
 ```
 
-FastAPI 不启动后台 Agent；只有 API 进程时任务会保持排队。无需 `SERVICE_KEY` 或内部 Go→Python HTTP 协议。`/healthz` 检查平台数据库，`/livez` 为进程存活检查。
+新快照使用新 schema，导入器拒绝覆盖。`--app-ids app_1` 可以发布只限某应用的视图；每个租户/角色显式配置对应账号与映射。设备历史与多通道先归并成互斥区间，原始回执先按逻辑投递聚合，不向查询账号授予原始表权限。
 
-## 验证、评测与恢复
+## 模型与恢复
 
-测试数据库必须是专用环境，允许创建和删除随机测试数据库/账号；生产 DSN 不得用作 `TEST_DATABASE_URL`。
+配置 `NL2SQL_AGENT_API_KEY`、`LLM_BASE_URL`、`LLM_MODEL`，确认 tokenizer、真实价格与总预算后设置 `ANALYSIS_ENABLED=true`。`adaptive` 由模型逐步选择动作；`fixed` 仅在规格缺失时用模型解析，已确认规格按确定流程执行。推送分析使用独立协议，与订单规格不能混用。
+
+默认最多模型 10 次、工具 12 次、SQL 6 次、参数修正 1 次、SQL 重试 1 次、活跃执行 180 秒、30000 Token，并行分析 2 个。调用截止和预算随任务冻结。`ANALYSIS_INPUT_PRICE_MICROS` / `OUTPUT_PRICE_MICROS` 表示每百万 Token 的微货币价格，1000000 微单位等于 1 货币单位。未知用量仍占预留，测试单位不能作为真实账单。
+
+图持久化下一节点，操作账本持久化额度、发送意图和回执。回执先完成而图未推进时复用回执，不再发送调用。权限、数据、目录、模型和代码绑定变化后旧任务不能继续执行。检查点、平台、分析域位于同一 PostgreSQL 实例的三个权限域；schema 不提供资源故障隔离。
+
+## 验证
 
 ```powershell
 $env:PYTHONUTF8='1'
-# 配置 TEST_DATABASE_URL；运行新平台、图持久化和原查询内核回归。
-.venv/Scripts/python.exe -m pytest agent/tests -q
-# 可选完整 Olist 和真实备份恢复验证：另配置 OLIST_TEST_CSV_DIR、PG_TEST_BIN。
-Set-Location web
+$env:PYTEST_DISABLE_PLUGIN_AUTOLOAD='1'
+# TEST_DATABASE_URL 必须指向允许创建/删除临时库与角色的专用测试实例。
+.venv/Scripts/python.exe -m pytest agent/tests -q --basetemp=.cache/pytest-push
+# 在 web 目录。
 npm run build
 ```
 
-独立分析评测默认零模型调用，只审计题集。A 单步 / B 自适应 / C 固定流程均使用新 Python 平台、相同 PG 数据与授权，不混用旧 Go/MySQL 的延迟作为 Agent 收益证据。
+新增推送测试使用真实 PostgreSQL、API/Worker、图与只读视图，对齐独立样本预期；覆盖自定义日期、设备时点、跨应用去重、重复回执、零分母、权限、数据绑定及完成证据。模型协议测试使用模拟响应，不能当作真实模型效果评测。验证结果见 [实施验证记录](docs/push-device-results.md)。
 
-```powershell
-.venv/Scripts/python.exe scripts/run_analysis_study.py
-# 确认模型、价格和题集后显式启用；max-model-calls 为整轮研究的请求上限。
-.venv/Scripts/python.exe scripts/run_analysis_study.py --with-model --split acceptance --repeats 3 --max-model-calls 500
-```
-
-题集为 80 表达 / 40 意图组、标注仍为 draft。[服务器 A/B/C 预实验](docs/analysis-study-pilot-results.md)已执行 12 个开发表达：语义复核后完整任务 A 2/8、B 6/8、C 8/8，原始分数与失败均保留；当前没有证明自适应优于固定流程。完整评测及人工题集复核仍待验收。历史解析/多轮实测见[解析证据](docs/user-understanding-evidence.md)、[多轮证据](docs/multiturn-evidence.md)，均属于旧平台基线。
-
-单步问数质量比较器 `scripts/compare_agent.sh` 也使用真实 Python API/Worker 与独立 PG，保留原冻结题集和质量门槛。对照历史 Python 内核时，基线额外依赖只存在于质量检查环境，不进入当前运行镜像。早于 Python 平台的 Go 执行器需在历史提交复现。
-
-备份与恢复见[Python 平台运维](docs/python-platform-operations.md)。三个权限域必须来自同一备份快照；恢复只允许空目标库，之后重建可信数据源映射和账号密钥。服务器旧镜像和数据卷保留，本轮源码清理未自动切换线上版本。
+显式 `domain=orders` 的数据源与 `seed --domain orders` 用于历史订单兼容和冻结回归，历史证据见 `docs/analysis-study-pilot-results.md`。推送查询不复用订单多轮计划，分析任务可在缺条件时补充并继续。备份与空库恢复机制见 [平台运维](docs/python-platform-operations.md)，数据域仍与平台/检查点来自同一快照。

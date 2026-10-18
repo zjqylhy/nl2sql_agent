@@ -2,7 +2,7 @@ import hmac
 import asyncio
 import json
 import os
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from functools import lru_cache
 from typing import Literal
@@ -11,7 +11,7 @@ import httpx
 import psycopg
 from psycopg.rows import dict_row
 from fastapi import Depends, FastAPI, Header, HTTPException
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 from fastapi.responses import JSONResponse
 from . import telemetry
 from . import readiness
@@ -24,6 +24,7 @@ from .plan import QueryPlan, compile_plan, normalize_result
 from .plan_parser import plan_constraints
 from .query_grammar import STATE_SCOPE_GUIDANCE
 from .multiturn import QueryContext, source_metadata, resolve_followup
+from .push import PushPlan
 
 
 class QueryInput(BaseModel):
@@ -34,6 +35,7 @@ class QueryInput(BaseModel):
     group_by: str = ""
     start: str = ""
     end: str = ""
+    push_plan: PushPlan | None = None
 
 
 class Execution(BaseModel):
@@ -65,6 +67,20 @@ class Datasource(BaseModel):
     dataset_revision: str = Field(default="", pattern=r"^(?:[a-f0-9]{64})?$")
     driver: Literal["postgresql"] = "postgresql"
     schema_name: str = Field(default="public", pattern=r"^[a-z][a-z0-9_]{1,63}$")
+    domain: Literal['orders', 'push'] = 'orders'
+    data_start: datetime | None = None
+    data_cutoff: datetime | None = None
+    is_synthetic: bool = False
+
+    @model_validator(mode='after')
+    def valid_domain(self):
+        if any(t is not None and t.tzinfo is None for t in (self.data_start, self.data_cutoff)):
+            raise ValueError('数据范围必须带时区')
+        if self.domain == 'push' and (not self.dataset_revision or not self.data_cutoff):
+            raise ValueError('推送源必须绑定不可变版本和截止时刻')
+        if self.data_start and self.data_cutoff and self.data_start >= self.data_cutoff:
+            raise ValueError('数据范围无效')
+        return self
 
 
 @lru_cache
@@ -252,6 +268,11 @@ def run_query(request: QueryRequest):
         raise HTTPException(503, "数据源配置无效") from exc
     if source is None:
         raise HTTPException(403, "租户或角色尚未授权数据源")
+    if source.domain == 'push':
+        from .push_query import run_push_query
+        return run_push_query(request, source)
+    if request.input.push_plan is not None:
+        raise HTTPException(422, '当前数据源不支持推送计划')
     binding = source_metadata(source, request.tenant_id, request.role) if request.context else None
     if request.context and request.context.binding != binding["binding"]:
         raise HTTPException(409, "数据基准或授权范围已变化，请新建问数")

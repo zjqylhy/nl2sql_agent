@@ -1,0 +1,313 @@
+{
+  "execution_location": "ECS only; no local application builds or tests",
+  "source_commit": "0c895a1efe1f1834987d0a732f2e0cefe69136f6",
+  "deployment": {
+    "passed": true,
+    "verified_at": "2026-10-17T10:06:16.683546+00:00",
+    "previous_source_commit": "f51e10a4245b1ce037425019d95da8392025cffc",
+    "source_commit": "0c895a1efe1f1834987d0a732f2e0cefe69136f6",
+    "archive_sha256": "2554d37fab5152619b9aa3939d628fff21bb8ee8bac059ede9acb9b147ff9d60",
+    "pytest_summary": "349 passed in 106.48s (0:01:46)",
+    "strategy": "adaptive",
+    "configuration_changes": [
+      "APP_TAG",
+      "SOURCE_COMMIT"
+    ],
+    "no_schema_migration": true,
+    "no_active_tasks_at_switch": true,
+    "persistent_business_tables_unchanged": true,
+    "data_volume": [
+      "olist-python-agent_python_postgres_data"
+    ],
+    "postgres_container_unchanged": true,
+    "pre_upgrade_backup": {
+      "path": "/srv/olist/python/backups/20261017T100519Z-6d670553",
+      "sha256": "dc3df93327ed58916a3f2eb725922f163552a3a0d434a911c70fa44588377838",
+      "tables": 28,
+      "order_facts": 99441
+    },
+    "rollback_environment_preserved": true,
+    "previous_images_preserved": true,
+    "runtime": "python-langgraph",
+    "homepage_asset_verified": true,
+    "existing_account_login": true,
+    "existing_reports": [
+      {
+        "run_id": "e4246da3d5b507980f69e3c6b01e262f0fa6e039e4a84e9e",
+        "unchanged_steps_and_artifacts": true,
+        "sse_replay": true
+      },
+      {
+        "run_id": "8dc39ab67818b37ddec5510868484d5696c4211c95da7b1f",
+        "unchanged_steps_and_artifacts": true,
+        "sse_replay": true
+      }
+    ],
+    "backend_files_match_release": true,
+    "verified_agent_files": 64,
+    "backend_code_digest": "3eb56f434795685704b1fe324dc2e7a5b7c4d87f35951df3e5b9d84702d9457c",
+    "images": {
+      "api": {
+        "tag": "olist-python-platform:0c895a1efe1f1834987d0a732f2e0cefe69136f6",
+        "image_id": "sha256:e938ced3964f951571d8c40f8921a05f5329db407d879bb5bfd4f8253315fdee",
+        "source_commit": "0c895a1efe1f1834987d0a732f2e0cefe69136f6"
+      },
+      "worker": {
+        "tag": "olist-python-platform:0c895a1efe1f1834987d0a732f2e0cefe69136f6",
+        "image_id": "sha256:e938ced3964f951571d8c40f8921a05f5329db407d879bb5bfd4f8253315fdee",
+        "source_commit": "0c895a1efe1f1834987d0a732f2e0cefe69136f6"
+      },
+      "web": {
+        "tag": "olist-python-web:0c895a1efe1f1834987d0a732f2e0cefe69136f6",
+        "image_id": "sha256:540103d064aa3cc4253cf8ec997b3ebd64b07bba2f94b6631ff0766ef79769bf",
+        "source_commit": "0c895a1efe1f1834987d0a732f2e0cefe69136f6"
+      }
+    },
+    "only_loopback_http_published": true,
+    "backup_timer": {
+      "active": true,
+      "enabled": true,
+      "last_result": "success",
+      "next_elapse": "Sun 2026-10-18 03:00:00 CST"
+    },
+    "post_upgrade_backup": {
+      "path": "/srv/olist/python/backups/20261017T100612Z-78a8a07c",
+      "sha256": "16d363e30cd522eb5fc93b97596caf70fa58f104419f2632cb3a1f50fe9c560c",
+      "tables": 28,
+      "order_facts": 99441
+    }
+  },
+  "build": {
+    "exit_code": 0
+  },
+  "build_network": {
+    "mirror": "https://mirrors.aliyun.com/pypi/simple",
+    "only_build_recipe_change": "pip index and installation report; original Dockerfile and source archive unchanged",
+    "pinned_versions_unchanged": true,
+    "first_download_log_preserved": true,
+    "official_pypi_hash_verification_required_before_switch": true,
+    "validation_apt_mirror": "https://mirrors.aliyun.com; Debian signing key and signature validation retained"
+  },
+  "dependency_proof": {
+    "passed": true,
+    "locked_packages": 63,
+    "official_pypi_wheel_hashes_matched": 63,
+    "installed_versions_match_lock": true,
+    "pymysql_not_installed": true,
+    "pip_check": true,
+    "requirements_sha256": "3d0c9756b7523a28c8670040ca50cb5bb3ffb58e3a620ab260987ff3f4d120b5"
+  },
+  "pytest": {
+    "passed": 349,
+    "skipped": 0,
+    "summary": "349 passed in 106.48s (0:01:46)",
+    "isolated_postgres": true,
+    "runtime_image_verified": true
+  },
+  "backup_restore": {
+    "passed": true,
+    "backup_sha256": "16d363e30cd522eb5fc93b97596caf70fa58f104419f2632cb3a1f50fe9c560c",
+    "tables": 28,
+    "order_facts": 99441,
+    "target": "separate test PostgreSQL container, empty random database",
+    "all_table_counts_verified": true,
+    "restore_database_removed": true,
+    "temporary_roles_removed": true,
+    "temporary_credentials_removed": true
+  },
+  "test_cleanup": {
+    "isolated_test_databases_remaining": 0,
+    "owned_test_container_removed": true,
+    "owned_test_volume_removed": true,
+    "temporary_test_credentials_removed": true
+  },
+  "real_smoke": {
+    "passed": true,
+    "started_at": "2026-10-17T10:06:38.834793+00:00",
+    "verified_at": "2026-10-17T10:09:49.785128+00:00",
+    "queries": [
+      {
+        "id": "5098dd305679c753fa78d573424a1af3a5fa5ad51d822b38",
+        "status": "completed",
+        "parser": "rules"
+      },
+      {
+        "id": "11ddfecd1ef8cfa2acdb0772f75b90042434aeb2a7d1e96a",
+        "status": "completed",
+        "parser": "llm"
+      }
+    ],
+    "analysis": [
+      {
+        "id": "5936c821871d81f0a07c067d788070dfe73007f0eeb3dd08",
+        "status": "completed",
+        "model_calls": 3,
+        "sql_calls": 1,
+        "usage": {
+          "known_tokens": 3764,
+          "known_cost_micros": 3764,
+          "unknown_calls": 0
+        },
+        "current_backend_digest_verified": true,
+        "steps": [
+          {
+            "phase": "decide",
+            "status": "completed",
+            "feedback_codes": []
+          },
+          {
+            "phase": "tool",
+            "status": "completed",
+            "feedback_codes": []
+          },
+          {
+            "phase": "decide",
+            "status": "completed",
+            "feedback_codes": []
+          },
+          {
+            "phase": "tool",
+            "status": "completed",
+            "feedback_codes": []
+          },
+          {
+            "phase": "decide",
+            "status": "completed",
+            "feedback_codes": []
+          },
+          {
+            "phase": "tool",
+            "status": "completed",
+            "feedback_codes": []
+          }
+        ]
+      },
+      {
+        "id": "bf77c1ec070888c6c6c088177b1c5117459ff4640cf86443",
+        "status": "completed",
+        "model_calls": 6,
+        "sql_calls": 2,
+        "usage": {
+          "known_tokens": 13962,
+          "known_cost_micros": 13962,
+          "unknown_calls": 0
+        },
+        "current_backend_digest_verified": true,
+        "steps": [
+          {
+            "phase": "decide",
+            "status": "completed",
+            "feedback_codes": []
+          },
+          {
+            "phase": "tool",
+            "status": "completed",
+            "feedback_codes": []
+          },
+          {
+            "phase": "decide",
+            "status": "completed",
+            "feedback_codes": []
+          },
+          {
+            "phase": "tool",
+            "status": "completed",
+            "feedback_codes": []
+          },
+          {
+            "phase": "decide",
+            "status": "completed",
+            "feedback_codes": []
+          },
+          {
+            "phase": "tool",
+            "status": "completed",
+            "feedback_codes": []
+          },
+          {
+            "phase": "decide",
+            "status": "completed",
+            "feedback_codes": []
+          },
+          {
+            "phase": "tool",
+            "status": "completed",
+            "feedback_codes": []
+          },
+          {
+            "phase": "decide",
+            "status": "failed",
+            "feedback_codes": []
+          },
+          {
+            "phase": "decide",
+            "status": "completed",
+            "feedback_codes": []
+          },
+          {
+            "phase": "tool",
+            "status": "completed",
+            "feedback_codes": []
+          }
+        ]
+      }
+    ],
+    "currency": "TEST_UNIT",
+    "actual_supplier_cost_verified": false,
+    "independent_csv_oracle": {
+      "independent_csv_orders": 99441,
+      "runs": [
+        {
+          "id": "5936c821871d81f0a07c067d788070dfe73007f0eeb3dd08",
+          "goal": "top_n_total",
+          "model_calls": 3,
+          "sql_calls": 1,
+          "known_tokens": 3764,
+          "active_ms": 6777,
+          "states": [
+            "SP",
+            "RJ",
+            "MG"
+          ],
+          "gmv": "517638.01"
+        },
+        {
+          "id": "bf77c1ec070888c6c6c088177b1c5117459ff4640cf86443",
+          "goal": "compare_declines",
+          "model_calls": 6,
+          "sql_calls": 2,
+          "known_tokens": 13962,
+          "active_ms": 37454,
+          "states": [
+            "SP",
+            "MG",
+            "RS"
+          ],
+          "gmv_deltas": {
+            "SP": "-18072.77",
+            "MG": "-12164.76",
+            "RS": "-4472.21"
+          }
+        }
+      ],
+      "passed": true
+    },
+    "sse_replay": true,
+    "analysis_request_idempotency": true
+  },
+  "server_operations": {
+    "uses_current_private_env": true,
+    "rollback_helper_preserved": true
+  },
+  "limits": [
+    "Two live analysis samples are deployment smoke tests, not task success-rate evidence",
+    "TEST_UNIT is not actual supplier invoice cost",
+    "No server reboot or public HTTPS verification in this deployment"
+  ],
+  "build_attempts": {
+    "slow_official_pypi_download_canceled": true,
+    "slow_direct_debian_download_canceled": true,
+    "temporary_recipe_context_and_continuation_errors_corrected": true,
+    "original_logs_preserved_on_server": true
+  }
+}

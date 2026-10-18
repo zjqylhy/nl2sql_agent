@@ -9,6 +9,7 @@ from fastapi import HTTPException
 from psycopg.types.json import Jsonb
 
 from agent.runtime.analysis import canonical, metric_ids, Spec
+from agent.runtime.push_analysis import load_spec
 from agent.runtime.catalog import catalog
 from agent.runtime.multiturn import source_metadata
 from agent.runtime import app as runtime
@@ -63,7 +64,8 @@ def metrics_in(value):
 
 
 def permitted(user, value):
-    return metrics_in(value) <= set(user["allowed_metrics"]) & set(catalog().metrics)
+    from agent.runtime.push import DEFINITIONS
+    return metrics_in(value) <= set(user["allowed_metrics"]) & (set(catalog().metrics) | set(DEFINITIONS))
 
 
 def new_state(spec=None):
@@ -147,7 +149,7 @@ class Repository:
         self.capacity(conn, user)
         meta = binding(user, True)
         run_id = self.insert_task(conn, user, {"question": question}, kind="analysis")
-        required = metric_ids(Spec.model_validate(spec)) if spec else []
+        required = metric_ids(load_spec(spec)) if spec else []
         conn.execute("INSERT INTO analysis_runs(id,tenant_id,user_id,role,binding,metadata,policy,state,required_metrics,request_id,request_hash) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)",
             (run_id, user["tenant_id"], user["id"], user["role"], meta["binding"], Jsonb(meta), Jsonb(policy.model_dump()), Jsonb(new_state(spec)), required, request_id, digest))
         return self.analysis(conn, user, run_id)

@@ -15,7 +15,7 @@ def probe(source):
         from .app import connect
         connection = connect(source)
         with connection.cursor() as cursor:
-            cursor.execute("SELECT purchased_at,customer_state,order_status,item_amount,delivery_days,review_score FROM metric_orders LIMIT 0")
+            cursor.execute('SELECT sent_at,delivered_at,clicked_at FROM metric_push_deliveries LIMIT 0' if source.domain == 'push' else "SELECT purchased_at,customer_state,order_status,item_amount,delivery_days,review_score FROM metric_orders LIMIT 0")
         return True
     except Exception:
         # 驱动异常可能含主机、账号和证书路径，不能进入响应或日志。
@@ -38,7 +38,7 @@ def check(sources):
             return False
         identities = {}
         for source in sources:
-            identities[(source.host, source.port, source.database, source.user, source.password, source.ssl_ca)] = source
+            identities[(source.host, source.port, source.database, source.user, source.password, source.ssl_ca, source.schema_name, source.domain)] = source
         if not identities:
             return False
         pending = {pool.submit(probe, source) for source in identities.values()}
