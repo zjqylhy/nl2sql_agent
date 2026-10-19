@@ -7,11 +7,15 @@ from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-def generate(output):
+def generate(output, *, devices=None, deliveries=None, seed=20261018):
+    # 小样本保持原有固定数字，供独立回归；显式数量走不缓存历史记录的大样本生成器。
+    if devices is not None or deliveries is not None:
+        from .generate_push_large import generate_large
+        return generate_large(output, devices=devices, deliveries=deliveries, seed=seed)
     ROOT = Path(output).resolve()
     DATA = ROOT / 'data'
     DATA.mkdir(parents=True, exist_ok=True)
-    R = random.Random(20261018)
+    R = random.Random(seed)
     TZ = timezone(timedelta(hours=8))
     START = datetime(2026, 4, 1, tzinfo=TZ)
     END = datetime(2026, 10, 1, tzinfo=TZ)
@@ -253,7 +257,7 @@ def generate(output):
                          'delivery_rate_denominator': 'sent_count', 'click_rate_denominator': 'sent_count'})
     write('expected_results', expected)
 
-    validation = {'passed': True, 'seed': 20261018, 'is_synthetic': True,
+    validation = {'passed': True, 'seed': seed, 'is_synthetic': True,
                   'counts': {n: len(rows) for n, rows in TABLES.items()},
                   'device_status_at_cutoff': dict(Counter(x['push_status'] for x in devices)),
                   'duplicate_event_receipts': len(events)-len({x['event_id'] for x in events}),
@@ -269,4 +273,8 @@ def generate(output):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, default=Path('data/push'))
-    generate(parser.parse_args().output)
+    parser.add_argument('--devices', type=int)
+    parser.add_argument('--deliveries', type=int)
+    parser.add_argument('--seed', type=int, default=20261018)
+    args=parser.parse_args()
+    generate(args.output, devices=args.devices, deliveries=args.deliveries, seed=args.seed)

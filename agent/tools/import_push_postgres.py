@@ -1,8 +1,6 @@
 """在新 schema 发布推送快照；原始表不授权，设备状态先归并为互斥时间区间。"""
 import argparse
 import getpass
-import hashlib
-import json
 import os
 import re
 from collections import defaultdict
@@ -10,7 +8,6 @@ from datetime import datetime
 from pathlib import Path
 
 import psycopg
-from psycopg import sql
 
 FIELDS = {
     'apps': 'app_id text PRIMARY KEY,app_name text NOT NULL',
@@ -25,13 +22,16 @@ FIELDS = {
 
 
 def read_bundle(folder):
-    rows, digest = {}, hashlib.sha256()
+    """仅供小样本诊断与回归；正式导入始终逐行读取。"""
+    from .push_bundle import BundleReader
+    reader, rows = BundleReader(folder), {}
     for name in FIELDS:
-        path = Path(folder) / (name+'.jsonl')
-        content = path.read_bytes()
-        digest.update(name.encode()+b'\0'+content)
-        rows[name] = [json.loads(line) for line in content.decode('utf-8').splitlines() if line]
-    return rows, digest.hexdigest()
+        rows[name] = []
+        for row in reader.records(name):
+            if len(rows[name])>=100000:
+                raise ValueError('read_bundle 仅供小样本诊断，请使用流式导入')
+            rows[name].append(row)
+    return rows, reader.digest.hexdigest()
 
 
 def device_intervals(rows, cutoff):
@@ -103,53 +103,10 @@ def validate_bundle(rows, cutoff):
     return device_intervals(rows, cutoff)
 
 
-def provision(conn, folder, schema, readonly_user, password, *, cutoff, is_synthetic=True, app_ids=(), create_role=True):
-    if cutoff.tzinfo is None or any(not re.fullmatch(r'[a-z][a-z0-9_]{1,62}', n) for n in (schema, readonly_user)) or len(password) < 16:
-        raise ValueError('schema、账号、密码长度或快照时区不符合要求')
-    rows, revision = read_bundle(folder)
-    intervals = validate_bundle(rows, cutoff)
-    if app_ids and not set(app_ids) <= {r['app_id'] for r in rows['apps']}:
-        raise ValueError('授权应用不存在')
-    with conn.transaction(), conn.cursor() as cur:
-        cur.execute(sql.SQL('CREATE SCHEMA {}').format(sql.Identifier(schema)))
-        cur.execute(sql.SQL('SET LOCAL search_path={},pg_catalog').format(sql.Identifier(schema)))
-        for name, ddl in FIELDS.items():
-            cur.execute(sql.SQL('CREATE TABLE {} ({})').format(sql.Identifier(name), sql.SQL(ddl)))
-            # 复合主键的尾部不属于列定义，按字段类型识别真实列。
-            columns = re.findall(r'(?:^|,)([a-z_]+) (?:text|timestamptz|integer)', ddl)
-            with cur.copy(sql.SQL('COPY {} ({}) FROM STDIN').format(sql.Identifier(name), sql.SQL(',').join(map(sql.Identifier, columns)))) as copy:
-                for r in rows[name]:
-                    copy.write_row([r.get(c) for c in columns])
-        cur.execute('CREATE TABLE device_states(app_id text,device_id text,valid_from timestamptz,valid_to timestamptz,push_status text,PRIMARY KEY(app_id,device_id,valid_from))')
-        with cur.copy('COPY device_states FROM STDIN') as copy:
-            for record in intervals:
-                copy.write_row(record)
-        cur.execute('CREATE INDEX ON push_deliveries(sent_at,app_id,channel)')
-        cur.execute('CREATE INDEX ON device_activity(occurred_at,app_id,device_id)')
-        cur.execute('CREATE INDEX ON push_events(delivery_id,event_type,occurred_at)')
-        cur.execute('CREATE INDEX ON device_states(app_id,device_id,valid_from,valid_to)')
-        restriction = sql.SQL(' WHERE app_id IN ({})').format(sql.SQL(',').join(map(sql.Literal, app_ids))) if app_ids else sql.SQL('')
-        for name, base in [('metric_devices', 'devices'), ('metric_device_states', 'device_states'), ('metric_device_activity', 'device_activity')]:
-            cur.execute(sql.SQL('CREATE VIEW {} WITH(security_barrier=true) AS SELECT * FROM {}{}').format(sql.Identifier(name), sql.Identifier(base), restriction))
-        # 先归并回执再关联逻辑投递。移除重复不会增加发送量，也不凭点击补造到达时间。
-        cur.execute(sql.SQL('''CREATE VIEW metric_push_deliveries WITH(security_barrier=true) AS
-          WITH receipts AS (SELECT delivery_id,
-            MIN(occurred_at) FILTER(WHERE event_type='delivered') delivered_at,
-            MIN(occurred_at) FILTER(WHERE event_type='clicked') clicked_at,
-            MIN(occurred_at) FILTER(WHERE event_type='expired') expired_at
-            FROM push_events GROUP BY delivery_id)
-          SELECT d.*,r.delivered_at,r.clicked_at,r.expired_at FROM
-            (SELECT * FROM push_deliveries{}) d LEFT JOIN receipts r USING(delivery_id)''').format(restriction))
-        cur.execute('CREATE TABLE dataset_release(revision text PRIMARY KEY,data_cutoff timestamptz NOT NULL,is_synthetic boolean NOT NULL)')
-        cur.execute('INSERT INTO dataset_release VALUES(%s,%s,%s)', (revision, cutoff, is_synthetic))
-        if create_role:
-            cur.execute(sql.SQL('CREATE ROLE {} LOGIN PASSWORD {} NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT').format(sql.Identifier(readonly_user), sql.Literal(password)))
-        cur.execute(sql.SQL('REVOKE ALL ON SCHEMA {} FROM PUBLIC').format(sql.Identifier(schema)))
-        cur.execute(sql.SQL('GRANT USAGE ON SCHEMA {} TO {}').format(sql.Identifier(schema), sql.Identifier(readonly_user)))
-        for name in ['metric_devices', 'metric_device_states', 'metric_device_activity', 'metric_push_deliveries']:
-            cur.execute(sql.SQL('GRANT SELECT ON {} TO {}').format(sql.Identifier(name), sql.Identifier(readonly_user)))
-        cur.execute(sql.SQL('ALTER ROLE {} SET default_transaction_read_only=on').format(sql.Identifier(readonly_user)))
-    return revision
+def provision(conn, folder, schema, readonly_user, password, *, cutoff, is_synthetic=True, app_ids=(), create_role=True, report=None, progress=False):
+    from .push_import_stream import provision_stream
+    return provision_stream(conn,folder,schema,readonly_user,password,cutoff=cutoff,is_synthetic=is_synthetic,
+                            app_ids=app_ids,create_role=create_role,report=report,progress=progress)
 
 
 def main():
@@ -159,12 +116,13 @@ def main():
     parser.add_argument('--readonly-user', required=True)
     parser.add_argument('--cutoff', default='2026-10-15T00:00:00+08:00')
     parser.add_argument('--app-ids', nargs='*', default=[])
+    parser.add_argument('--report', type=Path, help='保存不含凭据的导入验证报告')
     parser.add_argument('--real-data', action='store_true', help='只用于显式导入真实数据，不改变已有快照')
     args = parser.parse_args()
     password = os.getenv('PUSH_READONLY_PASSWORD') or getpass.getpass('只读账号密码: ')
     with psycopg.connect(os.environ['IMPORT_DATABASE_URL'], autocommit=True) as conn:
         print(provision(conn, args.data_dir, args.schema, args.readonly_user, password,
-                        cutoff=datetime.fromisoformat(args.cutoff), is_synthetic=not args.real_data, app_ids=args.app_ids))
+                        cutoff=datetime.fromisoformat(args.cutoff), is_synthetic=not args.real_data, app_ids=args.app_ids, report=args.report, progress=True))
 
 
 if __name__ == '__main__':

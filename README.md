@@ -16,6 +16,18 @@
 
 每条发送记录增加 `template_id`、`title`、`body`，由生成器产生三套模拟模板文案；可按模板 ID 分组与筛选。文案字段不改变原有随机发送/回执样本，不能据此声称已证明文案导致指标变化。
 
+大规模模拟样本使用独立输出目录，支持约 20 万设备、1000 万逻辑发送，另含关联尝试、回执和活跃事件；不替换上述快速回归样本。生成、复核和导入都采用流式处理，详见[扩容方案](docs/push-scale-technical-design.md)和[实施验证](docs/push-scale-results.md)。
+
+```powershell
+.venv/Scripts/python.exe -m agent.tools.generate_push --output data/push-large --devices 200000 --deliveries 10000000
+# IMPORT_DATABASE_URL 使用维护身份；账号密码从 PUSH_READONLY_PASSWORD 读取。
+.venv/Scripts/python.exe -m agent.tools.import_push_postgres --data-dir data/push-large/data --schema analytics_push_large_v1 --readonly-user push_large_ro --report data/push-large/import-report.json
+# 使用该快照的只读连接设置 PUSH_VERIFY_DATABASE_URL，revision 为导入输出。
+.venv/Scripts/python.exe -m agent.tools.verify_push_scale --bundle data/push-large --schema analytics_push_large_v1 --revision '替换为导入输出的64位摘要' --report data/push-large/query-report.json
+```
+
+大样本输出为 `.jsonl.gz`，导入器直接逐行解压；原 `.jsonl` 输入继续可用。生成器拒绝覆盖已有大样本目录，导入器拒绝覆盖已有 schema。导入时一次性生成私有回执归并表，查询仍只使用授权指标视图，并保留原来的观察窗口、只读权限与超时限制。数据库发布不自动切换 API/Worker 的可信数据源映射。
+
 发送样本为 `[2026-04-01,2026-10-01)`，快照为 `2026-10-15T00:00:00+08:00`。用户自定义带时区的 `[start,end_exclusive)`，没有固定周限制。发送期间、回执观察时长、设备状态时点分别指定；超出快照、早于数据范围或观察未成熟时明确拒绝。前端日期使用上海时区。
 
 到达回执缺失保留未知，不等于失败。点击/到达率使用“有到达回执且点击”的交集作为分子，缺到达回执的点击单列。比率按总分子/总分母重算，零分母为无样本。有效设备要求权限明确开启且至少一个有效 Token；权限关闭或全部 Token 明确失效为无效，其余未知。历史存量按时点查询，不累加每日设备数。
