@@ -1,0 +1,102 @@
+{
+  "date": "2026-10-20",
+  "branch": "codex/open-exploration-20261019",
+  "scope": "local implementation verification only; no push or deployment",
+  "full_regression": {
+    "tests": 472,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 3,
+    "passed": 469,
+    "duration_seconds": 186.684,
+    "command": "python -m pytest agent/tests -q --tb=short",
+    "database": "isolated loopback PostgreSQL",
+    "skips": [
+      {
+        "test": "test_backup_restore_full_platform_and_live_checkpoint[False]",
+        "reason": "PG_TEST_BIN requires actual pg_dump and pg_restore"
+      },
+      {
+        "test": "test_backup_restore_full_platform_and_live_checkpoint[True]",
+        "reason": "PG_TEST_BIN requires actual pg_dump and pg_restore"
+      },
+      {
+        "test": "test_real_olist_postgres_against_independent_csv",
+        "reason": "OLIST_TEST_CSV_DIR requires the complete Olist CSV files"
+      }
+    ]
+  },
+  "frontend": {
+    "command": "npm run build",
+    "result": "passed",
+    "typescript_checked": true,
+    "advisories": [
+      "Existing chart chunk exceeds 500 kB minified"
+    ]
+  },
+  "browser": {
+    "result": "passed",
+    "model": "deterministic simulated responses",
+    "source": "isolated synthetic snapshot",
+    "scenarios": [
+      {
+        "case": "unified entry -> explicit full A/B/C plan -> completed with result references",
+        "evidence": "open-exploration-query-plan.jpg"
+      },
+      {
+        "case": "unified entry -> open analysis -> numeric evidence, explanation, hypotheses, uninvestigated directions",
+        "evidence": "open-exploration-unified-entry.jpg"
+      }
+    ]
+  },
+  "model_evaluation": {
+    "external_model_calls": 0,
+    "live_model_quality_evaluated": false,
+    "limitation": "Simulation verifies program controls; it does not establish intent or reasoning quality."
+  },
+  "local_synthetic_data": {
+    "applications": 3,
+    "devices": 600,
+    "deliveries": 21960,
+    "template_fields_complete": true,
+    "fields": [
+      "template_id",
+      "title",
+      "body"
+    ]
+  },
+  "source_hash_algorithm": "sha256 of UTF-8 text with normalized LF newlines",
+  "source_hashes": {
+    "agent/platform_app/api.py": "20594d44b497b3280611600d4e794027a4d8de0515ef09e817de841b9f2bc380",
+    "agent/platform_app/graph.py": "389735ad10d0e423c6ef00ce2ad986569d173413eb540b4ce347de9f590aed1d",
+    "agent/platform_app/historical_results.py": "d238a2e7aa3fda98d271fcfd5195cc8424acfeff68a9be6392d3635c16f43705",
+    "agent/platform_app/ledger.py": "e5ea608d74a32a2f3d02bc2dab28b64c7827569fa03b478ce93cf5028848116d",
+    "agent/platform_app/migrations/versions/0005_task_contracts.py": "683b3c782eb382555726c22c484a37965ac5535619d4c60b1db80d804ef67e09",
+    "agent/platform_app/query_execution.py": "fff06d03f16a6db265f3ba821ec19d91b8ef87d7ec3e8c5ff91537a8a78e51a6",
+    "agent/platform_app/repository.py": "df435614914dadb569e7a7f1c6effb8f20192d6e28f2be14b3dc90d92d0e78a9",
+    "agent/platform_app/retention.py": "da4df1137ad70f19ed3ea848fb6fd3d023d32bcd41c92e7da8b5fb3cd4a2b7d1",
+    "agent/platform_app/task_contracts.py": "98a9be300b9ae371d2c11780f6be6201dad7d2ee76952de583d9e82c464297ad",
+    "agent/platform_app/task_intent.py": "78ca25bba5ff3be70e5ab7837882320deea792e066a191800ffb658b965f439c",
+    "agent/platform_app/worker.py": "0434c827e8b13d0c1d86f7f27c5b8de037a513dea77efad030e9f84c04e831c4",
+    "agent/runtime/analysis.py": "331d7d14c5b400ba17ae57195b53ec1b7d70ed6d7dc9cde1be7b6a52cdaa91f4",
+    "agent/runtime/analysis_api.py": "fa3efdd0d97cd79ec5fef94ecb1a8eb25c80ad9db3a56b35d0201193a4338463",
+    "agent/runtime/analysis_fixed.py": "a514ea63e2d4841cd2a38383fe71fd3b1c202495309a578f9be7af941aab12bb",
+    "agent/runtime/app.py": "14220ab648389de26d106becc48ab266f350818e2a3ccca95eccb2f43951e348",
+    "agent/runtime/exploration.py": "1a3359a8e03b4b390cc776b572a5af0bed5bc0570707f5006d66adec0d39c519",
+    "agent/runtime/multiturn.py": "0e0a89cf1f86b9f703fc889abe9775c5aa11c9c15365bdce05a72c5d615df10a",
+    "agent/runtime/push.py": "aa97731e5269d9cc370571f49770f6b2a0839b2db5fd1492940f0d20c7de45f5",
+    "agent/runtime/push_calculations.py": "0337f8cdb564b3447b9218e010ef868167eed8eabc2f0f0eea437eb9b11610cf",
+    "agent/runtime/push_query.py": "1f63fcc5379c3c8771931e3f7a96c29ea79aaa6e1e4977ce5799837f54600693",
+    "agent/runtime/query_executor.py": "8996823eae984e7c3efdba00895da5af9c7f1bd3b14ec1d0402b2a302f2d99bd",
+    "agent/runtime/query_program.py": "6c72d8ee25dc3f95b8179ad170f66be68ca3577cceb075e0fb5d8c0c4ce6da1e",
+    "agent/runtime/task_contracts.py": "004793493d8921349da2f4bfe55a8970fca241ce3db3d9a8bfa5829a4ae1e41c",
+    "agent/runtime/telemetry.py": "8d5d5c3c0bb8ed0a97b0a6d56bd0578fe640f0e6970796dbb3bdb5b751f0c1e9",
+    "agent/tests/test_exploration.py": "d481203df92443071812a5513e2d9f01c9bc7808fc537c1d88eb02def308a7f1",
+    "agent/tests/test_open_tasks.py": "fc3046c46c6484afc42e2c9ba1a57de38a4eef07e6aa28b5397913afd9b18df0",
+    "agent/tests/test_push.py": "8decc6206d48b5769f9a1c103fbf21f8c0ae97b3ddeff9bb27d3de659d0f65d5",
+    "agent/tests/test_query_program.py": "896e7000bc09b0920b357fcdf4c17ba8c3f0104b2196307989124a7fd69d17cf",
+    "web/src/PushWorkspace.tsx": "93dfb5c6821867bbb0cc8210aaa5edc844bf6c2011bec589ec98d8f69554099d",
+    "agent/tools/generate_push.py": "cb878c503814d3203e7c4589559fec1f44bfe3d8b96a00b3afeb6f3f0e175d69",
+    "agent/tools/import_push_postgres.py": "0cf680fd4af8b4772fe547da7ba4120405013d9da9bf992f7831e26f593de308"
+  }
+}

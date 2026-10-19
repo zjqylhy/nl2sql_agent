@@ -6,7 +6,7 @@ from contextvars import ContextVar
 from time import perf_counter
 
 current = ContextVar("query_telemetry", default=None)
-FIELDS = ("version", "task_id", "execution_version", "parser", "model_calls", "model", "input_tokens", "output_tokens", "total_tokens", "stages_ms", "error_code", "error_fields", "rows")
+FIELDS = ("version", "task_id", "execution_version", "parser", "model_calls", "model", "input_tokens", "output_tokens", "total_tokens", "sql_calls", "stages_ms", "error_code", "error_fields", "rows")
 logger = logging.getLogger("olist.telemetry")
 if not logger.handlers:
     handler = logging.StreamHandler()
@@ -31,6 +31,12 @@ def update(**values):
     value = current.get()
     if value is not None:
         value.update(values)
+
+
+def sql_call():
+    value = current.get()
+    if value is not None:
+        value['sql_calls'] = value.get('sql_calls',0)+1
 
 
 def rule_decision(recognition, mode):
@@ -69,7 +75,7 @@ def model_error(exc):
 def capture(execution):
     value = {"version": 1, "task_id": execution.task_id if execution else "", "execution_version": execution.execution_version if execution else 0,
              "parser": "unknown", "model_calls": 0, "model": "", "input_tokens": 0, "output_tokens": 0,
-             "total_tokens": 0, "stages_ms": {}, "error_code": "", "error_fields": [], "rows": None}
+             "total_tokens": 0, "sql_calls":0, "stages_ms": {}, "error_code": "", "error_fields": [], "rows": None}
     reset = current.set(value)
     try:
         yield value

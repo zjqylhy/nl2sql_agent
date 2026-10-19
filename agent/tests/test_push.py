@@ -17,7 +17,7 @@ from agent.platform_app.worker import execute
 from agent.runtime import app as runtime
 from agent.runtime.analysis_api import Snapshot, ToolRequest, metadata, tool
 from agent.runtime.push import DEFINITIONS, PushPlan, compile_push, execute_push
-from agent.runtime.push_analysis import PushSpec
+from agent.runtime.task_contracts import form_contract
 from agent.runtime.push_sql import validate_push_sql
 from agent.runtime.security import UnsafeSQL
 from agent.runtime.model_transport import ModelTransport
@@ -157,70 +157,50 @@ def test_actual_api_worker_query_and_sse(push_platform):
     assert 'event: done' in client.get('/api/tasks/'+task['id']+'/events').text
 
 
-@pytest.mark.parametrize('goal', ['push_summary','device_summary','compare_push'])
-def test_persisted_graph_fixed_protocol_and_permission_revalidation(push_platform, goal):
+@pytest.mark.parametrize('case', ['summary','devices','comparison'])
+def test_complete_program_replaces_fixed_business_goals(push_platform, case):
     client, repo, _ = push_platform
-    client.app.state.policy = client.app.state.policy.model_copy(update={'strategy':'fixed'})
-    p = plan(['devices','valid_devices','active_devices'] if goal=='device_summary' else ['sent','delivered','delivery_rate','clicked','failed','delivery_seconds'], dimensions=['manufacturer'] if goal=='device_summary' else ['channel'])
-    spec = PushSpec(goal=goal, current=p, baseline={'start':'2026-06-01T00:00:00+08:00','end_exclusive':'2026-07-01T00:00:00+08:00'} if goal=='compare_push' else None,
-                    rank_metric='delivery_rate' if goal=='compare_push' else None,n=3 if goal=='compare_push' else None)
-    request = {'question':'已确认结构化分析条件', 'spec':spec.model_dump(mode='json'), 'request_id':str(uuid4())}
-    response = client.post('/api/analysis-runs', json=request)
-    assert response.status_code == 202, response.text
-    assert client.post('/api/analysis-runs', json=request).json()['id'] == response.json()['id']
+    p = plan(['devices','valid_devices','active_devices'] if case=='devices' else ['sent','delivered','delivery_rate','clicked','failed','delivery_seconds'], dimensions=['manufacturer'] if case=='devices' else ['channel'])
+    contract = form_contract(p,'已确认的明确取数')
+    if case=='comparison':
+        contract.scope.periods['baseline'] = type(p.time_range)(start='2026-05-01T00:00:00+08:00',end_exclusive='2026-06-01T00:00:00+08:00')
+        contract.execution_plan['steps'] += [
+            {'id':'B','op':'query','period':'baseline','metrics':p.metrics,'dimensions':p.dimensions},
+            {'id':'C','op':'compare','baseline':'B','current':'A'}]
+        contract.execution_plan['outputs'][0]['step']='C'
+        contract.result_requirements.period_names=['baseline','current']
+    response=client.post('/api/tasks',json={'question':contract.question,'query_contract':contract.model_dump(mode='json')})
+    assert response.status_code==202,response.text
     run_once(repo)
-    run = client.get('/api/analysis-runs/'+response.json()['id']).json()
-    assert run['status'] == 'completed', run
-    report = next(a['data'] for a in run['artifacts'] if a['kind']=='report')
-    assert report['domain']=='push' and report['is_synthetic']
-    assert run['state']['model_calls'] == 0
-    assert run['state']['sql_calls'] == (2 if goal=='compare_push' else 1)
+    task=client.get('/api/tasks/'+response.json()['id']).json()
+    assert task['status']=='completed',task
+    assert task['result']['domain']=='push' and task['result']['is_synthetic']
     with repo.db.transaction() as conn:
+        trace=conn.execute('SELECT telemetry FROM task_attempts WHERE task_id=%s',(task['id'],)).fetchone()['telemetry']
+        assert trace['model_calls']==0
+        assert trace['sql_calls']==(2 if case=='comparison' else 1)
         conn.execute("UPDATE users SET allowed_metrics='{}' WHERE id='admin'")
-    assert client.get('/api/analysis-runs/'+run['id']).status_code == 404
+    assert client.get('/api/tasks/'+task['id']).status_code==404
 
 
 def test_tool_cannot_finish_early_or_change_confirmed_plan(push_platform):
-    _, _, source = push_platform
-    identity = dict(tenant_id='demo',role='admin',allowed_metrics=list(DEFINITIONS))
-    bound = metadata(Snapshot(**identity,binding='a'*64,question='test'))[1]['binding']
-    spec = PushSpec(goal='push_summary',current=plan())
-    request = dict(**identity,binding=bound,question='test',spec=spec.model_dump(mode='json'))
-    assert tool(ToolRequest(**request,action={'action':'finish','arguments':{'evidence_refs':['fake']}}))['error_code']=='missing_evidence'
-    changed = plan(dimensions=['channel']).model_dump(mode='json')
-    assert tool(ToolRequest(**request,action={'action':'query_metrics','arguments':{'plan':changed}}))['status']=='error'
+    from agent.tests.test_exploration import contract
+    _,_,source=push_platform
+    ident=dict(tenant_id='demo',role='admin',allowed_metrics=list(DEFINITIONS))
+    bound=metadata(Snapshot(**ident,binding='a'*64,question='test'))[1]['binding']
+    request=dict(**ident,binding=bound,question='test',spec=contract().model_dump(mode='json'))
+    invalid_report={'action':'finish','arguments':{'evidence_refs':['fake'],
+        'answers':[{'item_id':'a1','status':'answered','text':'已有证据','evidence_refs':['fake']}],
+        'claims':[{'result_ref':'fake','metric':'click_rate'}]}}
+    assert tool(ToolRequest(**request,action=invalid_report))['error_code']=='missing_evidence'
+    changed={'action':'query_metrics','arguments':{'period':'current','metrics':['click_rate'],'filters':[{'field':'app_id','values':['app_2']}]}}
+    assert tool(ToolRequest(**request,action=changed))['status']=='error'
 
 
-def test_adaptive_http_protocol_short_refs_and_context_budget(push_platform, monkeypatch):
-    client, repo, _ = push_platform
-    p = plan(['sent','delivered','delivery_rate','clicked','failed','delivery_seconds'], dimensions=['channel'])
-    spec = PushSpec(goal='compare_push',current=p,baseline={'start':'2026-06-01T00:00:00+08:00','end_exclusive':'2026-07-01T00:00:00+08:00'},rank_metric='delivery_rate',n=3)
-    calls=[]
-    def respond(request):
-        body=json.loads(request.content)
-        system,payload=[m['content'] for m in body['messages']]
-        assert len(system.encode())+len(payload.encode())+256<=6000
-        value=json.loads(payload)
-        confirmed=PushSpec.model_validate(value['confirmed_spec'])
-        call=len(calls)
-        if call<2:
-            from agent.runtime.push_analysis import plans
-            action={'action':'query_metrics','arguments':{'plan':plans(confirmed)[call].model_dump(mode='json')}}
-        else:
-            action=[{'action':'compare_periods','arguments':{'baseline_ref':'e1','current_ref':'e2'}},
-                    {'action':'rank_declines','arguments':{'result_ref':'e3'}},
-                    {'action':'finish','arguments':{'evidence_refs':['e4']}}][call-2]
-        calls.append(value)
-        return httpx.Response(200,json={'choices':[{'finish_reason':'stop','message':{'content':json.dumps({'spec':spec.model_dump(mode='json'),'action':action})}}],
-                                       'usage':{'prompt_tokens':120,'completion_tokens':80,'total_tokens':200}})
-    monkeypatch.setattr(ModelTransport,'bounded_client',lambda self,**kwargs:httpx.Client(transport=httpx.MockTransport(respond)))
-    response=client.post('/api/analysis-runs',json={'question':'明确条件的模型协议测试','spec':spec.model_dump(mode='json'),'request_id':str(uuid4())})
-    assert response.status_code==202,response.text
-    run_once(repo)
-    run=client.get('/api/analysis-runs/'+response.json()['id']).json()
-    assert run['status']=='completed',run
-    assert len(calls)==run['state']['model_calls']==5
-    assert run['usage']['known_tokens']==1000
+def test_old_fixed_push_goal_no_longer_accepted_for_new_analysis(push_platform):
+    client,_,_=push_platform
+    response=client.post('/api/analysis-runs',json={'question':'旧固定目标','spec':{'domain':'push','goal':'push_summary','current':plan().model_dump(mode='json')},'request_id':str(uuid4())})
+    assert response.status_code==400
 
 
 def test_push_metadata_binds_cutoff_and_single_query_permission_revocation(push_platform,monkeypatch):

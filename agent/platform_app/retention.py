@@ -29,6 +29,7 @@ def prune(repo):
         conn.execute("DELETE FROM sessions WHERE expires_at<now()")
         conn.execute("DELETE FROM login_windows WHERE started_at<now()-interval '1 day'")
         conn.execute("DELETE FROM task_attempts WHERE ended_at<now()-interval '30 days'")
+        conn.execute("DELETE FROM task_evidence WHERE task_id IN (SELECT id FROM tasks WHERE status IN ('completed','failed','canceled') AND updated_at<now()-interval '30 days' ORDER BY updated_at,id LIMIT 100)")
     # 终态已拒绝所有 saver 写入；跨连接清理失败可重复执行，已归档用量不会归零。
     if values:
         with psycopg.connect(os.getenv("CHECKPOINT_DATABASE_URL", repo.db.dsn)) as conn:

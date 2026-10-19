@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from psycopg.types.json import Jsonb
 
 from agent.runtime.analysis import canonical, metric_ids, Spec
-from agent.runtime.push_analysis import load_spec
+from agent.runtime.task_contracts import load_spec
 from .policy import Policy
 
 
@@ -95,6 +95,10 @@ class Ledger:
         state["model_retries"] = max(state.get("model_retries", 0), snapshot.get("model_retries", 0))
         if state["spec"]:
             run["required_metrics"] = sorted(set(run["required_metrics"]) | set(metric_ids(load_spec(state["spec"]))))
+            if state['spec'].get('task_type') == 'analysis':
+                from agent.runtime.task_contracts import TaskContract
+                from .task_contracts import save_contract
+                state['contract_version'] = save_contract(conn,self.repo,self.task,TaskContract.model_validate(state['spec']))
         conn.execute("INSERT INTO analysis_steps(id,tenant_id,run_id,sequence,action_key,phase,execution_version,input,status) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,'running')", (op_id, run["tenant_id"], run["id"], state["sequence"], key or op_id, phase, self.task["execution_version"], Jsonb(payload)))
         conn.execute("INSERT INTO analysis_step_attempts(step_id,execution_version) VALUES(%s,%s)", (op_id, self.task["execution_version"]))
         if phase == "decide" and reserve:
@@ -134,7 +138,15 @@ class Ledger:
                 if not set(art["metrics_used"]) <= set(user["allowed_metrics"]):
                     raise BudgetExceeded("指标权限已变化")
                 run["required_metrics"] = sorted(set(run["required_metrics"]) | set(art["metrics_used"]))
-                conn.execute("INSERT INTO analysis_artifacts(tenant_id,run_id,result_ref,body) VALUES(%s,%s,%s,%s) ON CONFLICT DO NOTHING", (run["tenant_id"], run["id"], art["result_ref"], Jsonb(art)))
+                contract_version = conn.execute('SELECT contract_version FROM tasks WHERE id=%s',(run['id'],)).fetchone()['contract_version']
+                conn.execute("INSERT INTO analysis_artifacts(tenant_id,run_id,result_ref,body,contract_version) VALUES(%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING", (run["tenant_id"], run["id"], art["result_ref"], Jsonb(art),contract_version))
+                from agent.runtime.task_contracts import TaskContract
+                if state.get('spec') and state['spec'].get('task_type') == 'analysis':
+                    from .task_contracts import save_contract
+                    from agent.runtime.exploration import investigated
+                    version = save_contract(conn,self.repo,self.task,TaskContract.model_validate(state['spec']))
+                    actual = [r['body'] for r in conn.execute('SELECT body FROM analysis_artifacts WHERE run_id=%s AND contract_version=%s ORDER BY created_at,result_ref',(run['id'],version))]
+                    state['progress'] = {'contract_version':version,'investigated':investigated(actual)}
             status = "completed" if output.get("status") in {"completed", "needs_clarification"} else "unknown" if output.get("error_code") in {"unknown_execution", "sql_unknown"} else "failed"
             conn.execute("UPDATE analysis_steps SET output=%s,status=%s,ended_at=now() WHERE id=%s", (Jsonb(output), status, op_id))
             conn.execute("UPDATE analysis_step_attempts SET status=%s WHERE step_id=%s", (status, op_id))

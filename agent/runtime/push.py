@@ -65,7 +65,7 @@ class Period(StrictModel):
 class PushFilter(StrictModel):
     field: Literal['app_id', 'manufacturer', 'channel', 'failure_reason', 'template_id']
     op: Literal['in', 'not_in'] = 'in'
-    values: list[str] = Field(min_length=1, max_length=50)
+    values: list[str] = Field(min_length=1, max_length=1000)
 
     @model_validator(mode='after')
     def valid(self):
@@ -267,7 +267,7 @@ def execute_push(source, plan, allowed, usage):
         import psycopg
         from .push_sql import validate_push_sql
         validate_push_sql(sql, params)
-        telemetry.update(sql_calls=1)
+        telemetry.sql_call()
         with asyncio.Runner(loop_factory=asyncio.SelectorEventLoop if os.name == 'nt' else asyncio.new_event_loop) as runner:
             raw = runner.run(asyncio.wait_for(runtime.execute_postgres(source, sql, params), timeout=15))
         if len(raw) > 1000:

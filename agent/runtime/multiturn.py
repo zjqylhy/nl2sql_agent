@@ -122,10 +122,10 @@ def filter_id(value):
     return hashlib.sha256(json.dumps(raw, sort_keys=True).encode()).hexdigest()[:16]
 
 
-def source_metadata(source, tenant, role):
+def source_metadata(source, tenant, role, *, push_catalog_payload=None):
     if getattr(source, 'domain', 'orders') == 'push':
         from .push import metadata_payload
-        directory = hashlib.sha256(json.dumps(metadata_payload(), sort_keys=True).encode()).hexdigest()
+        directory = hashlib.sha256(json.dumps(push_catalog_payload if push_catalog_payload is not None else metadata_payload(), sort_keys=True).encode()).hexdigest()
         values = [tenant, role, source.host, source.port, source.database, source.user, source.schema_name,
                   source.context_revision, source.domain, source.dataset_revision, str(source.data_start), str(source.data_cutoff), directory, source.is_synthetic]
         return {'binding': hashlib.sha256(json.dumps(values).encode()).hexdigest(), 'analysis_date': str(source.analysis_date),

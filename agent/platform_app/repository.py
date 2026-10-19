@@ -9,7 +9,7 @@ from fastapi import HTTPException
 from psycopg.types.json import Jsonb
 
 from agent.runtime.analysis import canonical, metric_ids, Spec
-from agent.runtime.push_analysis import load_spec
+from agent.runtime.task_contracts import load_spec
 from agent.runtime.catalog import catalog
 from agent.runtime.multiturn import source_metadata
 from agent.runtime import app as runtime
@@ -51,7 +51,7 @@ def metrics_in(value):
         for key, item in value.items():
             if key in {"metrics", "metrics_used", "required_metrics", "allowed_metrics"} and isinstance(item, list):
                 found.update(v.get("id") if isinstance(v, dict) else v for v in item)
-            elif key == "metric" and isinstance(item, str) and item:
+            elif key in {'metric','rank_metric'} and isinstance(item, str) and item:
                 found.add(item)
             elif key == "op" and item == "set_metrics":
                 found.update(value.get("value", []))
@@ -124,12 +124,21 @@ class Repository:
             run = conn.execute("SELECT * FROM analysis_runs WHERE id=%s", (run_id,)).fetchone()
             meta = binding(user, True) if check_binding else run["metadata"]
             changed_code = any(run["metadata"].get(k) != meta.get(k) for k in ("graph_version", "code_digest"))
-            if run["role"] != user["role"] or not set(run["required_metrics"]) <= set(user["allowed_metrics"]) or (check_binding and (run["binding"] != meta["binding"] or task["status"] in ACTIVE and changed_code)):
+            historical=False
+            if task['status'] not in ACTIVE and run['metadata'].get('runtime_version')=='push-1':
+                from .historical_results import legacy_push_binding
+                historical=run['binding']==legacy_push_binding(user,analysis_model=run['metadata'].get('model',''))
+            if run["role"] != user["role"] or not set(run["required_metrics"]) <= set(user["allowed_metrics"]) or (check_binding and (run["binding"] != meta["binding"] and not historical or task["status"] in ACTIVE and changed_code)):
                 raise HTTPException(404, "任务授权或数据绑定已变化")
         elif task["conversation_id"]:
             self.conversation(conn, user, task["conversation_id"])
-        elif task.get("query_binding") and (task["query_role"] != user["role"] or task["query_binding"] != binding(user)["binding"]):
-            raise HTTPException(404, "任务角色或数据绑定已变化")
+        elif task.get("query_binding"):
+            historical=False
+            if task['status'] not in ACTIVE and (task.get('result') or {}).get('catalog_version')=='push-1':
+                from .historical_results import legacy_push_binding
+                historical=task['query_binding']==legacy_push_binding(user)
+            if task['query_role']!=user['role'] or task['query_binding']!=binding(user)['binding'] and not historical:
+                raise HTTPException(404, "任务角色或数据绑定已变化")
         if task.get('push_thread_id'):
             from .push_threads import Threads
             Threads(self).authorize(conn,user,task['push_thread_id'])
@@ -178,7 +187,7 @@ class Repository:
         run = conn.execute("SELECT * FROM analysis_runs WHERE id=%s", (run_id,)).fetchone()
         if not run:
             raise HTTPException(404, "分析任务不存在")
-        artifacts = [r["body"] for r in conn.execute("SELECT body FROM analysis_artifacts WHERE run_id=%s ORDER BY created_at,result_ref", (run_id,))]
+        artifacts = [r["body"] for r in conn.execute("SELECT body FROM analysis_artifacts WHERE run_id=%s AND contract_version=%s ORDER BY created_at,result_ref", (run_id,task.get('contract_version',0)))]
         steps = conn.execute("SELECT s.id,s.sequence,s.phase,s.input->>'action' action,s.input->'arguments' arguments,s.status,s.started_at,s.ended_at,s.output->>'error_code' error_code,a.cached FROM analysis_steps s JOIN analysis_step_attempts a ON a.step_id=s.id WHERE run_id=%s ORDER BY sequence", (run_id,)).fetchall()
         usage = conn.execute("SELECT coalesce(sum(actual_tokens),0) known_tokens,coalesce(sum(actual_cost),0) known_cost_micros,count(*) FILTER(WHERE status IN ('reserved','unknown')) unknown_calls FROM analysis_budget_ledger WHERE run_id=%s", (run_id,)).fetchone()
         return dict(id=run_id, question=task["input"]["question"], status=task["status"], version=run["version"], metadata=run["metadata"], policy=run["policy"], state=run["state"], metrics_used=run["required_metrics"], artifacts=artifacts, steps=steps, usage=run["state"].get("archived_usage", usage))
