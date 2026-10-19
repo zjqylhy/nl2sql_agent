@@ -148,7 +148,7 @@ def required_metrics(plan):
     return sorted(result)
 
 
-def compile_push(plan):
+def compile_push(plan, *, use_daily=True):
     params = []
     def parameter(value):
         params.append(value)
@@ -173,6 +173,25 @@ def compile_push(plan):
                       'unknown_devices': "SUM(CASE WHEN s.push_status='unknown' THEN 1 ELSE 0 END)",
                       'active_devices': 'SUM(CASE WHEN a.device_id IS NOT NULL THEN 1 ELSE 0 END)',
                       'active_valid_devices': "SUM(CASE WHEN a.device_id IS NOT NULL AND s.push_status='valid' THEN 1 ELSE 0 END)"}
+    elif use_daily and all(not any((at.hour,at.minute,at.second,at.microsecond))
+            for at in (plan.time_range.start.astimezone(SHANGHAI),plan.time_range.end_exclusive.astimezone(SHANGHAI))):
+        # 只对齐整日时使用精确小时门槛汇总；部分日期范围仍查询逐条明细。
+        hours=parameter(plan.observation_hours)
+        prefix=f'WITH windowed AS (SELECT *,{hours} AS observation_hours FROM metric_push_daily_outcomes) '
+        source='windowed d'
+        start,end=parameter(plan.time_range.start.astimezone(SHANGHAI).date()),parameter(plan.time_range.end_exclusive.astimezone(SHANGHAI).date())
+        where=[f'd.sent_day >= {start}',f'd.sent_day < {end}']
+        dims['month']="TO_CHAR(d.sent_day,'YYYY-MM')"
+        arrived='d.delivered_hour<=d.observation_hours'
+        clicked='d.clicked_hour<=d.observation_hours'
+        aggregates={'sent':'SUM(d.n)','accepted':'SUM(CASE WHEN d.accepted THEN d.n ELSE 0 END)',
+            'delivered':f'SUM(CASE WHEN {arrived} THEN d.n ELSE 0 END)',
+            'clicked':f'SUM(CASE WHEN {clicked} THEN d.n ELSE 0 END)',
+            'delivered_clicked':f'SUM(CASE WHEN {arrived} AND {clicked} THEN d.n ELSE 0 END)',
+            'click_missing_delivery':f'SUM(CASE WHEN {clicked} AND (d.delivered_hour IS NULL OR d.delivered_hour>d.observation_hours) THEN d.n ELSE 0 END)',
+            'failed':'SUM(CASE WHEN NOT d.accepted OR d.expired_hour<=d.observation_hours THEN d.n ELSE 0 END)',
+            'unknown_delivery':'SUM(CASE WHEN d.accepted AND (d.expired_hour IS NULL OR d.expired_hour>d.observation_hours) AND (d.delivered_hour IS NULL OR d.delivered_hour>d.observation_hours) AND (d.clicked_hour IS NULL OR d.clicked_hour>d.observation_hours) THEN d.n ELSE 0 END)',
+            'delivery_duration_sum':f'SUM(CASE WHEN {arrived} THEN d.delivery_duration_sum ELSE 0 END)'}
     else:
         hours = parameter(plan.observation_hours)
         prefix = f'''WITH windowed AS (SELECT *,sent_at + {hours} * interval '1 hour' horizon FROM metric_push_deliveries) '''

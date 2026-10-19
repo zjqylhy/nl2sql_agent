@@ -104,6 +104,22 @@ def create_metric_facts(cur):
         delivered_at,clicked_at,expired_at,sent_day)''')
 
 
+def create_daily_outcomes(cur):
+    # 整数小时窗口只需事件跨过的小时门槛；联合保存三个门槛，保留交集与缺回执语义。
+    cur.execute('''CREATE TABLE push_daily_outcomes AS SELECT sent_day,app_id,manufacturer,channel,
+      template_id,failure_reason,accepted_at IS NOT NULL accepted,
+      ceil(extract(epoch FROM (delivered_at-sent_at))/3600)::integer delivered_hour,
+      ceil(extract(epoch FROM (clicked_at-sent_at))/3600)::integer clicked_hour,
+      ceil(extract(epoch FROM (expired_at-sent_at))/3600)::integer expired_hour,
+      count(*) n,
+      sum(CASE WHEN delivered_at IS NOT NULL THEN extract(epoch FROM (delivered_at-sent_at)) ELSE 0 END) delivery_duration_sum
+      FROM push_delivery_metric_facts GROUP BY 1,2,3,4,5,6,7,8,9,10''')
+    cur.execute('CREATE INDEX ON push_daily_outcomes(sent_day,app_id)')
+    cur.execute('SELECT (SELECT sum(n) FROM push_daily_outcomes)=(SELECT count(*) FROM push_deliveries)')
+    if cur.fetchone()[0] is not True:
+        raise ValueError('整日效果汇总的发送量与明细不一致')
+
+
 def provision_stream(conn, folder, schema, readonly_user, password, *, cutoff, is_synthetic=True,
                      app_ids=(), create_role=True, report=None, progress=False):
     from .import_push_postgres import FIELDS
@@ -169,6 +185,8 @@ def provision_stream(conn, folder, schema, readonly_user, password, *, cutoff, i
         cur.execute('ALTER TABLE push_receipt_summary ADD PRIMARY KEY(delivery_id) INCLUDE(delivered_at,clicked_at,expired_at)')
         create_metric_facts(cur)
         phase('metric_facts_created')
+        create_daily_outcomes(cur)
+        phase('daily_outcomes_created')
         cur.execute('CREATE INDEX ON device_activity(occurred_at,app_id,device_id)')
         cur.execute('CREATE INDEX ON device_states(app_id,device_id,valid_from,valid_to)')
         restriction=sql.SQL(' WHERE app_id IN ({})').format(sql.SQL(',').join(map(sql.Literal,app_ids))) if app_ids else sql.SQL('')
@@ -180,6 +198,8 @@ def provision_stream(conn, folder, schema, readonly_user, password, *, cutoff, i
             f.delivered_at,f.clicked_at,f.expired_at,f.sent_day
           FROM (SELECT * FROM push_delivery_metric_facts{}) f
           LEFT JOIN push_deliveries d USING(delivery_id)''').format(restriction))
+        cur.execute(sql.SQL('''CREATE VIEW metric_push_daily_outcomes WITH(security_barrier=true)
+          AS SELECT * FROM push_daily_outcomes{}''').format(restriction))
         revision=reader.digest.hexdigest()
         cur.execute('CREATE TABLE dataset_release(revision text PRIMARY KEY,data_cutoff timestamptz NOT NULL,is_synthetic boolean NOT NULL)')
         cur.execute('INSERT INTO dataset_release VALUES(%s,%s,%s)',(revision,cutoff,is_synthetic))
@@ -187,10 +207,10 @@ def provision_stream(conn, folder, schema, readonly_user, password, *, cutoff, i
             cur.execute(sql.SQL('CREATE ROLE {} LOGIN PASSWORD {} NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT').format(sql.Identifier(readonly_user),sql.Literal(password)))
         cur.execute(sql.SQL('REVOKE ALL ON SCHEMA {} FROM PUBLIC').format(sql.Identifier(schema)))
         cur.execute(sql.SQL('GRANT USAGE ON SCHEMA {} TO {}').format(sql.Identifier(schema),sql.Identifier(readonly_user)))
-        for name in ['metric_devices','metric_device_states','metric_device_activity','metric_push_deliveries']:
+        for name in ['metric_devices','metric_device_states','metric_device_activity','metric_push_deliveries','metric_push_daily_outcomes']:
             cur.execute(sql.SQL('GRANT SELECT ON {} TO {}').format(sql.Identifier(name),sql.Identifier(readonly_user)))
         cur.execute(sql.SQL('ALTER ROLE {} SET default_transaction_read_only=on').format(sql.Identifier(readonly_user)))
-        for name in [*FIELDS,'device_states','push_receipt_summary','push_delivery_metric_facts']:
+        for name in [*FIELDS,'device_states','push_receipt_summary','push_delivery_metric_facts','push_daily_outcomes']:
             cur.execute(sql.SQL('ANALYZE {}').format(sql.Identifier(name)))
         cur.execute('SELECT coalesce(sum(pg_total_relation_size(c.oid)),0) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname=%s AND c.relkind IN (\'r\',\'m\')',(schema,))
         database_bytes=int(cur.fetchone()[0])
@@ -204,7 +224,7 @@ def provision_stream(conn, folder, schema, readonly_user, password, *, cutoff, i
         conn.autocommit=True
         try:
             with conn.cursor() as cur:
-                for name in ['push_deliveries','push_receipt_summary','push_delivery_metric_facts','devices','device_states','device_activity']:
+                for name in ['push_deliveries','push_receipt_summary','push_delivery_metric_facts','push_daily_outcomes','devices','device_states','device_activity']:
                     cur.execute(sql.SQL('VACUUM (ANALYZE) {}.{}').format(sql.Identifier(schema),sql.Identifier(name)))
         finally:
             conn.autocommit=previous_autocommit

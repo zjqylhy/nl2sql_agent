@@ -68,8 +68,11 @@ def test_actual_postgres_row_1001_is_rejected(platform):
           FROM generate_series('2026-04-01T00:00:00+08:00'::timestamptz,
             '2026-09-30T00:00:00+08:00'::timestamptz,interval '1 day') at
           CROSS JOIN generate_series(1,8) n''')
+        conn.execute('''CREATE VIEW analytics_group_boundary.metric_push_daily_outcomes WITH(security_barrier=true)
+          AS SELECT sent_day,template_id,1::bigint n FROM analytics_group_boundary.metric_push_deliveries''')
         conn.execute(sql.SQL('GRANT USAGE ON SCHEMA analytics_group_boundary TO {}').format(sql.Identifier(source.user)))
         conn.execute(sql.SQL('GRANT SELECT ON analytics_group_boundary.metric_push_deliveries TO {}').format(sql.Identifier(source.user)))
+        conn.execute(sql.SQL('GRANT SELECT ON analytics_group_boundary.metric_push_daily_outcomes TO {}').format(sql.Identifier(source.user)))
         assert conn.execute('SELECT count(*) FROM analytics_group_boundary.metric_push_deliveries').fetchone()[0]>1000
     boundary=source.model_copy(update={'domain':'push','schema_name':'analytics_group_boundary',
         'analysis_date':date(2026,10,14),'data_start':datetime.fromisoformat('2026-04-01T00:00:00+08:00'),
@@ -128,6 +131,21 @@ def test_stream_import_summary_matches_independent_raw_counts(platform,scaled_bu
             actual_daily={str(day):count for day,count in cur.fetchall()}
             expected_daily=Counter(r['sent_at'][:10] for r in BundleReader(scaled_bundle/'data').records('push_deliveries'))
             assert actual_daily==expected_daily
+            from agent.runtime.push import DEFINITIONS,DEVICE_METRICS
+            messages=[m for m in DEFINITIONS if m not in DEVICE_METRICS]
+            for hours in [1,24,48,72]:
+                for offset in range(0,len(messages),12):
+                    comparison=daily.model_copy(update={'metrics':messages[offset:offset+12],
+                        'dimensions':['day','manufacturer'],'observation_hours':hours})
+                    outputs=[]
+                    for fast in [False,True]:
+                        statement,params=compile_push(comparison,use_daily=fast)
+                        cur.execute(statement.replace('%','%%').replace('?','%s'),params)
+                        outputs.append(cur.fetchall())
+                    assert outputs[0]==outputs[1],(hours,comparison.metrics)
+            partial=daily.model_copy(update={'time_range':daily.time_range.model_copy(update={
+                'start':datetime.fromisoformat('2026-04-01T01:00:00+08:00')})})
+            assert 'metric_push_daily_outcomes' not in compile_push(partial)[0]
     result=json.loads(report.read_text())
     assert result['revision']==revision and result['counts']['push_deliveries']==1000
     assert result['visibility_maintained'] and not result['pending_caller_commit']
@@ -139,6 +157,9 @@ def test_stream_import_summary_matches_independent_raw_counts(platform,scaled_bu
         conn.rollback()
         with pytest.raises(psycopg.errors.InsufficientPrivilege):
             conn.execute('SELECT * FROM analytics_scaled.push_delivery_metric_facts LIMIT 1')
+        conn.rollback()
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            conn.execute('SELECT * FROM analytics_scaled.push_daily_outcomes LIMIT 1')
 
 
 def test_incomplete_or_changed_manifest_never_publishes(platform,scaled_bundle,tmp_path):
