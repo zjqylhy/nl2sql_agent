@@ -16,7 +16,7 @@
 
 每条发送记录增加 `template_id`、`title`、`body`，由生成器产生三套模拟模板文案；可按模板 ID 分组与筛选。文案字段不改变原有随机发送/回执样本，不能据此声称已证明文案导致指标变化。
 
-大规模模拟样本使用独立输出目录，支持约 20 万设备、1000 万逻辑发送，另含关联尝试、回执和活跃事件；不替换上述快速回归样本。生成、复核和导入都采用流式处理，详见[扩容方案](docs/push-scale-technical-design.md)和[实施验证](docs/push-scale-results.md)。
+大规模模拟样本使用独立输出目录，支持约 20 万设备、1000 万逻辑发送，另含关联尝试、回执和活跃事件；不替换上述快速回归样本。生成、复核和导入都采用流式处理，详见[扩容方案](docs/push-scale-technical-design.md)、[本地实施验证](docs/push-scale-results.md)及[服务器发布记录](docs/push-scale-deployment.md)。
 
 ```powershell
 .venv/Scripts/python.exe -m agent.tools.generate_push --output data/push-large --devices 200000 --deliveries 10000000
@@ -83,7 +83,7 @@ npm run dev
 
 配置 `NL2SQL_AGENT_API_KEY`、`LLM_BASE_URL`、`LLM_MODEL`，确认 tokenizer、真实价格与总预算后设置 `ANALYSIS_ENABLED=true`。推送任务的类型由统一入口识别：明确取数只在开始时生成完整计划，开放分析始终根据观测选择动作；原 `ANALYSIS_STRATEGY=fixed` 仅保留在既有订单评测域，不能将开放推送任务锁回固定业务流程。
 
-升级需先运行迁移与运行账号授权，新增结构由 `0005_task_contracts` 创建。旧数据没有模板字段时，重新生成样本并用**新 schema、只读账号及数据版本**发布；导入器拒绝覆盖旧快照。更新映射后再启动 API/Worker，不能只替换代码就让旧视图宣称具备模板能力。本次改造不自动部署或修改线上快照。
+升级需先运行迁移与运行账号授权，新增结构由 `0005_task_contracts` 创建。旧数据没有模板字段时，重新生成样本并用**新 schema、只读账号及数据版本**发布；导入器拒绝覆盖旧快照。更新映射后再启动 API/Worker，不能只替换代码就让旧视图宣称具备模板能力。已按用户授权完成服务器升级，实际运行版本、数据范围及限制见 [服务器发布记录](docs/push-scale-deployment.md)。
 
 默认最多模型 10 次、工具 12 次、SQL 6 次、参数修正 1 次、SQL 重试 1 次、活跃执行 180 秒、30000 Token，并行分析 2 个。调用截止和预算随任务冻结。`ANALYSIS_INPUT_PRICE_MICROS` / `OUTPUT_PRICE_MICROS` 表示每百万 Token 的微货币价格，1000000 微单位等于 1 货币单位。未知用量仍占预留，测试单位不能作为真实账单。
 
