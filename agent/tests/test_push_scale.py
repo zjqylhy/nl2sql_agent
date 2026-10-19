@@ -69,6 +69,17 @@ def test_stream_import_summary_matches_independent_raw_counts(platform,scaled_bu
             assert actual==tuple(expected.values())
             cur.execute('SELECT count(*) FROM analytics_scaled.device_states')
             assert cur.fetchone()[0]>=90
+            # 优化视图必须保留全部列的精确明细，而不只是核对几个聚合数。
+            cur.execute('''WITH original AS (
+                SELECT d.*,r.delivered_at,r.clicked_at,r.expired_at
+                FROM analytics_scaled.push_deliveries d
+                LEFT JOIN analytics_scaled.push_receipt_summary r USING(delivery_id)
+              ), difference AS (
+                (SELECT * FROM original EXCEPT ALL SELECT * FROM analytics_scaled.metric_push_deliveries)
+                UNION ALL
+                (SELECT * FROM analytics_scaled.metric_push_deliveries EXCEPT ALL SELECT * FROM original)
+              ) SELECT count(*) FROM difference''')
+            assert cur.fetchone()[0]==0
     result=json.loads(report.read_text())
     assert result['revision']==revision and result['counts']['push_deliveries']==1000
     assert result['visibility_maintained'] and not result['pending_caller_commit']
@@ -77,6 +88,9 @@ def test_stream_import_summary_matches_independent_raw_counts(platform,scaled_bu
         assert conn.execute('SELECT count(*) FROM analytics_scaled.metric_push_deliveries').fetchone()[0]==1000
         with pytest.raises(psycopg.errors.InsufficientPrivilege):
             conn.execute('SELECT * FROM analytics_scaled.push_receipt_summary LIMIT 1')
+        conn.rollback()
+        with pytest.raises(psycopg.errors.InsufficientPrivilege):
+            conn.execute('SELECT * FROM analytics_scaled.push_delivery_metric_facts LIMIT 1')
 
 
 def test_incomplete_or_changed_manifest_never_publishes(platform,scaled_bundle,tmp_path):

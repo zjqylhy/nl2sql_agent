@@ -89,6 +89,17 @@ def create_device_states(cur, cutoff):
     cur.execute('ALTER TABLE device_states ADD PRIMARY KEY(app_id,device_id,valid_from)')
 
 
+def create_metric_facts(cur):
+    # 指标明细不复制标题正文；避免每次汇总都扫描并关联整张回执表。
+    cur.execute('''CREATE TABLE push_delivery_metric_facts AS
+      SELECT d.delivery_id,d.app_id,d.manufacturer,d.channel,d.template_id,d.failure_reason,
+        d.sent_at,d.accepted_at,r.delivered_at,r.clicked_at,r.expired_at
+      FROM push_deliveries d LEFT JOIN push_receipt_summary r USING(delivery_id)
+      ORDER BY d.sent_at,d.app_id''')
+    cur.execute('ALTER TABLE push_delivery_metric_facts ADD PRIMARY KEY(delivery_id)')
+    cur.execute('CREATE INDEX ON push_delivery_metric_facts(sent_at,app_id)')
+
+
 def provision_stream(conn, folder, schema, readonly_user, password, *, cutoff, is_synthetic=True,
                      app_ids=(), create_role=True, report=None, progress=False):
     from .import_push_postgres import FIELDS
@@ -152,17 +163,19 @@ def provision_stream(conn, folder, schema, readonly_user, password, *, cutoff, i
           min(occurred_at) FILTER(WHERE event_type='expired') expired_at
           FROM push_events GROUP BY delivery_id''')
         cur.execute('ALTER TABLE push_receipt_summary ADD PRIMARY KEY(delivery_id) INCLUDE(delivered_at,clicked_at,expired_at)')
-        # 标题正文留在原表；指标查询可从较窄的索引直接取得所需字段。
-        cur.execute('''CREATE INDEX push_deliveries_metric_cover ON push_deliveries(sent_at,app_id)
-          INCLUDE(delivery_id,accepted_at,manufacturer,channel,template_id,failure_reason)''')
+        create_metric_facts(cur)
+        phase('metric_facts_created')
         cur.execute('CREATE INDEX ON device_activity(occurred_at,app_id,device_id)')
         cur.execute('CREATE INDEX ON device_states(app_id,device_id,valid_from,valid_to)')
         restriction=sql.SQL(' WHERE app_id IN ({})').format(sql.SQL(',').join(map(sql.Literal,app_ids))) if app_ids else sql.SQL('')
         for name,base in [('metric_devices','devices'),('metric_device_states','device_states'),('metric_device_activity','device_activity')]:
             cur.execute(sql.SQL('CREATE VIEW {} WITH(security_barrier=true) AS SELECT * FROM {}{}').format(sql.Identifier(name),sql.Identifier(base),restriction))
         cur.execute(sql.SQL('''CREATE VIEW metric_push_deliveries WITH(security_barrier=true) AS
-          SELECT d.*,r.delivered_at,r.clicked_at,r.expired_at FROM
-          (SELECT * FROM push_deliveries{}) d LEFT JOIN push_receipt_summary r USING(delivery_id)''').format(restriction))
+          SELECT f.delivery_id,d.message_id,f.template_id,d.title,d.body,f.app_id,d.device_id,
+            f.manufacturer,d.route_id,f.channel,f.sent_at,f.accepted_at,f.failure_reason,
+            f.delivered_at,f.clicked_at,f.expired_at
+          FROM (SELECT * FROM push_delivery_metric_facts{}) f
+          LEFT JOIN push_deliveries d USING(delivery_id)''').format(restriction))
         revision=reader.digest.hexdigest()
         cur.execute('CREATE TABLE dataset_release(revision text PRIMARY KEY,data_cutoff timestamptz NOT NULL,is_synthetic boolean NOT NULL)')
         cur.execute('INSERT INTO dataset_release VALUES(%s,%s,%s)',(revision,cutoff,is_synthetic))
@@ -173,7 +186,7 @@ def provision_stream(conn, folder, schema, readonly_user, password, *, cutoff, i
         for name in ['metric_devices','metric_device_states','metric_device_activity','metric_push_deliveries']:
             cur.execute(sql.SQL('GRANT SELECT ON {} TO {}').format(sql.Identifier(name),sql.Identifier(readonly_user)))
         cur.execute(sql.SQL('ALTER ROLE {} SET default_transaction_read_only=on').format(sql.Identifier(readonly_user)))
-        for name in [*FIELDS,'device_states','push_receipt_summary']:
+        for name in [*FIELDS,'device_states','push_receipt_summary','push_delivery_metric_facts']:
             cur.execute(sql.SQL('ANALYZE {}').format(sql.Identifier(name)))
         cur.execute('SELECT coalesce(sum(pg_total_relation_size(c.oid)),0) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname=%s AND c.relkind IN (\'r\',\'m\')',(schema,))
         database_bytes=int(cur.fetchone()[0])
@@ -187,7 +200,7 @@ def provision_stream(conn, folder, schema, readonly_user, password, *, cutoff, i
         conn.autocommit=True
         try:
             with conn.cursor() as cur:
-                for name in ['push_deliveries','push_receipt_summary','devices','device_states','device_activity']:
+                for name in ['push_deliveries','push_receipt_summary','push_delivery_metric_facts','devices','device_states','device_activity']:
                     cur.execute(sql.SQL('VACUUM (ANALYZE) {}.{}').format(sql.Identifier(schema),sql.Identifier(name)))
         finally:
             conn.autocommit=previous_autocommit
