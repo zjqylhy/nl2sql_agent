@@ -98,6 +98,9 @@ def create_metric_facts(cur):
       ORDER BY d.sent_at,d.app_id''')
     cur.execute('ALTER TABLE push_delivery_metric_facts ADD PRIMARY KEY(delivery_id)')
     cur.execute('CREATE INDEX ON push_delivery_metric_facts(sent_at,app_id)')
+    # 大跨度日期分组可按索引顺序完整计算前 1001 组，再由上层拒绝超量结果。
+    cur.execute('''CREATE INDEX push_metric_day_template ON push_delivery_metric_facts
+      (((sent_at AT TIME ZONE 'Asia/Shanghai')::date),template_id) INCLUDE(sent_at)''')
 
 
 def provision_stream(conn, folder, schema, readonly_user, password, *, cutoff, is_synthetic=True,

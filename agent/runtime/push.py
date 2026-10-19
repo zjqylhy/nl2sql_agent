@@ -155,7 +155,7 @@ def compile_push(plan):
         return '?'
     dims = {'app_id': 'd.app_id', 'manufacturer': 'd.manufacturer', 'channel': 'd.channel', 'template_id': 'd.template_id',
             'failure_reason': "COALESCE(d.failure_reason,'none')",
-            'day': "TO_CHAR(d.sent_at AT TIME ZONE 'Asia/Shanghai','YYYY-MM-DD')",
+            'day': "(d.sent_at AT TIME ZONE 'Asia/Shanghai')::date",
             'month': "TO_CHAR(d.sent_at AT TIME ZONE 'Asia/Shanghai','YYYY-MM')"}
     if plan.device:
         at = parameter(plan.state_at)

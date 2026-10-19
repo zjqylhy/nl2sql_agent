@@ -1,5 +1,6 @@
 """大样本路径用小规模验证流式协议，真实数量与性能另做专项运行。"""
 from datetime import datetime,timedelta
+from collections import Counter
 import gzip
 import json
 import shutil
@@ -80,6 +81,15 @@ def test_stream_import_summary_matches_independent_raw_counts(platform,scaled_bu
                 (SELECT * FROM analytics_scaled.metric_push_deliveries EXCEPT ALL SELECT * FROM original)
               ) SELECT count(*) FROM difference''')
             assert cur.fetchone()[0]==0
+            from agent.runtime.push import PushPlan,compile_push
+            daily=PushPlan(metrics=['sent'],dimensions=['day'],time_range={
+                'start':'2026-04-01T00:00:00+08:00','end_exclusive':'2026-10-01T00:00:00+08:00'})
+            statement,params=compile_push(daily)
+            cur.execute('SET search_path=analytics_scaled,pg_catalog')
+            cur.execute(statement.replace('%','%%').replace('?','%s'),params)
+            actual_daily={str(day):count for day,count in cur.fetchall()}
+            expected_daily=Counter(r['sent_at'][:10] for r in BundleReader(scaled_bundle/'data').records('push_deliveries'))
+            assert actual_daily==expected_daily
     result=json.loads(report.read_text())
     assert result['revision']==revision and result['counts']['push_deliveries']==1000
     assert result['visibility_maintained'] and not result['pending_caller_commit']
