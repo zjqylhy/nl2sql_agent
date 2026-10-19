@@ -95,7 +95,8 @@ def parse_query(request, source):
         except Exception as exc:
             code = telemetry.model_error(exc)
             message = {'model_timeout':'模型服务响应超时', 'model_network':'模型服务连接失败',
-                       'model_auth':'模型服务鉴权失败', 'model_rate_limit':'模型服务请求受限',
+                       'model_auth':'模型服务鉴权失败', 'model_rate_limit':'模型服务请求频率受限',
+                       'model_quota':'模型网关额度不足或配额受限，请先检查并恢复可用额度',
                        'model_http':'模型服务返回 HTTP 错误'}.get(code, '模型服务调用失败')
             raise HTTPException(503, message+'；本任务不自动重发，请稍后新建查询或使用表单') from exc
         value = parse_model_json(raw)

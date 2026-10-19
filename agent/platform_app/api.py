@@ -63,6 +63,11 @@ class Answer(Version):
     answer: str = Field(min_length=1, max_length=1000)
 
 
+class Retry(StrictModel):
+    request_id: str = Field(pattern=UUID)
+    expected_execution_version: int = Field(ge=0, strict=True)
+
+
 class ScopeConfirmation(Version):
     request_id: str = Field(pattern=UUID)
     approved: bool = Field(strict=True)
@@ -290,6 +295,13 @@ def create_app(db=None, policy=None, *, origin=None, secure_cookie=None, trusted
     def task(run_id: str, user=Depends(current_user), repository=Depends(repo)):
         with repository.db.transaction() as conn:
             return public_task(repository.task(conn, user, run_id))
+
+    @app.post('/api/tasks/{run_id}/retry', status_code=202)
+    def retry_task(run_id: str, body: Retry, request: Request, user=Depends(current_user), repository=Depends(repo)):
+        from .task_retry import create_retry
+        with repository.db.transaction() as conn:
+            value = create_retry(repository,conn,user,run_id,body.request_id,body.expected_execution_version,request.app.state.policy)
+            return public_task(value)
 
     @app.post('/api/push-threads', status_code=201)
     def push_thread_create(body: PushThreadInput,user=Depends(current_user),repository=Depends(repo)):

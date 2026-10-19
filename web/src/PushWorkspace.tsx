@@ -8,8 +8,9 @@ type Cell={value?:string|null;baseline?:string|null;current?:string|null;delta?:
 type Row={label:string;values:Record<string,Cell>}
 export type Result={domain?:string;rows:Row[];metrics:Metric[];totals?:Record<string,Cell>;summary?:string;message?:string;limitations?:string[];sql?:string;parameters?:string[];is_synthetic?:boolean;period?:{start:string;end_exclusive:string};presentation?:{layout:string;detail:string};context_compacted?:boolean;completeness?:string;claims?:{result_ref:string;metric:string;field:string;value:string|null;unit:string}[];answers?:{item_id:string;status:string;text:string}[];hypotheses?:string[];uninvestigated?:string[];investigated?:{period:string;dimensions:string[];filters:unknown[]}[];stop_reason?:string}
 type QueryProgress={message?:string;steps?:{step_id:string;status:string;cached:boolean;result_ref:string}[];partial_outputs?:{step_id:string;result_ref:string;data:Result}[]}
-type Task={id:string;input:{question:string;push_plan?:unknown;query_contract?:unknown};status:string;error?:string;result:(Result&QueryProgress)|QueryProgress|null;kind:string;contract_version?:number;push_thread_id?:string;clarification?:{version:number;turns:{question:string;answer:string}[];can_answer:boolean;reason:string}}
-type Run={id:string;question:string;status:string;version:number;state:{message?:string;model_calls:number;sql_calls:number;tokens:number;answers:string[];pending_scope?:{scope:unknown}};usage?:{unknown_calls:number};artifacts:{kind:string;result_ref:string;data:Result}[];steps:{id:string;phase:string;action:string;status:string}[]}
+type Retry={available:boolean;execution_version:number;error_code?:string}
+type Task={id:string;input:{question:string;push_plan?:unknown;query_contract?:unknown};status:string;error?:string;result:(Result&QueryProgress)|QueryProgress|null;kind:string;contract_version?:number;push_thread_id?:string;retry?:Retry;clarification?:{version:number;turns:{question:string;answer:string}[];can_answer:boolean;reason:string}}
+type Run={id:string;question:string;status:string;version:number;retry?:Retry;state:{message?:string;model_calls:number;sql_calls:number;tokens:number;answers:string[];pending_scope?:{scope:unknown}};usage?:{unknown_calls:number};artifacts:{kind:string;result_ref:string;data:Result}[];steps:{id:string;phase:string;action:string;status:string}[]}
 const states:Record<string,string>={pending:'排队中',querying:'执行中',completed:'已完成',needs_clarification:'需要补充',failed:'执行失败',canceled:'已停止',unknown:'结果未知',running:'执行中'}
 const actions:Record<string,string>={query_metrics:'查询指标',lookup_metrics:'查看口径',compare_periods:'比较两期',aggregate_metrics:'汇总指标',decompose_ratio:'拆解比率变化',request_scope_change:'申请变更查询范围',finish:'核验完成依据'}
 const names:Record<string,string>={app_id:'应用',manufacturer:'设备厂商',channel:'推送通道',day:'发送日期',month:'发送月份',huawei:'华为',xiaomi:'小米',oppo:'OPPO',vivo:'vivo',apple:'Apple',huawei_push:'华为推送',xiaomi_push:'小米推送',oppo_push:'OPPO 推送',vivo_push:'vivo 推送',apns:'APNs',fcm:'FCM'}
@@ -48,6 +49,7 @@ export default function PushWorkspace({api,storageKey}:{api:Api;storageKey:strin
   const[threadId,setThreadId]=useState<string|null>(null)
   // 网络中断后重用同一提交标识，服务端不会把重试当成下一轮回答。
   const answerRequest=useRef<{id:string;version:number;answer:string;request_id:string}|null>(null)
+  const retryRequest=useRef<{id:string;request_id:string}|null>(null),retryInFlight=useRef(false)
   const refresh=()=>api<Task[]>('/tasks').then(setHistory)
   const load=async(id:string,kind:string,select=true):Promise<void>=>{if(kind==='tree'){setThreadId(id);setTask(null);setRun(null)}else if(kind==='analysis'){const value=await api<Run>('/analysis-runs/'+id);setTask(null);setRun(value);setWorkflow('analysis');setQuestion(value.question)}else{const value=await api<Task>('/tasks/'+id);if(value.kind==='analysis'){await load(id,'analysis',select);return}if(value.push_thread_id&&select){setThreadId(value.push_thread_id);localStorage.setItem(storageKey,JSON.stringify({id:value.push_thread_id,kind:'tree'}));return}setRun(null);setTask(value);if(select){setWorkflow('query');setQueryMode(value.input.push_plan||value.input.query_contract?'form':'natural');setQuestion(value.input.question)}}localStorage.setItem(storageKey,JSON.stringify({id,kind}))}
   useEffect(()=>{void Promise.all([api<Capabilities>('/query-capabilities').then(setCaps),api<{enabled:boolean}>('/analysis-capabilities').then(c=>setEnabled(c.enabled)),refresh()]).then(()=>{const saved=localStorage.getItem(storageKey);if(saved){try{const {id,kind}=JSON.parse(saved);void load(id,kind).catch(e=>setError(e.message))}catch{localStorage.removeItem(storageKey)}}}).catch(e=>setError(e.message))},[storageKey])
@@ -122,7 +124,17 @@ export default function PushWorkspace({api,storageKey}:{api:Api;storageKey:strin
       setAnswer('');answerRequest.current=null;await refresh()
     }catch(e){setError((e as Error).message)}finally{setBusy(false)}
   }
-  function newQuery(edit=false){if(edit&&task){setWorkflow('query');setQueryMode('natural');setQuestion(task.input.question)}else setQuestion('');setTask(null);setRun(null);setWorkflow('query');setAnswer('');setError('');answerRequest.current=null;localStorage.removeItem(storageKey)}
+  async function retryModel(){
+    if(busy||retryInFlight.current||!current?.retry?.available)return
+    const previous=retryRequest.current
+    const request=previous?.id===current.id?previous:{id:current.id,request_id:crypto.randomUUID()}
+    retryRequest.current=request;retryInFlight.current=true;setBusy(true);setError('')
+    try{
+      const value=await api<Task>('/tasks/'+current.id+'/retry',{request_id:request.request_id,expected_execution_version:current.retry.execution_version})
+      await load(value.id,value.kind);retryRequest.current=null;await refresh()
+    }catch(e){setError((e as Error).message)}finally{retryInFlight.current=false;setBusy(false)}
+  }
+  function newQuery(edit=false){if(edit&&task){setWorkflow('query');setQueryMode('natural');setQuestion(task.input.question)}else setQuestion('');setTask(null);setRun(null);setWorkflow('query');setAnswer('');setError('');answerRequest.current=null;retryRequest.current=null;localStorage.removeItem(storageKey)}
   const continuing=queryMode==='natural'&&Boolean(task)
   const report=run?.artifacts.find(a=>a.kind==='report')?.data
   const result=task?.result&&'rows'in task.result?task.result:null
@@ -145,6 +157,7 @@ export default function PushWorkspace({api,storageKey}:{api:Api;storageKey:strin
     </form>
     {current&&<><div className="task-progress"><strong>{states[current.status]??current.status}</strong><span>{run?'已识别：开放任务分析':task?.contract_version?'已识别：明确条件取数':'正在识别并执行'}</span><span>任务 {current.id.slice(0,8)}</span>{['pending','querying','needs_clarification'].includes(current.status)&&<button onClick={async()=>{try{await api('/tasks/'+current.id+'/stop',{});await load(current.id,run?'analysis':'query')}catch(e){setError((e as Error).message)}}}>停止</button>}</div>
       {task?.error&&<p className="error">{task.error}</p>}
+      {current.retry?.available&&<section className="notice"><button type="button" className="primary" disabled={busy} onClick={retryModel}>{busy?'正在提交…':'重试模型请求'}</button><p>保留原问题和已补充条件，新建一次任务；原失败记录与消耗保留，新请求会单独计费。</p>{current.retry.error_code==='model_quota'&&<p>请先恢复模型网关可用额度，再重试。</p>}</section>}
       {Boolean(task?.result?.steps?.length)&&<details><summary>程序执行步骤与完整结果</summary>{task!.result!.steps!.map(step=><p key={step.step_id}>{step.step_id} · {states[step.status]??step.status}{step.cached?' · 复用已保存结果':''} · <a href={'/api/tasks/'+task!.id+'/evidence/'+step.result_ref} target="_blank" rel="noreferrer">查看完整结果</a></p>)}</details>}
       {task?.result?.partial_outputs?.map(output=><details key={output.step_id}><summary>已完成步骤 {output.step_id}（任务整体未完成）</summary><Evidence result={output.data}/><a href={'/api/tasks/'+task.id+'/evidence/'+output.result_ref} target="_blank" rel="noreferrer">查看该步骤完整结果</a></details>)}
       {task&&Boolean(task.clarification?.turns.length)&&<article aria-label="已提交的补充记录"><h3>补充记录</h3>{task.clarification!.turns.map((turn,index)=><div key={index}><p className="notice"><strong>助手追问：</strong>{turn.question}</p><p><strong>你的补充：</strong>{turn.answer}</p></div>)}</article>}

@@ -63,6 +63,12 @@ def model_error(exc):
     elif isinstance(exc, httpx.HTTPStatusError):
         status = exc.response.status_code
         code = "model_rate_limit" if status == 429 else "model_auth" if status in (401, 403) else "model_http"
+        if status == 429:
+            try:
+                if exc.response.json()['error']['code'] == 'insufficient_quota':
+                    code = 'model_quota'
+            except (ValueError, KeyError, TypeError):
+                pass
     elif isinstance(exc, httpx.HTTPError):
         code = "model_network"
     else:
