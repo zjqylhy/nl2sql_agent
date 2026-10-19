@@ -144,7 +144,13 @@ def generate(output):
                 route = route_at(rid, sent)
                 permission = state_at(key, sent)['notification_permission']
                 blocked = permission == 'denied' or route['token_status'] == 'invalid'
+                # 不额外消耗随机数，保证补充文案不会改变原有发送/回执样本。
+                template_index = (day + int(d['device_id'].rsplit('_', 1)[-1])) % 3
+                content = [('服务提醒', '你有一条新的服务进度，请打开应用查看。'),
+                           ('活动通知', '本期模拟活动已开始，点击查看活动详情。'),
+                           ('内容推荐', '为你准备了新的模拟内容，欢迎查看。')][template_index]
                 row = {'delivery_id': f'dlv_{len(deliveries)+1:07d}', 'message_id': f"msg_{app['app_id']}_{date:%Y%m%d}",
+                       'template_id': f'tpl_{template_index+1:02d}', 'title': content[0], 'body': content[1],
                        'app_id': key[0], 'device_id': key[1], 'manufacturer': d['manufacturer'],
                        'route_id': rid, 'channel': route['channel'], 'sent_at': iso(sent),
                        'accepted_at': None, 'delivered_at': None, 'clicked_at': None,

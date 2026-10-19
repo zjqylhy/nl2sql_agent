@@ -8,7 +8,7 @@ from pydantic import Field, model_validator
 
 from .catalog import StrictModel
 
-VERSION = 'push-1'
+VERSION = 'push-2'
 SHANGHAI = timezone(timedelta(hours=8))
 COUNTS = {
     'sent': ('发送量', '次'), 'accepted': ('厂商受理量', '次'),
@@ -38,7 +38,7 @@ DEFINITIONS['active_rate']['definition'] = '活跃期间有前台事件的应用
 DEFINITIONS['delivered']['definition'] = '同一发送批次，在约定观察窗口内有到达回执的逻辑投递数'
 DEFINITIONS['unknown_delivery']['definition'] = '观察窗口内既无到达/点击证据，也无明确失败的已受理投递数'
 DEFINITIONS['click_to_delivery_rate']['definition'] = '窗口内已确认到达且点击的交集 / 窗口内已确认到达数；缺到达回执的点击另列'
-DIMENSIONS = {'app_id': '应用', 'manufacturer': '设备厂商', 'channel': '实际推送通道',
+DIMENSIONS = {'app_id': '应用', 'manufacturer': '设备厂商', 'channel': '实际推送通道', 'template_id': '模板',
               'day': '发送日期', 'month': '发送月份', 'failure_reason': '已知失败原因'}
 ENUMS = {'manufacturer': ['huawei', 'xiaomi', 'oppo', 'vivo', 'apple'],
          'channel': ['huawei_push', 'xiaomi_push', 'oppo_push', 'vivo_push', 'apns', 'fcm']}
@@ -63,7 +63,7 @@ class Period(StrictModel):
 
 
 class PushFilter(StrictModel):
-    field: Literal['app_id', 'manufacturer', 'channel', 'failure_reason']
+    field: Literal['app_id', 'manufacturer', 'channel', 'failure_reason', 'template_id']
     op: Literal['in', 'not_in'] = 'in'
     values: list[str] = Field(min_length=1, max_length=50)
 
@@ -153,7 +153,7 @@ def compile_push(plan):
     def parameter(value):
         params.append(value)
         return '?'
-    dims = {'app_id': 'd.app_id', 'manufacturer': 'd.manufacturer', 'channel': 'd.channel',
+    dims = {'app_id': 'd.app_id', 'manufacturer': 'd.manufacturer', 'channel': 'd.channel', 'template_id': 'd.template_id',
             'failure_reason': "COALESCE(d.failure_reason,'none')",
             'day': "TO_CHAR(d.sent_at AT TIME ZONE 'Asia/Shanghai','YYYY-MM-DD')",
             'month': "TO_CHAR(d.sent_at AT TIME ZONE 'Asia/Shanghai','YYYY-MM')"}
@@ -274,7 +274,12 @@ def execute_push(source, plan, allowed, usage):
             raise HTTPException(422, '结果超过 1000 组，请缩小查询范围')
     except (psycopg.Error, TimeoutError) as exc:
         raise HTTPException(503, '推送数据暂时不可用或查询超时') from exc
-    return result_for(plan, raw, source, usage, sql, params)
+    result = result_for(plan, raw, source, usage, sql, params)
+    # 行数之外限制实际载荷，避免宽行结果拖垮保存与后续分析。
+    import json
+    if len(json.dumps(result, ensure_ascii=False).encode()) > 524288:
+        raise HTTPException(422, '结果超过 512 KiB，请缩小范围或分组后重查')
+    return result
 
 
 def metric_catalog():

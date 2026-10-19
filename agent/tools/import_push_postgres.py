@@ -18,7 +18,7 @@ FIELDS = {
     'device_state_history': 'app_id text NOT NULL,device_id text NOT NULL,valid_from timestamptz NOT NULL,valid_to timestamptz,notification_permission text NOT NULL,PRIMARY KEY(app_id,device_id,valid_from)',
     'device_channel_history': 'route_id text NOT NULL,app_id text NOT NULL,device_id text NOT NULL,channel text NOT NULL,token_status text NOT NULL,valid_from timestamptz NOT NULL,valid_to timestamptz,PRIMARY KEY(route_id,valid_from)',
     'device_activity': 'activity_id text PRIMARY KEY,app_id text NOT NULL,device_id text NOT NULL,event_type text NOT NULL,occurred_at timestamptz NOT NULL',
-    'push_deliveries': 'delivery_id text PRIMARY KEY,message_id text NOT NULL,app_id text NOT NULL,device_id text NOT NULL,manufacturer text NOT NULL,route_id text NOT NULL,channel text NOT NULL,sent_at timestamptz NOT NULL,accepted_at timestamptz,failure_reason text',
+    'push_deliveries': 'delivery_id text PRIMARY KEY,message_id text NOT NULL,template_id text NOT NULL,title text NOT NULL,body text NOT NULL,app_id text NOT NULL,device_id text NOT NULL,manufacturer text NOT NULL,route_id text NOT NULL,channel text NOT NULL,sent_at timestamptz NOT NULL,accepted_at timestamptz,failure_reason text',
     'push_attempts': 'attempt_id text PRIMARY KEY,delivery_id text NOT NULL,attempt_index integer NOT NULL,sent_at timestamptz NOT NULL,outcome text NOT NULL',
     'push_events': 'receipt_id text PRIMARY KEY,event_id text NOT NULL,delivery_id text NOT NULL,app_id text NOT NULL,device_id text NOT NULL,event_type text NOT NULL,occurred_at timestamptz NOT NULL,received_at timestamptz NOT NULL',
 }
@@ -95,6 +95,9 @@ def validate_bundle(rows, cutoff):
                     raise ValueError('回执范围或类型不一致')
                 if not d['accepted_at'] or not datetime.fromisoformat(d['accepted_at']) <= datetime.fromisoformat(r['occurred_at']) <= datetime.fromisoformat(r['received_at']):
                     raise ValueError('回执时间无效')
+            if name == 'push_deliveries' and any(not isinstance(r.get(k), str) or not r[k].strip() or len(r[k]) > limit
+                    for k, limit in [('template_id', 100), ('title', 200), ('body', 4000)]):
+                raise ValueError('发送记录必须包含合法的模板 ID、标题与正文')
     if not rows['devices'] or not rows['push_deliveries']:
         raise ValueError('样本不能缺少设备或发送记录')
     return device_intervals(rows, cutoff)

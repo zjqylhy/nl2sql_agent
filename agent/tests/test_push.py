@@ -101,6 +101,21 @@ def test_no_samples_is_not_zero_rate_and_parameter_binding_blocks_injection(push
     assert result['totals']['delivery_rate']['value'] is None
 
 
+def test_template_content_and_grouping_match_generated_records(push_platform, bundle):
+    _, _, source = push_platform
+    records = [json.loads(line) for line in (bundle/'push_deliveries.jsonl').read_text(encoding='utf-8').splitlines()]
+    assert all(r['template_id'] and r['title'] and r['body'] for r in records)
+    selected = [r for r in records if r['sent_at'].startswith('2026-07-') and r['app_id'] == 'app_1']
+    p = plan(['sent'], dimensions=['template_id'], filters=[{'field':'app_id','values':['app_1']}])
+    result = execute_push(source, p, list(DEFINITIONS), {})
+    assert {r['dimensions']['template_id']: int(r['values']['sent']['value']) for r in result['rows']} == {
+        template: sum(r['template_id'] == template for r in selected) for template in {r['template_id'] for r in selected}}
+    invalid, _ = read_bundle(bundle)
+    invalid['push_deliveries'][0]['body'] = ''
+    with pytest.raises(ValueError, match='模板 ID、标题与正文'):
+        validate_bundle(invalid, source.data_cutoff)
+
+
 @pytest.mark.parametrize('change', [
     {'metrics':['devices','sent']}, {'metrics':['active_devices'],'dimensions':['channel']},
     {'metrics':['active_devices'],'dimensions':['day']}, {'metrics':['not_a_metric']},
