@@ -7,6 +7,7 @@ import shutil
 
 import psycopg
 import pytest
+from fastapi import HTTPException
 
 from agent.tools.generate_push import generate
 from agent.tools.import_push_postgres import provision,read_bundle
@@ -53,6 +54,42 @@ def test_reader_rejects_ambiguous_or_oversized_input(tmp_path):
     (tmp_path/'apps.jsonl').write_text('x'*65537)
     with pytest.raises(ValueError,match='64 KiB'):
         list(BundleReader(tmp_path).records('apps'))
+
+
+def test_actual_postgres_row_1001_is_rejected(platform):
+    from datetime import date
+    from psycopg import sql
+    from agent.runtime.push import DEFINITIONS,PushPlan,execute_push
+    _,repo,source=platform
+    with psycopg.connect(repo.db.dsn,autocommit=True) as conn:
+        conn.execute('CREATE SCHEMA analytics_group_boundary')
+        conn.execute('''CREATE VIEW analytics_group_boundary.metric_push_deliveries WITH(security_barrier=true) AS
+          SELECT (at AT TIME ZONE 'Asia/Shanghai')::date sent_day,at+interval '12 hours' sent_at,'tpl_'||n::text template_id
+          FROM generate_series('2026-04-01T00:00:00+08:00'::timestamptz,
+            '2026-09-30T00:00:00+08:00'::timestamptz,interval '1 day') at
+          CROSS JOIN generate_series(1,8) n''')
+        conn.execute(sql.SQL('GRANT USAGE ON SCHEMA analytics_group_boundary TO {}').format(sql.Identifier(source.user)))
+        conn.execute(sql.SQL('GRANT SELECT ON analytics_group_boundary.metric_push_deliveries TO {}').format(sql.Identifier(source.user)))
+        assert conn.execute('SELECT count(*) FROM analytics_group_boundary.metric_push_deliveries').fetchone()[0]>1000
+    boundary=source.model_copy(update={'domain':'push','schema_name':'analytics_group_boundary',
+        'analysis_date':date(2026,10,14),'data_start':datetime.fromisoformat('2026-04-01T00:00:00+08:00'),
+        'data_cutoff':datetime.fromisoformat('2026-10-15T00:00:00+08:00')})
+    p=PushPlan(metrics=['sent'],dimensions=['day','template_id'],time_range={
+        'start':'2026-04-01T00:00:00+08:00','end_exclusive':'2026-10-01T00:00:00+08:00'})
+    with pytest.raises(HTTPException) as error:
+        execute_push(boundary,p,list(DEFINITIONS),{})
+    assert error.value.status_code==422 and '1000' in error.value.detail
+
+
+def test_verification_distinguishes_deadline_from_database_failure():
+    from agent.tools.verify_push_scale import classify_group_rejection
+    timeout=HTTPException(503,'query failed')
+    timeout.__cause__=psycopg.errors.QueryCanceled('canceling statement due to statement timeout')
+    assert classify_group_rejection(timeout)=={'reason':'query_timeout','row_count_checked':False}
+    failure=HTTPException(503,'query failed')
+    failure.__cause__=psycopg.OperationalError('connection failed')
+    with pytest.raises(HTTPException):
+        classify_group_rejection(failure)
 
 
 def test_stream_import_summary_matches_independent_raw_counts(platform,scaled_bundle,tmp_path):

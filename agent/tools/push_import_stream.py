@@ -99,8 +99,6 @@ def create_metric_facts(cur):
       ORDER BY d.sent_at,d.app_id''')
     cur.execute('ALTER TABLE push_delivery_metric_facts ADD PRIMARY KEY(delivery_id)')
     cur.execute('CREATE INDEX ON push_delivery_metric_facts(sent_at,app_id)')
-    cur.execute('''CREATE INDEX push_metric_day_template ON push_delivery_metric_facts
-      (sent_day,template_id) INCLUDE(sent_at)''')
 
 
 def provision_stream(conn, folder, schema, readonly_user, password, *, cutoff, is_synthetic=True,

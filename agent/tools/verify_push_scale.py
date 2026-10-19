@@ -21,6 +21,17 @@ from agent.runtime.task_contracts import TaskContract,with_capabilities
 from agent.tools.push_bundle import BundleReader
 
 
+def classify_group_rejection(exc):
+    """组数拒绝与执行截止分别记录；其他数据库故障不能当作保护通过。"""
+    if exc.status_code==422 and '1000' in str(exc.detail):
+        return {'reason':'row_limit','row_count_checked':True}
+    cause=exc.__cause__
+    deadline=(isinstance(cause,psycopg.errors.QueryCanceled) and 'statement timeout' in str(cause)) or isinstance(cause,TimeoutError)
+    if exc.status_code==503 and deadline:
+        return {'reason':'query_timeout','row_count_checked':False}
+    raise exc
+
+
 def verify(source, folder, report):
     folder=Path(folder)
     manifest=json.loads((folder/'validation.json').read_text(encoding='utf-8'))
@@ -123,15 +134,13 @@ def verify(source, folder, report):
         'claims':[{'result_ref':comparison,'row':0,'metric':'click_rate','field':'delta'}]})
     if artifacts[-1]['data']['completeness']!='complete':
         raise ValueError('大样本开放分析工具协议未完成')
-    row_guard=False
+    rejection=None
     try:
         execute_push(source,PushPlan(metrics=['sent'],dimensions=['day','template_id'],
             time_range={'start':'2026-04-01T00:00:00+08:00','end_exclusive':'2026-10-01T00:00:00+08:00'}),list(DEFINITIONS),{})
     except HTTPException as exc:
-        if exc.status_code!=422 or '1000' not in str(exc.detail):
-            raise
-        row_guard=True
-    if not row_guard:
+        rejection=classify_group_rejection(exc)
+    if rejection is None:
         raise ValueError('超量分组没有被拒绝')
     # 执行计划通过同一个只读账号取得，保留数据库原有 10 秒截止。
     explanations=[]
@@ -143,10 +152,11 @@ def verify(source, folder, report):
             explanations.append({'case':name,'explain':result})
     result={'passed':True,'model_calls':0,'mode':'real readonly SQL and deterministic tool scenarios',
         'queries':records,'max_seconds':max(r['seconds'] for r in records),'program_steps':program['steps'],
-        'open_analysis_tool_report':artifacts[-1]['data'],'row_limit_guard':row_guard,'query_explanations':explanations}
+        'open_analysis_tool_report':artifacts[-1]['data'],'row_limit_guard':rejection['row_count_checked'],
+        'large_group_request_rejected':True,'large_group_rejection':rejection,'query_explanations':explanations}
     Path(report).write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')
     print(json.dumps({'phase':'query_verification_complete','queries':len(records),'max_seconds':result['max_seconds'],
-        'program':'passed','open_tools':'passed','row_limit_guard':True}),flush=True)
+        'program':'passed','open_tools':'passed','large_group_rejection':rejection}),flush=True)
     return result
 
 
