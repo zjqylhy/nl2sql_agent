@@ -100,7 +100,7 @@ def create_metric_facts(cur):
     cur.execute('ALTER TABLE push_delivery_metric_facts ADD PRIMARY KEY(delivery_id)')
     # 低内存实例可只读索引完成统计，减少全期查询的数据页读取。
     cur.execute('''CREATE INDEX ON push_delivery_metric_facts(sent_at,app_id)
-      INCLUDE(manufacturer,channel,template_id,failure_reason,accepted_at,
+      INCLUDE(delivery_id,manufacturer,channel,template_id,failure_reason,accepted_at,
         delivered_at,clicked_at,expired_at,sent_day)''')
 
 
