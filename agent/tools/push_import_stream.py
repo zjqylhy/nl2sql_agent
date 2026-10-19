@@ -93,11 +93,14 @@ def create_metric_facts(cur):
     # 指标明细不复制标题正文；避免每次汇总都扫描并关联整张回执表。
     cur.execute('''CREATE TABLE push_delivery_metric_facts AS
       SELECT d.delivery_id,d.app_id,d.manufacturer,d.channel,d.template_id,d.failure_reason,
-        d.sent_at,d.accepted_at,r.delivered_at,r.clicked_at,r.expired_at
+        d.sent_at,d.accepted_at,r.delivered_at,r.clicked_at,r.expired_at,
+        (d.sent_at AT TIME ZONE 'Asia/Shanghai')::date AS sent_day
       FROM push_deliveries d LEFT JOIN push_receipt_summary r USING(delivery_id)
       ORDER BY d.sent_at,d.app_id''')
     cur.execute('ALTER TABLE push_delivery_metric_facts ADD PRIMARY KEY(delivery_id)')
     cur.execute('CREATE INDEX ON push_delivery_metric_facts(sent_at,app_id)')
+    cur.execute('''CREATE INDEX push_metric_day_template ON push_delivery_metric_facts
+      (sent_day,template_id) INCLUDE(sent_at)''')
 
 
 def provision_stream(conn, folder, schema, readonly_user, password, *, cutoff, is_synthetic=True,
@@ -173,8 +176,7 @@ def provision_stream(conn, folder, schema, readonly_user, password, *, cutoff, i
         cur.execute(sql.SQL('''CREATE VIEW metric_push_deliveries WITH(security_barrier=true) AS
           SELECT f.delivery_id,d.message_id,f.template_id,d.title,d.body,f.app_id,d.device_id,
             f.manufacturer,d.route_id,f.channel,f.sent_at,f.accepted_at,f.failure_reason,
-            f.delivered_at,f.clicked_at,f.expired_at,
-            (f.sent_at AT TIME ZONE 'Asia/Shanghai')::date AS sent_day
+            f.delivered_at,f.clicked_at,f.expired_at,f.sent_day
           FROM (SELECT * FROM push_delivery_metric_facts{}) f
           LEFT JOIN push_deliveries d USING(delivery_id)''').format(restriction))
         revision=reader.digest.hexdigest()
