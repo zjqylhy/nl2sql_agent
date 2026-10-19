@@ -72,7 +72,8 @@ def test_stream_import_summary_matches_independent_raw_counts(platform,scaled_bu
             assert cur.fetchone()[0]>=90
             # 优化视图必须保留全部列的精确明细，而不只是核对几个聚合数。
             cur.execute('''WITH original AS (
-                SELECT d.*,r.delivered_at,r.clicked_at,r.expired_at
+                SELECT d.*,r.delivered_at,r.clicked_at,r.expired_at,
+                  (d.sent_at AT TIME ZONE 'Asia/Shanghai')::date AS sent_day
                 FROM analytics_scaled.push_deliveries d
                 LEFT JOIN analytics_scaled.push_receipt_summary r USING(delivery_id)
               ), difference AS (
