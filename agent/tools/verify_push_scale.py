@@ -144,16 +144,29 @@ def verify(source, folder, report):
         raise ValueError('超量分组没有被拒绝')
     # 执行计划通过同一个只读账号取得，保留数据库原有 10 秒截止。
     explanations=[]
-    with psycopg.connect(host=source.host,port=source.port,dbname=source.database,user=source.user,password=source.password,
-        options=f'-c search_path={source.schema_name},pg_catalog -c statement_timeout=10000 -c default_transaction_read_only=on') as conn:
-        for name,plan in [plans[0],plans[12]]:
-            statement,params=compile_push(plan)
-            result=conn.execute('EXPLAIN (ANALYZE,BUFFERS,FORMAT JSON) '+statement.replace('%','%%').replace('?','%s'),params).fetchone()[0]
-            explanations.append({'case':name,'explain':result})
-    result={'passed':True,'model_calls':0,'mode':'real readonly SQL and deterministic tool scenarios',
+    result={'passed':False,'main_checks_passed':True,'model_calls':0,
+        'mode':'real readonly SQL and deterministic tool scenarios',
         'queries':records,'max_seconds':max(r['seconds'] for r in records),'program_steps':program['steps'],
         'open_analysis_tool_report':artifacts[-1]['data'],'row_limit_guard':rejection['row_count_checked'],
         'large_group_request_rejected':True,'large_group_rejection':rejection,'query_explanations':explanations}
+    # 附加诊断失败不能抹掉已经核对的数值、依赖步骤和报告。
+    Path(report).write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')
+    with psycopg.connect(host=source.host,port=source.port,dbname=source.database,user=source.user,password=source.password,
+        options=f'-c search_path={source.schema_name},pg_catalog -c statement_timeout=10000 -c default_transaction_read_only=on',autocommit=True) as conn:
+        for name,plan in [plans[0],plans[12]]:
+            statement,params=compile_push(plan)
+            bound=statement.replace('%','%%').replace('?','%s')
+            kind='actual'
+            try:
+                explanation=conn.execute('EXPLAIN (ANALYZE,BUFFERS,FORMAT JSON) '+bound,params).fetchone()[0]
+            except psycopg.errors.QueryCanceled as exc:
+                if 'statement timeout' not in str(exc):
+                    raise
+                # 带统计的诊断增加执行开销；只降级诊断，不放宽真实取数截止。
+                kind='estimated_after_diagnostic_timeout'
+                explanation=conn.execute('EXPLAIN (FORMAT JSON) '+bound,params).fetchone()[0]
+            explanations.append({'case':name,'kind':kind,'explain':explanation})
+    result['passed']=True
     Path(report).write_text(json.dumps(result,ensure_ascii=False,indent=2),encoding='utf-8')
     print(json.dumps({'phase':'query_verification_complete','queries':len(records),'max_seconds':result['max_seconds'],
         'program':'passed','open_tools':'passed','large_group_rejection':rejection}),flush=True)
