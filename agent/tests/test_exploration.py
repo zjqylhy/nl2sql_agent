@@ -72,6 +72,8 @@ def test_unequal_period_warning_survives_tool_evidence_and_final_report():
     for name in periods:
         data=deepcopy(evidence(name)['data']);data['period']=periods[name]
         data['plan'].update(metrics=['click_rate'],time_range=periods[name])
+        if name=='baseline':
+            data['plan']['filters']*=2  # 旧版本已经保存的合法重复条件也应可核对。
         data['metrics']=[m for m in data['metrics'] if m['id']=='click_rate']
         items.append(artifact('query',data,data['metrics_used'],'a'*64))
     req=request({'action':'compare_periods','arguments':{'baseline_ref':items[0]['result_ref'],'current_ref':items[1]['result_ref']}},items)
@@ -83,6 +85,15 @@ def test_unequal_period_warning_survives_tool_evidence_and_final_report():
     result=report(args,items,req.spec,'a'*64,source())['data']
     assert result['completeness']=='complete'
     assert any('两期长度不同' in line for line in result['limitations'])
+
+
+@pytest.mark.parametrize('change',['different_app','different_operator','extra_condition'])
+def test_filter_equivalence_never_erases_a_real_scope_difference(change):
+    a,b=[evidence(p)['data'] for p in ['baseline','current']]
+    if change=='different_app':b['plan']['filters'][0]['values']=['app_2']
+    elif change=='different_operator':b['plan']['filters'][0]['op']='not_in'
+    else:b['plan']['filters'].append({'field':'channel','op':'in','values':['fcm']})
+    with pytest.raises(AnalysisError,match='范围不可比较'):compatible(a,b)
 
 
 def test_structure_change_is_not_average_of_rates_or_causal_proof():

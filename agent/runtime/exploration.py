@@ -130,10 +130,17 @@ def get_ref(items, ref, kinds):
     return item
 
 
+def filter_keys(filters):
+    """筛选是 AND 条件；重复同一条件、调整顺序或重复 IN 值不改变实际范围。"""
+    return frozenset((f['field'],f['op'],tuple(sorted(set(f['values'])))) for f in filters)
+
+
 def compatible(left, right):
-    for key in ['metrics','dimensions','filters','observation_hours','as_of']:
+    for key in ['metrics','dimensions','observation_hours','as_of']:
         if left['plan'].get(key) != right['plan'].get(key):
             reject(message='输入证据的指标、分组、筛选或观察口径不可比较')
+    if filter_keys(left['plan']['filters']) != filter_keys(right['plan']['filters']):
+        reject(message='输入证据的筛选范围不可比较')
     from .push import Period
     a,b = [Period.model_validate(x['period']) for x in (left,right)]
     if max(a.start,b.start)<min(a.end_exclusive,b.end_exclusive):
@@ -246,6 +253,15 @@ def tool(request, source):
             fixed = [f.model_dump(mode='json') for f in contract.scope.filters]
             filters.extend(PushFilter.model_validate(f) for f in parent_plan['filters'] if f not in fixed)
         plan = contract.plan_for(args.period,args.metrics,args.dimensions,filters)
+        # 模型重复填写已继承的相同条件时只执行一份，不能把多份相同条件当作新增范围。
+        unique = []
+        seen = set()
+        for condition in plan.filters:
+            key = next(iter(filter_keys([condition.model_dump(mode='json')])))
+            if key not in seen:
+                unique.append(condition)
+                seen.add(key)
+        plan = plan.model_copy(update={'filters':unique})
         data = execute_push(source,plan,request.allowed_metrics,{'parser':'exploration','tokens':0})
         data.update(period_name=args.period, parent_ref=args.parent_ref, dataset_revision=source.dataset_revision)
         result = artifact('query',data,data['metrics_used'],request.binding)
@@ -313,7 +329,7 @@ def report(args, items, contract, binding, source):
             reject(message='业务数字必须使用结构化数值引用，不在解释中自填')
     fixed = [f.model_dump(mode='json') for f in contract.scope.filters]
     coverage = {x['data'].get('period_name') for x in evidence.values() if x['kind']=='query' and x['data'].get('coverage')=='complete'
-        and x['data']['plan']['filters']==fixed and set(contract.target_metrics)<=set(x['data']['plan']['metrics'])}
+        and filter_keys(x['data']['plan']['filters'])==filter_keys(fixed) and set(contract.target_metrics)<=set(x['data']['plan']['metrics'])}
     complete = all(a.status=='answered' for a in args.answers) and set(contract.scope.periods)<=coverage
     # 仅从已核验引用生成数值区，解释与假设单独显示。
     data = next((evidence[r]['data'] for r in args.evidence_refs if evidence[r]['data'].get('metrics')), {})

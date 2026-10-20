@@ -12,7 +12,7 @@ from agent.tests.test_push import bundle, push_platform, run_once
 from agent.tests.test_python_platform import platform
 
 
-@pytest.mark.parametrize('shape',['action_only','omit_generated_fields'])
+@pytest.mark.parametrize('shape',['action_only','omit_generated_fields','repeat_scope_filter'])
 def test_confirmed_contract_is_server_owned_and_complete_analysis_still_works(push_platform,monkeypatch,shape):
     client,repo,_=push_platform;calls=[]
     def reply(request):
@@ -20,6 +20,8 @@ def test_confirmed_contract_is_server_owned_and_complete_analysis_still_works(pu
         calls.append(payload);n=len(calls)
         if n<=2:
             action={'action':'query_metrics','arguments':{'period':['baseline','current'][n-1],'metrics':['click_rate']}}
+            if shape=='repeat_scope_filter' and n==1:
+                action['arguments']['filters']=payload['contract']['scope']['filters']
         elif n==3:
             action={'action':'compare_periods','arguments':{'baseline_ref':'e1','current_ref':'e2'}}
         else:
