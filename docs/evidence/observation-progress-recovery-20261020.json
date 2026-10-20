@@ -1,0 +1,82 @@
+{
+  "source_commit": "e08764c59d7db60bc47b8741165367ec8c808c3d",
+  "source_image": {
+    "passed": true,
+    "source_commit": "e08764c59d7db60bc47b8741165367ec8c808c3d",
+    "files": 106,
+    "all_source_bytes_match": true,
+    "runtime_and_validation_dependencies_match": true
+  },
+  "deployment": {
+    "passed": true,
+    "source_commit": "e08764c59d7db60bc47b8741165367ec8c808c3d",
+    "previous_source_commit": "f56ec5b6c3ab8591d5e4717947f16635c96094e3",
+    "database_container_unchanged": true,
+    "task_rows_unchanged": true,
+    "application_config_unchanged": true,
+    "migration": "0005_task_contracts",
+    "platform_backup_bytes": 661750
+  },
+  "server_tests": {
+    "tests": "56",
+    "failures": "0",
+    "errors": "0",
+    "skipped": "0",
+    "time": "178.169"
+  },
+  "historical_step_descriptions": {
+    "passed": true,
+    "source_commit": "e08764c59d7db60bc47b8741165367ec8c808c3d",
+    "task_id": "d5885167b2346a16094891460ba3dc598a9b5e3a624b6a30",
+    "historical_steps_described": 18,
+    "no_new_model_or_sql_calls": true,
+    "descriptions": [
+      "根据已确认条件、已有证据和剩余额度选择下一步",
+      "确定下一步：查询本期（2026-09-14 至 2026-10-14，结束不含）的已确认到达率、点击/发送率；应用：app_3",
+      "查询本期（2026-09-14 至 2026-10-14，结束不含）的已确认到达率、点击/发送率；应用：app_3",
+      "确定下一步：查询基期（2026-08-14 至 2026-09-14，结束不含）的已确认到达率、点击/发送率；应用：app_3",
+      "查询基期（2026-08-14 至 2026-09-14，结束不含）的已确认到达率、点击/发送率；应用：app_3",
+      "确定下一步：比较基期与本期的已确认到达率、点击/发送率变化",
+      "比较基期与本期的已确认到达率、点击/发送率变化",
+      "确定下一步：查看已保存结果的第 1 至 5 行（实际行数以结果为准）",
+      "查看已保存结果的第 1 至 5 行（实际行数以结果为准）",
+      "确定下一步：查看已保存结果的第 1 至 20 行（实际行数以结果为准）",
+      "查看已保存结果的第 1 至 20 行（实际行数以结果为准）",
+      "确定下一步：查看已保存结果的第 1 至 20 行（实际行数以结果为准）",
+      "查看已保存结果的第 1 至 20 行（实际行数以结果为准）",
+      "根据已确认条件、已有证据和剩余额度选择下一步",
+      "确定下一步：查看已保存结果的第 1 至 1 行（实际行数以结果为准）",
+      "查看已保存结果的第 1 至 1 行（实际行数以结果为准）",
+      "确定下一步：查看已保存结果的第 1 至 20 行（实际行数以结果为准）",
+      "查看已保存结果的第 1 至 20 行（实际行数以结果为准）"
+    ]
+  },
+  "real_evidence_next_prompt": {
+    "passed": true,
+    "mode": "build_next_prompt_from_real_evidence_without_model_call",
+    "bytes": 5876,
+    "latest_read_rows": 1,
+    "all_evidence_handles_retained": true,
+    "model_calls": 0,
+    "sql_calls": 0
+  },
+  "new_authorization": {
+    "maximum": 8,
+    "first_run_calls": 4,
+    "second_run_calls": 4,
+    "total_calls_used": 8,
+    "within_authorization": true
+  },
+  "latest_real_run": {
+    "id": "9c570df96537a2bcdddc2af14ca3b1f4e12b8272dd7be659",
+    "status": "canceled",
+    "stop_reason": "任务已停止",
+    "sql_calls": 2,
+    "complete_cause_investigation_accepted": false
+  },
+  "limitations": [
+    "The latest real run was stopped at the explicitly authorized verification call limit.",
+    "Next-prompt replay proves actual rows survive context construction, not that the model completed cause investigation.",
+    "Historical failed tasks were retained unchanged."
+  ]
+}
