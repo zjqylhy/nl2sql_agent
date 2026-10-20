@@ -72,6 +72,37 @@ def test_invalid_model_contract_is_readable_and_manually_retryable(push_platform
         assert trace['error_code']=='model_plan_fields' and trace['sql_calls']==0
 
 
+def test_real_model_direct_contract_keeps_dates_and_uses_the_same_execution_checks(push_platform,monkeypatch):
+    client,repo,_=push_platform
+    direct=values_contract().model_dump(mode='json')
+    direct['question']='模型改写的问题'
+    model(monkeypatch,[{'clarification':'请确认发送起止时间，结束不含'},direct])
+    question='分发记录一共有哪些 app?'
+    task=client.post('/api/tasks',json={'question':question}).json();run_once(repo)
+    task=client.get('/api/tasks/'+task['id']).json()
+    client.post('/api/tasks/'+task['id']+'/answers',json=answer_body(task,'2026-08-01 至 2026-09-15'))
+    run_once(repo);task=client.get('/api/tasks/'+task['id']).json()
+    assert task['status']=='completed',task
+    result=task['result']
+    assert result['contract']['question']==question
+    assert result['contract']['scope']['periods']==values_contract().model_dump(mode='json')['scope']['periods']
+    assert [r['dimensions']['app_id'] for r in result['rows']]==['app_1','app_2','app_3']
+
+
+@pytest.mark.parametrize('change',['ambiguous_envelope','invalid_horizon','sql_in_step'])
+def test_direct_contract_does_not_bypass_rejection_before_sql(push_platform,monkeypatch,change):
+    client,repo,_=push_platform;direct=values_contract().model_dump(mode='json')
+    if change=='ambiguous_envelope':direct['clarification']='同时追问不能执行'
+    elif change=='invalid_horizon':direct['scope']['observation_hours']=0
+    else:direct['execution_plan']['steps'][0]['sql']='SELECT * FROM users'
+    model(monkeypatch,[direct])
+    task=client.post('/api/tasks',json={'question':'分发记录一共有哪些 app?'}).json();run_once(repo)
+    task=client.get('/api/tasks/'+task['id']).json();assert task['status']=='failed'
+    with repo.db.transaction() as conn:
+        trace=conn.execute('SELECT telemetry FROM task_attempts WHERE task_id=%s',(task['id'],)).fetchone()['telemetry']
+        assert trace['sql_calls']==0
+
+
 def test_existing_legacy_plan_failure_is_retryable_without_rewriting_diagnostics(push_platform,monkeypatch):
     client,repo,_=push_platform
     model(monkeypatch,[429])

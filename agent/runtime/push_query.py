@@ -117,6 +117,9 @@ def parse_query(request, source):
             return {'status': 'needs_clarification', 'message': value['clarification'][:200], 'usage': usage}
         if set(value) == {'contract'}:
             return TaskContract.model_validate({**value['contract'],'question':request.input.question}), usage
+        # 部分模型会省略 contract 外层；只接纳唯一完整约定，仍经过相同字段与执行校验。
+        if {'task_type', 'question', 'scope'} <= set(value) <= set(TaskContract.model_fields):
+            return TaskContract.model_validate({**value,'question':request.input.question}), usage
         if set(value) != {'plan'}:
             telemetry.update(error_code='model_envelope')
             raise HTTPException(503, '模型未返回单一有效计划或追问；本任务不自动重发，请重新编辑或使用表单')
