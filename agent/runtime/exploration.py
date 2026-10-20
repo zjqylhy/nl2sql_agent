@@ -300,16 +300,34 @@ def tool(request, source):
         result = artifact('decomposition' if isinstance(action,Decompose) else 'comparison',data,
                           required_metrics(PushPlan.model_validate(projected[1]['plan'])),request.binding)
     elif isinstance(action,Aggregate):
-        original = get_ref(request.artifacts,action.arguments.result_ref,{'query'})
+        original = get_ref(request.artifacts,action.arguments.result_ref,{'query','comparison'})
         if not set(action.arguments.dimensions) <= set(original['data']['plan']['dimensions']):
             reject(message='汇总不能创建不存在的维度')
         # 应用设备可能对应同一物理设备，不能将分应用计数相加后冒充跨应用去重。
         plan = PushPlan.model_validate(original['data']['plan'])
         if plan.device and 'app_id' in plan.dimensions and 'app_id' not in action.arguments.dimensions:
             reject(message='跨应用设备计数不能直接汇总，请重新查询所需整体粒度')
-        data = aggregate(original['data'],action.arguments.dimensions)
-        data['sources'] = [original['result_ref']]
-        result = artifact('query',data,original['metrics_used'],request.binding)
+        if original['kind']=='comparison':
+            # 比率差值不能相加：读取两期完整来源，分别汇总分子分母，再重新比较。
+            refs=original['data'].get('sources',[])
+            if len(refs)!=2:
+                reject('missing_evidence','汇总比较结果需要完整的基期和本期来源')
+            parents=[get_ref(request.artifacts,ref,{'query'}) for ref in refs]
+            selected=original['data']['plan']['metrics']
+            if any(not set(selected)<=set(parent['data']['plan']['metrics']) for parent in parents):
+                reject('missing_evidence','比较指标不在两期完整来源中')
+            projected=[{**parent['data'],'plan':{**parent['data']['plan'],'metrics':selected},
+                'metrics':[m for m in parent['data']['metrics'] if m['id'] in selected]} for parent in parents]
+            left,right=[aggregate(data,action.arguments.dimensions) for data in projected]
+            compatible(left,right,selected)
+            data=compare_data(left,right)
+            data.update(sources=refs,aggregation_source=original['result_ref'],
+                limitations=list(dict.fromkeys([*original['data'].get('limitations',[]),
+                    '已分别汇总两期完整分子分母，再比较；没有累加比率或差值。'])))
+        else:
+            data = aggregate(original['data'],action.arguments.dimensions)
+            data['sources'] = [original['result_ref']]
+        result = artifact(original['kind'],data,original['metrics_used'],request.binding)
     elif isinstance(action,Report):
         result = report(action.arguments,request.artifacts,contract,request.binding,source)
     else:
@@ -444,7 +462,7 @@ GUIDANCE = '''你是推送/设备探索助手。已有contract时只返回JSON {
 已确认条件不得修改。缺指标定义、时间、应用范围或观察时长则request_clarification，不默认最近七天，不擅自增加比较基期。
 工具：query_metrics {period:约定期间名,metrics:[],dimensions:[],filters:[],parent_ref:可选REF,parent_group:可选真实完整分组}；
 lookup_metrics {metrics:[指标]}；inspect_result {result_ref:REF,offset:0,limit:1至20,sort_metric:可选指标,field:"value"或"delta"或"rate",direction:"asc"或"desc",group:可选分组筛选}。预览不足时从完整结果读取，数值引用用原source_ref及source_row；
-compare_periods {baseline_ref:REF,current_ref:REF,metrics:可选比较指标列表}；aggregate_metrics {result_ref:REF,dimensions:[]}；decompose_ratio {baseline_ref:REF,current_ref:REF,metric:比率}；
+compare_periods {baseline_ref:REF,current_ref:REF,metrics:可选比较指标列表}；aggregate_metrics {result_ref:完整query或comparison的REF,dimensions:保留维度[]}，比较结果按两期原始分子分母分别汇总后重新比较，不相加比率差值；decompose_ratio {baseline_ref:REF,current_ref:REF,metric:比率}；
 finish {evidence_refs:[REF],answers:[{item_id:"a1",status:"answered"|"unanswered",evidence_refs:[REF],text:不自填业务数字的解释}],claims:[{result_ref:REF,row:null或行下标,metric:指标,field:"value"|"baseline"|"current"|"delta"|"rate"}],hypotheses:[待验证假设],uninvestigated:[未查方向]}；
 request_clarification {missing_fields:["current"],message:简洁中文问题}。
 扩大范围用request_scope_change {scope:完整新范围,reason:原因}，必须等待用户确认具体变更，不能自行修改已确认约定。
