@@ -37,7 +37,7 @@ services:
     mem_limit: 384m
     logging: *logging
   web:
-    image: olist-python-web:${APP_TAG:?required}
+    image: olist-python-web:${WEB_TAG:-${APP_TAG:?required}}
     build:
       args: {SOURCE_COMMIT: "${SOURCE_COMMIT:?required}"}
     mem_limit: 64m

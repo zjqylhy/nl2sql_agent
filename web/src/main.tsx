@@ -5,6 +5,7 @@ import QueryResult,{type SemanticResult} from './QueryResult'
 import ConversationWorkspace,{type Conversation} from './Conversation'
 import AnalysisWorkspace from './Analysis'
 import PushWorkspace from './PushWorkspace'
+import SiteFooter from './SiteFooter'
 const Chart=lazy(()=>import('./Chart'))
 
 type User={username:string;tenant_id:string;role:string;allowed_metrics:string[]}
@@ -95,4 +96,4 @@ function Users({onError,metricIds=['gmv','orders','aov','cancellation_rate','del
   return <section className="user-panel"><h2>租户账号</h2><p className="muted">新账号默认授予当前管理员可查看的指标。禁用立即影响会话、历史结果和正在执行的任务。</p><table><thead><tr><th>账号</th><th>角色</th><th>状态</th><th>操作</th></tr></thead><tbody>{users.map(({user,enabled})=><tr key={user.id}><td>{user.username}</td><td>{user.role}</td><td>{enabled?'启用':'停用'}</td><td><button onClick={async()=>{try{await api('/users/'+user.id,{enabled:!enabled,allowed_metrics:user.allowed_metrics},'PATCH');await load()}catch(e){onError((e as Error).message)}}}>{enabled?'停用':'启用'}</button></td></tr>)}</tbody></table><form className="user-form" onSubmit={create}><h3>创建账号</h3><label>账号<input value={name} onChange={e=>setName(e.target.value)} required minLength={2} maxLength={100}/></label><label>初始密码<input type="password" value={password} onChange={e=>setPassword(e.target.value)} minLength={12} maxLength={72} required autoComplete="new-password"/></label><label>角色<select value={role} onChange={e=>setRole(e.target.value)}><option value="ops">运营人员</option><option value="data">数据人员</option><option value="admin">管理员</option></select></label><button className="primary" disabled={busy}>创建账号</button></form></section>
 }
 
-createRoot(document.getElementById('root')!).render(<React.StrictMode><App/></React.StrictMode>)
+createRoot(document.getElementById('root')!).render(<React.StrictMode><div className="site-layout"><App/><SiteFooter/></div></React.StrictMode>)
