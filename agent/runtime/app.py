@@ -60,7 +60,7 @@ class QueryRequest(BaseModel):
 
 class PushClarification(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    question: str = Field(min_length=1, max_length=200)
+    question: str = Field(min_length=1, max_length=600)
     answer: str = Field(min_length=1, max_length=1000)
 
 
