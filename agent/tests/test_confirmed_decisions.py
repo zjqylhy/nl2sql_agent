@@ -12,14 +12,20 @@ from agent.tests.test_push import bundle, push_platform, run_once
 from agent.tests.test_python_platform import platform
 
 
-@pytest.mark.parametrize('shape',['action_only','omit_generated_fields','repeat_scope_filter'])
+@pytest.mark.parametrize('shape',['action_only','omit_generated_fields','repeat_scope_filter','helper_counts'])
 def test_confirmed_contract_is_server_owned_and_complete_analysis_still_works(push_platform,monkeypatch,shape):
     client,repo,_=push_platform;calls=[]
+    expected_contract=contract()
+    if shape=='helper_counts':
+        value=expected_contract.model_dump(mode='json')
+        value['scope']['periods']['baseline']['start']='2026-08-31T00:00:00+08:00'
+        expected_contract=type(expected_contract).model_validate(value)
     def reply(request):
         payload=json.loads(json.loads(request.content)['messages'][1]['content'])
         calls.append(payload);n=len(calls)
         if n<=2:
             action={'action':'query_metrics','arguments':{'period':['baseline','current'][n-1],'metrics':['click_rate']}}
+            if shape=='helper_counts':action['arguments']['metrics']=['sent','clicked','click_rate']
             if shape=='repeat_scope_filter' and n==1:
                 action['arguments']['filters']=payload['contract']['scope']['filters']
         elif n==3:
@@ -34,12 +40,12 @@ def test_confirmed_contract_is_server_owned_and_complete_analysis_still_works(pu
             result['spec']=spec
         return model_reply(result)
     monkeypatch.setattr(ModelTransport,'bounded_client',lambda self,**_:httpx.Client(transport=httpx.MockTransport(reply)))
-    task=client.post('/api/analysis-runs',json={'question':'核查点击率变化','request_id':str(uuid4()),'spec':contract().model_dump(mode='json')}).json()
+    task=client.post('/api/analysis-runs',json={'question':'核查点击率变化','request_id':str(uuid4()),'spec':expected_contract.model_dump(mode='json')}).json()
     run_once(repo);run=client.get('/api/analysis-runs/'+task['id']).json()
     assert run['status']=='completed',run
     assert len(calls)==run['state']['model_calls']==4 and run['state']['sql_calls']==2
     report=next(a['data'] for a in run['artifacts'] if a['kind']=='report')
-    assert report['contract']['scope']==contract().model_dump(mode='json')['scope']
+    assert report['contract']['scope']==expected_contract.model_dump(mode='json')['scope']
     assert report['contract']['exploration_permissions']['metrics']
 
 

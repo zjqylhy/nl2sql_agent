@@ -96,6 +96,44 @@ def test_filter_equivalence_never_erases_a_real_scope_difference(change):
     with pytest.raises(AnalysisError,match='范围不可比较'):compatible(a,b)
 
 
+@pytest.mark.parametrize('action_name',['compare_periods','decompose_ratio'])
+def test_unequal_ratio_comparison_keeps_helper_counts_without_comparing_them(action_name):
+    periods={'baseline':{'start':'2026-08-14T00:00:00+08:00','end_exclusive':'2026-09-14T00:00:00+08:00'},
+             'current':{'start':'2026-09-14T00:00:00+08:00','end_exclusive':'2026-10-14T00:00:00+08:00'}}
+    items=[]
+    for period in periods:
+        data=deepcopy(evidence(period,['channel'])['data'])
+        data['period']=periods[period];data['plan']['time_range']=periods[period]
+        items.append(artifact('query',data,data['metrics_used'],'a'*64))
+    original=deepcopy(items)
+    arguments={'baseline_ref':items[0]['result_ref'],'current_ref':items[1]['result_ref']}
+    if action_name=='decompose_ratio':arguments['metric']='click_rate'
+    req=request({'action':action_name,'arguments':arguments},items)
+    spec=req.spec.model_dump(mode='json');spec['scope']['periods']=periods;req.spec=TaskContract.model_validate(spec)
+    output=tool(req,source())['artifact']['data']
+    assert items==original
+    assert output['plan']['metrics']==['click_rate']
+    assert output['excluded_comparison_metrics']==['sent','clicked']
+    assert all(set(row['values'])=={'click_rate'} for row in output['rows'])
+    assert any('两期长度不同' in line for line in output['limitations'])
+    assert output['period']==periods['current']
+    if action_name=='decompose_ratio':assert Decimal(output['delta'])==-2
+    req.action=TypeAdapter(ExplorationAction).validate_python({'action':'compare_periods',
+        'arguments':{**{'baseline_ref':items[0]['result_ref'],'current_ref':items[1]['result_ref']},'metrics':['sent']}})
+    with pytest.raises(AnalysisError,match='计数与时延'):tool(req,source())
+    req.action=TypeAdapter(ExplorationAction).validate_python({'action':'compare_periods',
+        'arguments':{'baseline_ref':items[0]['result_ref'],'current_ref':items[1]['result_ref'],'metrics':['delivery_rate']}})
+    with pytest.raises(AnalysisError,match='必须存在'):tool(req,source())
+
+
+def test_explicit_count_target_cannot_silently_be_omitted_for_unequal_periods():
+    a,b=[evidence(period) for period in ['baseline','current']]
+    a['data']['period']['start']='2026-08-31T00:00:00+08:00'
+    req=request({'action':'compare_periods','arguments':{'baseline_ref':a['result_ref'],'current_ref':b['result_ref']}},[a,b])
+    req.spec=req.spec.model_copy(update={'target_metrics':['sent','click_rate']})
+    with pytest.raises(AnalysisError,match='计数与时延'):tool(req,source())
+
+
 def test_structure_change_is_not_average_of_rates_or_causal_proof():
     a,b = [evidence(p,['channel'])['data'] for p in ['baseline','current']]
     for data, counts in [(a,[(800,80),(200,4)]),(b,[(200,20),(800,16)])]:
