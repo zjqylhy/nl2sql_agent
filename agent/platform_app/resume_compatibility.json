@@ -1,0 +1,12 @@
+[
+  {
+    "source_digest": "89b542591bb222072767c76a095fca82b21c7cc9c4c6ed1f725a18ee8130479d",
+    "target_digest": "128e413b9aec07f0232c4e55414b28bc2b938e77ed2fcb2d4910bcbc43142196",
+    "graph_version": "stategraph-1",
+    "recovery_version": 1,
+    "replay_tests": [
+      "legacy_model_format_138a62fd",
+      "legacy_invalid_arguments_0848b3af"
+    ]
+  }
+]

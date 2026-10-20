@@ -36,6 +36,7 @@ class QueryInput(BaseModel):
     start: str = ""
     end: str = ""
     push_plan: PushPlan | None = None
+    query_contract: dict | None = None
 
 
 class Execution(BaseModel):
@@ -53,11 +54,14 @@ class QueryRequest(BaseModel):
     execution: Execution | None = None
     context: QueryContext | None = None
     push_dialogue: list["PushClarification"] = Field(default_factory=list, max_length=2)
+    initial_max_output_tokens: int = Field(default=2048,ge=256,le=4096,strict=True)
+    initial_max_input_bytes: int = Field(default=6000,ge=1024,le=65536,strict=True)
+    initial_model: str | None = None
 
 
 class PushClarification(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    question: str = Field(min_length=1, max_length=200)
+    question: str = Field(min_length=1, max_length=600)
     answer: str = Field(min_length=1, max_length=1000)
 
 
@@ -281,7 +285,7 @@ def run_query(request: QueryRequest):
     if source.domain == 'push':
         from .push_query import run_push_query
         return run_push_query(request, source)
-    if request.input.push_plan is not None:
+    if request.input.push_plan is not None or request.input.query_contract is not None:
         raise HTTPException(422, '当前数据源不支持推送计划')
     binding = source_metadata(source, request.tenant_id, request.role) if request.context else None
     if request.context and request.context.binding != binding["binding"]:

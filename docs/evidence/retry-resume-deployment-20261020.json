@@ -1,0 +1,45 @@
+{
+  "date": "2026-10-20",
+  "feature_commit": "e9edb4ea185ef848cdf704042d690ffd801d62eb",
+  "deployed_commit": "a43cf6f9a316c0145cca8cd54658d50782beb349",
+  "previous_deployed_commit": "b351d1ce5917eafc672a4eb57d2c4e77536e59fa",
+  "code_digest": "128e413b9aec07f0232c4e55414b28bc2b938e77ed2fcb2d4910bcbc43142196",
+  "migration": "0006_task_resume",
+  "server_regression": {
+    "initial_tests": 121,
+    "initial_passed": 120,
+    "initial_environment_failure": "Olist CSV directory was not mounted into test container",
+    "final_image_retest_tests": 6,
+    "final_image_retest_failures": 0,
+    "final_image_retest_errors": 0,
+    "final_image_retest_skipped": 0,
+    "csv_failure_reverified_with_readonly_mount": true
+  },
+  "legacy_replay": [
+    {"task_prefix": "138a62fd", "saved_evidence_count": 6, "same_task": true, "evidence_unchanged": true, "additional_sql": 0, "simulated_decisions": 2, "external_model_calls": 0},
+    {"task_prefix": "0848b3af", "saved_evidence_count": 4, "same_task": true, "evidence_unchanged": true, "additional_sql": 0, "simulated_decisions": 2, "external_model_calls": 0}
+  ],
+  "production_retry_availability": [
+    {"task_prefix": "138a62fd", "available": true, "requires_call_extension": true, "max_additional_model_calls": 10},
+    {"task_prefix": "0848b3af", "available": true, "requires_call_extension": false, "max_additional_model_calls": 0}
+  ],
+  "deployment_checks": {
+    "verified_image_source_files": 116,
+    "database_container_unchanged": true,
+    "existing_tasks_evidence_and_budget_unchanged": true,
+    "model_configuration_and_budget_unchanged": true,
+    "api_checkpoint_access_still_denied": true,
+    "production_retry_rounds_started": 0,
+    "external_model_calls": 0,
+    "application_health": "ok",
+    "local_tunnel_home_http": 200,
+    "local_tunnel_health_http": 200,
+    "new_retry_ui_served": true,
+    "backup_timer_active": true,
+    "only_loopback_http": true,
+    "pre_migration_platform_backup_bytes": 976124,
+    "pre_migration_platform_backup_sha256": "bdbf8f6618644e8976d7bc46b07de8558b6fe1f7b2964f31428273f3c931d02b",
+    "isolated_test_database_network_and_temporary_secrets_removed": true,
+    "historical_data_exported_to_local": false
+  }
+}

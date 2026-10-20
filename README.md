@@ -4,15 +4,32 @@
 
 - 推送：发送量、受理量、已确认到达、点击、已知失败、未知到达、平均到达时延，及到达率、点击/发送率和点击/到达率。
 - 设备：指定时点的总量、有效、无效、未知设备，自定义期间的活跃和活跃有效设备。按应用与设备 ID 去重，活跃依据应用前台事件。
-- 分析：单期汇总、Top N 及所选分组合计；比较两期同口径推送指标，按下降差值选组并展示核查指标。比率差值为百分点，不作因果归因。
-- 表单查询无需模型；自然语言解析和工具分析需要模型配置。分析包含两轮补充、图检查点、持久回执、预算、租约和执行围栏。调用结果未知时停止并保留预留。
+- 统一问题入口：初始 AI 同时识别任务类型并生成约定；明确取数生成完整步骤计划，由程序检查并执行全部依赖；开放分析根据真实结果选择调查方向。汇总、趋势、Top N、两期比较均属于明确取数，不再保留固定业务目标入口。
+- 支持列出指定发送期间实际出现的 App、模板等维度值，无须回执观察时长；模型失败后可手动重试，保留原问题和已补充条件，新任务单独记账。详见[维度取值](docs/dimension-value-query.md)和[手动重试](docs/model-request-retry.md)。
+- 两轮补充保留完整条件，发模型前检查输入预算；已确认分析约定保存在服务端，后续模型仅提交动作。修复范围与真实验收边界见[输入与分析协议修复](docs/initial-context-budget.md)。
+- 执行步骤按已校验参数显示自然语言说明；最近一次读取保留实际行，按来源与原行号识别重复查看。发布与验证边界见[读取循环与步骤说明](docs/observation-progress-and-step-descriptions.md)。
+- 辅助表单无需模型；自然语言与开放分析需要模型配置。共享任务编号、权限检查、补充记录和预算；结果未知时保守停止。开放分析扩大范围前展示具体变更并等待确认。
 - 会话：查询完成后点击“继续追问或调整回答”，可修改条件重查，或复用结果调整表格/卡片与口径解释。消息按树保存，回退后继续自动分叉；旧消息与回答版本保留，上下文只沿当前分支读取。
 
-需求与验收依据见 [推送与设备规格](docs/push-device-spec.md)。
+需求与验收依据见 [开放探索规格](docs/open-exploration-spec.md)、[技术方案](docs/open-exploration-technical-design.md)及[实施记录](docs/open-exploration-implementation.md)。原数据口径见 [推送与设备规格](docs/push-device-spec.md)。
 
 ## 数据与指标口径
 
 内置数据由固定种子 `20261018` 生成，全部标为模拟数据，不代表真实厂商效果。3 个虚构应用，600 条应用设备记录对应 400 个模拟物理设备，21,960 条逻辑推送，另含 Token/权限历史、应用活跃、重试及原始回执。设备 ID 为直接生成的业务标识，不包含真实 IMEI、广告 ID 或可用 Token。
+
+每条发送记录增加 `template_id`、`title`、`body`，由生成器产生三套模拟模板文案；可按模板 ID 分组与筛选。文案字段不改变原有随机发送/回执样本，不能据此声称已证明文案导致指标变化。
+
+大规模模拟样本使用独立输出目录，支持约 20 万设备、1000 万逻辑发送，另含关联尝试、回执和活跃事件；不替换上述快速回归样本。生成、复核和导入都采用流式处理，详见[扩容方案](docs/push-scale-technical-design.md)、[本地实施验证](docs/push-scale-results.md)及[服务器发布记录](docs/push-scale-deployment.md)。
+
+```powershell
+.venv/Scripts/python.exe -m agent.tools.generate_push --output data/push-large --devices 200000 --deliveries 10000000
+# IMPORT_DATABASE_URL 使用维护身份；账号密码从 PUSH_READONLY_PASSWORD 读取。
+.venv/Scripts/python.exe -m agent.tools.import_push_postgres --data-dir data/push-large/data --schema analytics_push_large_v1 --readonly-user push_large_ro --report data/push-large/import-report.json
+# 使用该快照的只读连接设置 PUSH_VERIFY_DATABASE_URL，revision 为导入输出。
+.venv/Scripts/python.exe -m agent.tools.verify_push_scale --bundle data/push-large --schema analytics_push_large_v1 --revision '替换为导入输出的64位摘要' --report data/push-large/query-report.json
+```
+
+大样本输出为 `.jsonl.gz`，导入器直接逐行解压；原 `.jsonl` 输入继续可用。生成器拒绝覆盖已有大样本目录，导入器拒绝覆盖已有 schema。导入时一次性生成私有回执归并表，查询仍只使用授权指标视图，并保留原来的观察窗口、只读权限与超时限制。数据库发布不自动切换 API/Worker 的可信数据源映射。
 
 发送样本为 `[2026-04-01,2026-10-01)`，快照为 `2026-10-15T00:00:00+08:00`。用户自定义带时区的 `[start,end_exclusive)`，没有固定周限制。发送期间、回执观察时长、设备状态时点分别指定；超出快照、早于数据范围或观察未成熟时明确拒绝。前端日期使用上海时区。
 
@@ -67,9 +84,11 @@ npm run dev
 
 ## 模型与恢复
 
-配置 `NL2SQL_AGENT_API_KEY`、`LLM_BASE_URL`、`LLM_MODEL`，确认 tokenizer、真实价格与总预算后设置 `ANALYSIS_ENABLED=true`。`adaptive` 由模型逐步选择动作；`fixed` 仅在规格缺失时用模型解析，已确认规格按确定流程执行。推送分析使用独立协议，与订单规格不能混用。
+配置 `NL2SQL_AGENT_API_KEY`、`LLM_BASE_URL`、`LLM_MODEL`，确认 tokenizer、真实价格与总预算后设置 `ANALYSIS_ENABLED=true`。推送任务的类型由统一入口识别：明确取数只在开始时生成完整计划，开放分析始终根据观测选择动作；原 `ANALYSIS_STRATEGY=fixed` 仅保留在既有订单评测域，不能将开放推送任务锁回固定业务流程。
 
-默认最多模型 10 次、工具 12 次、SQL 6 次、参数修正 1 次、SQL 重试 1 次、活跃执行 180 秒、30000 Token，并行分析 2 个。调用截止和预算随任务冻结。`ANALYSIS_INPUT_PRICE_MICROS` / `OUTPUT_PRICE_MICROS` 表示每百万 Token 的微货币价格，1000000 微单位等于 1 货币单位。未知用量仍占预留，测试单位不能作为真实账单。
+升级需先运行迁移与运行账号授权，新增结构由 `0005_task_contracts` 创建。旧数据没有模板字段时，重新生成样本并用**新 schema、只读账号及数据版本**发布；导入器拒绝覆盖旧快照。更新映射后再启动 API/Worker，不能只替换代码就让旧视图宣称具备模板能力。已按用户授权完成服务器升级，实际运行版本、数据范围及限制见 [服务器发布记录](docs/push-scale-deployment.md)。
+
+新任务默认最多模型 10 次、工具 12 次、SQL 6 次、参数修正 1 次、SQL 重试 1 次、活跃执行 180 秒、400000 Token，并行分析 2 个。单次输入默认32768个 UTF-8 字节，包含消息预留；输入限制、费用预留与实际用量结算使用同一冻结值。旧任务缺少新字段时仍按原6000字节处理，费用上限与网关月额度不因升级提高。配置与验证见 [模型输入预算](docs/model-input-budget.md)。`ANALYSIS_INPUT_PRICE_MICROS` / `OUTPUT_PRICE_MICROS` 表示每百万 Token 的微货币价格，1000000 微单位等于 1 货币单位。未知用量仍占预留，测试单位不能作为真实账单。
 
 图持久化下一节点，操作账本持久化额度、发送意图和回执。回执先完成而图未推进时复用回执，不再发送调用。权限、数据、目录、模型和代码绑定变化后旧任务不能继续执行。检查点、平台、分析域位于同一 PostgreSQL 实例的三个权限域；schema 不提供资源故障隔离。
 

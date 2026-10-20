@@ -6,7 +6,7 @@ from contextvars import ContextVar
 from time import perf_counter
 
 current = ContextVar("query_telemetry", default=None)
-FIELDS = ("version", "task_id", "execution_version", "parser", "model_calls", "model", "input_tokens", "output_tokens", "total_tokens", "stages_ms", "error_code", "rows")
+FIELDS = ("version", "task_id", "execution_version", "parser", "model_calls", "model", "input_tokens", "output_tokens", "total_tokens", "sql_calls", "stages_ms", "error_code", "error_fields", "rows")
 logger = logging.getLogger("olist.telemetry")
 if not logger.handlers:
     handler = logging.StreamHandler()
@@ -33,6 +33,12 @@ def update(**values):
         value.update(values)
 
 
+def sql_call():
+    value = current.get()
+    if value is not None:
+        value['sql_calls'] = value.get('sql_calls',0)+1
+
+
 def rule_decision(recognition, mode):
     # 只记录语法标识和区间，既能定位错误直出，也不记录用户原文及筛选值。
     logger.info(json.dumps({"event": "rule_decision", "mode": mode,
@@ -57,18 +63,25 @@ def model_error(exc):
     elif isinstance(exc, httpx.HTTPStatusError):
         status = exc.response.status_code
         code = "model_rate_limit" if status == 429 else "model_auth" if status in (401, 403) else "model_http"
+        if status == 429:
+            try:
+                if exc.response.json()['error']['code'] == 'insufficient_quota':
+                    code = 'model_quota'
+            except (ValueError, KeyError, TypeError):
+                pass
     elif isinstance(exc, httpx.HTTPError):
         code = "model_network"
     else:
         code = "model_format"
     update(error_code=code)
+    return code
 
 
 @contextmanager
 def capture(execution):
     value = {"version": 1, "task_id": execution.task_id if execution else "", "execution_version": execution.execution_version if execution else 0,
              "parser": "unknown", "model_calls": 0, "model": "", "input_tokens": 0, "output_tokens": 0,
-             "total_tokens": 0, "stages_ms": {}, "error_code": "", "rows": None}
+             "total_tokens": 0, "sql_calls":0, "stages_ms": {}, "error_code": "", "error_fields": [], "rows": None}
     reset = current.set(value)
     try:
         yield value

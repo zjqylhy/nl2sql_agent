@@ -156,8 +156,7 @@ def filters_key(filters):
 
 def metric_ids(spec):
     if getattr(spec, 'domain', None) == 'push':
-        from .push_analysis import metric_ids as push_ids
-        return push_ids(spec)
+        return spec.required_metrics()
     if spec and (spec.goal == "compare_declines" or "aov" in spec.checks):
         return ["gmv", "orders", "aov"]
     return ["gmv", "orders"] if spec and "orders" in spec.checks else ["gmv"]

@@ -1,0 +1,156 @@
+{
+  "source_commit": "f56ec5b6c3ab8591d5e4717947f16635c96094e3",
+  "source_image": {
+    "passed": true,
+    "source_commit": "f56ec5b6c3ab8591d5e4717947f16635c96094e3",
+    "files": 104,
+    "all_source_bytes_match": true,
+    "runtime_and_validation_dependencies_match": true
+  },
+  "deployment": {
+    "passed": true,
+    "source_commit": "f56ec5b6c3ab8591d5e4717947f16635c96094e3",
+    "previous_source_commit": "3749e9e28d21e2d34a702b245260a5ca1580745c",
+    "database_container_unchanged": true,
+    "task_rows_unchanged": true,
+    "application_config_unchanged": true,
+    "migration": "0005_task_contracts",
+    "platform_backup_bytes": 603724
+  },
+  "existing_evidence_replay": {
+    "passed": true,
+    "mode": "existing_evidence_deterministic_replay",
+    "model_calls": 0,
+    "sql_calls": 0,
+    "original_task_failure_unchanged": true,
+    "periods": {
+      "current": {
+        "start": "2026-09-14T00:00:00+08:00",
+        "end_exclusive": "2026-10-14T00:00:00+08:00"
+      },
+      "baseline": {
+        "start": "2026-08-14T00:00:00+08:00",
+        "end_exclusive": "2026-09-14T00:00:00+08:00"
+      }
+    },
+    "comparison": {
+      "delivery_rate": {
+        "baseline": "49.07809658069554960887067495",
+        "current": "45.51024099109282452412171633",
+        "delta": "-3.56785558960272508474895862",
+        "rate": "-7.269751351779422162862914852",
+        "delta_unit": "百分点"
+      },
+      "click_rate": {
+        "baseline": "4.181373495298832722036954062",
+        "current": "3.864189795826093696510118267",
+        "delta": "-0.317183699472739025526835795",
+        "rate": "-7.585634237873090747422755236",
+        "delta_unit": "百分点"
+      }
+    },
+    "report_completeness": "partial",
+    "limitations": [
+      "已确认到达率受回执覆盖影响；缺回执不等于失败。",
+      "比率按总分子/总分母计算，零分母不计算。",
+      "发送窗口与回执观察时长分别限定；不作因果归因。",
+      "两期长度不同，仅比较各自发送批次的比率，不比较计数；未消除发送日期结构与季节性差异。",
+      "解释为模型基于证据的分析，假设尚未验证；程序检查不证明业务因果。"
+    ]
+  },
+  "real_acceptance": {
+    "parent_task_id": "4556a3e9d7fe2abc646872628dd09c09a95c1b0e5b665a52",
+    "retry_task_id": "81f672588eb28e3d7ef1a961f071e77d9d55733d4479eec8",
+    "prior_model_calls": 3,
+    "retry_model_calls": 5,
+    "total_model_calls": 8,
+    "authorized_maximum": 10,
+    "state": {
+      "status": "failed",
+      "error": "输入证据的指标、分组、筛选或观察口径不可比较",
+      "model_calls": 5,
+      "sql_calls": 2
+    },
+    "guard_interval_seconds": 2,
+    "within_authorized_limit": true
+  },
+  "server_tests": [
+    {
+      "commit": "455ee9a",
+      "tests": "44",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "248.273"
+    },
+    {
+      "commit": "3749e9e",
+      "tests": "71",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "193.072"
+    },
+    {
+      "commit": "f56ec5b",
+      "tests": "50",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "162.556"
+    }
+  ],
+  "date": "2026-10-20",
+  "input_size_proof": {
+    "budget_bytes": 6000,
+    "message_overhead_bytes": 256,
+    "old_prompt_bytes": 4942,
+    "old_payload_bytes": 942,
+    "old_total_bytes": 6140,
+    "new_prompt_bytes": 3722,
+    "new_payload_bytes": 932,
+    "new_total_bytes": 4910,
+    "user_conditions_preserved": true,
+    "model_calls": 0
+  },
+  "local_tests": [
+    {
+      "commit": "455ee9a",
+      "tests": "39",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "137.992"
+    },
+    {
+      "commit": "3749e9e",
+      "tests": "70",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "118.515"
+    },
+    {
+      "commit": "3749e9e",
+      "tests": "20",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "0.387"
+    },
+    {
+      "commit": "f56ec5b",
+      "tests": "50",
+      "failures": "0",
+      "errors": "0",
+      "skipped": "0",
+      "time": "99.983"
+    }
+  ],
+  "limitations": [
+    "Historical failures were retained, not changed to successful tasks.",
+    "Existing evidence replay proves calculations, not completion of autonomous cause investigation.",
+    "A further maximum of 8 model calls was requested but has not been used without user reply.",
+    "Test sets overlap; do not add counts."
+  ]
+}

@@ -2,7 +2,7 @@
 from sqlglot import exp, parse
 from .security import UnsafeSQL
 
-TABLES = {'metric_push_deliveries', 'metric_devices', 'metric_device_states', 'metric_device_activity'}
+TABLES = {'metric_push_deliveries', 'metric_push_daily_outcomes', 'metric_devices', 'metric_device_states', 'metric_device_activity'}
 
 
 def validate_push_sql(sql, params):

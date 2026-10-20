@@ -25,7 +25,7 @@ from agent.runtime.analysis import AnalysisError, Spec, metric_ids
 from agent.runtime.analysis_api import context as analysis_context
 from agent.runtime.catalog import StrictModel, catalog
 from agent.runtime.push import DEFINITIONS, DIMENSIONS, ENUMS
-from agent.runtime.push_analysis import PushSpec, plans as push_plans
+from agent.runtime.task_contracts import TaskContract, validate_contract, with_capabilities
 from .database import Database
 from .policy import Policy
 from .repository import ACTIVE, Repository, binding, identity, permitted, public_conversation, public_task, query_clarification
@@ -51,7 +51,7 @@ class Input(runtime.QueryInput):
 class AnalysisInput(StrictModel):
     question: str = Field(min_length=1, max_length=2000)
     request_id: str = Field(pattern=UUID)
-    spec: Spec | PushSpec | None = None
+    spec: Spec | TaskContract | None = None
 
 
 class Version(StrictModel):
@@ -61,6 +61,17 @@ class Version(StrictModel):
 class Answer(Version):
     request_id: str = Field(pattern=UUID)
     answer: str = Field(min_length=1, max_length=1000)
+
+
+class Retry(StrictModel):
+    request_id: str = Field(pattern=UUID)
+    expected_execution_version: int = Field(ge=0, strict=True)
+    additional_model_calls: int = Field(default=0, ge=0, le=10, strict=True)
+
+
+class ScopeConfirmation(Version):
+    request_id: str = Field(pattern=UUID)
+    approved: bool = Field(strict=True)
 
 
 class PushThreadInput(StrictModel):
@@ -256,7 +267,7 @@ def create_app(db=None, policy=None, *, origin=None, secure_cookie=None, trusted
         if source is None:
             raise HTTPException(403, '尚未配置授权数据源')
         meta = binding(user)
-        return {**meta, 'domain': source.domain, 'dimensions': DIMENSIONS if source.domain == 'push' else {},
+        return {**meta, 'domain': source.domain, 'task_types':['query','analysis'], 'dimensions': DIMENSIONS if source.domain == 'push' else {},
                 'enums': ENUMS if source.domain == 'push' else {}, 'metrics': metrics(user)}
 
     @app.get("/api/tasks")
@@ -271,18 +282,27 @@ def create_app(db=None, policy=None, *, origin=None, secure_cookie=None, trusted
         return values
 
     @app.post("/api/tasks", status_code=202)
-    def create_task(body: Input, user=Depends(current_user), repository=Depends(repo)):
+    def create_task(body: Input, request: Request, user=Depends(current_user), repository=Depends(repo)):
         if body.metric and body.metric not in user["allowed_metrics"]:
             raise HTTPException(403, "没有该指标权限")
         with repository.db.transaction() as conn:
             repository.capacity(conn, user)
             run_id = repository.insert_task(conn, user, body.model_dump(mode='json'))
+            if body.push_plan is None and body.query_contract is None and request.app.state.policy:
+                conn.execute('UPDATE tasks SET intent_policy=%s WHERE id=%s',(Jsonb(request.app.state.policy.model_dump()),run_id))
             return public_task(repository.task(conn, user, run_id))
 
     @app.get("/api/tasks/{run_id}")
     def task(run_id: str, user=Depends(current_user), repository=Depends(repo)):
         with repository.db.transaction() as conn:
             return public_task(repository.task(conn, user, run_id))
+
+    @app.post('/api/tasks/{run_id}/retry', status_code=202)
+    def retry_task(run_id: str, body: Retry, request: Request, user=Depends(current_user), repository=Depends(repo)):
+        from .task_retry import create_retry
+        with repository.db.transaction() as conn:
+            value = create_retry(repository,conn,user,run_id,body.request_id,body.expected_execution_version,request.app.state.policy,body.additional_model_calls)
+            return public_task(value)
 
     @app.post('/api/push-threads', status_code=201)
     def push_thread_create(body: PushThreadInput,user=Depends(current_user),repository=Depends(repo)):
@@ -295,6 +315,16 @@ def create_app(db=None, policy=None, *, origin=None, secure_cookie=None, trusted
         from .push_threads import Threads
         with repository.db.transaction() as conn:
             return Threads(repository).get(conn,user,thread_id)
+
+    @app.get('/api/tasks/{task_id}/evidence/{result_ref}')
+    def query_evidence(task_id: str,result_ref: str,user=Depends(current_user),repository=Depends(repo)):
+        with repository.db.transaction() as conn:
+            task=repository.task(conn,user,task_id)
+            row=conn.execute('SELECT body FROM task_evidence WHERE task_id=%s AND contract_version=%s AND result_ref=%s',
+                (task_id,task['contract_version'],result_ref)).fetchone()
+            if not row or not permitted(user,row['body']):
+                raise HTTPException(404,'结果不存在、已过期或无权读取')
+            return row['body']
 
     @app.post('/api/push-threads/{thread_id}/turns',status_code=202)
     def push_thread_turn(thread_id: str,body: PushTreeTurn,user=Depends(current_user),repository=Depends(repo)):
@@ -350,6 +380,11 @@ def create_app(db=None, policy=None, *, origin=None, secure_cookie=None, trusted
                 conn.execute("UPDATE task_attempts SET state='canceled',ended_at=now() WHERE task_id=%s AND state='running'", (run_id,))
                 conn.execute("UPDATE analysis_steps SET status='canceled',ended_at=now() WHERE run_id=%s AND status='running'", (run_id,))
                 conn.execute("UPDATE analysis_budget_ledger SET status='unknown' WHERE run_id=%s AND status='reserved'", (run_id,))
+                if value.get('resume_round'):
+                    from .task_budget import usage_snapshot
+                    run=conn.execute('SELECT * FROM analysis_runs WHERE id=%s',(run_id,)).fetchone() if value['kind']=='analysis' else None
+                    conn.execute("UPDATE task_resume_rounds SET status='canceled',usage_after=%s,ended_at=now() WHERE task_id=%s AND round_no=%s",
+                                 (Jsonb(usage_snapshot(conn,value,run)),run_id,value['resume_round']))
                 if value["conversation_id"]:
                     conn.execute("UPDATE conversations SET active_task_id=NULL,version=version+1,updated_at=now() WHERE id=%s AND active_task_id=%s", (value["conversation_id"], run_id))
                 if value["kind"] == "analysis":
@@ -413,16 +448,18 @@ def create_app(db=None, policy=None, *, origin=None, secure_cookie=None, trusted
             raise HTTPException(400, "请输入有效问题")
         if body.spec:
             source = runtime.sources()[user['tenant_id']+':'+user['role']]
-            if isinstance(body.spec, PushSpec) != (source.domain == 'push'):
+            if isinstance(body.spec,TaskContract) != (source.domain == 'push'):
                 raise HTTPException(400, '任务规格与授权数据域不一致')
             try:
                 body.spec.check_anchor(date.fromisoformat(binding(user, True)["analysis_date"]))
             except ValueError as exc:
                 raise HTTPException(400, str(exc)) from exc
-            if isinstance(body.spec, PushSpec):
+            if isinstance(body.spec,TaskContract):
                 try:
-                    for plan in push_plans(body.spec):
-                        plan.check_source(source)
+                    if body.spec.task_type != 'analysis':
+                        raise ValueError('明确条件取数请使用查询入口')
+                    body.spec = with_capabilities(body.spec,user['allowed_metrics'])
+                    validate_contract(body.spec,source,user['allowed_metrics'])
                 except ValueError as exc:
                     raise HTTPException(400, str(exc)) from exc
             if not set(metric_ids(body.spec)) <= set(user["allowed_metrics"]):
@@ -455,6 +492,8 @@ def create_app(db=None, policy=None, *, origin=None, secure_cookie=None, trusted
         with repository.db.transaction() as conn:
             value = repository.task(conn, user, run_id, lock=True)
             run = repository.analysis(conn, user, run_id)
+            if run['state'].get('pending_scope'):
+                raise HTTPException(409,'此处等待具体范围变更确认，请使用确认或拒绝按钮')
             old = conn.execute("SELECT body_hash FROM analysis_answers WHERE run_id=%s AND request_id=%s", (run_id, body.request_id)).fetchone()
             if old:
                 if old["body_hash"] != digest:
@@ -470,6 +509,31 @@ def create_app(db=None, policy=None, *, origin=None, secure_cookie=None, trusted
             conn.execute("UPDATE tasks SET status='pending',ready_at=now(),updated_at=now() WHERE id=%s", (run_id,))
             repository.event(conn, run_id, "accepted", {"status": "pending"})
             return repository.analysis(conn, user, run_id)
+
+    @app.post('/api/analysis-runs/{run_id}/scope-confirmations')
+    def confirm_scope(run_id: str, body: ScopeConfirmation, user=Depends(current_user), repository=Depends(repo)):
+        digest = hashlib.sha256(json.dumps({'approved':body.approved}).encode()).hexdigest()
+        with repository.db.transaction() as conn:
+            value = repository.task(conn,user,run_id,lock=True)
+            run = repository.analysis(conn,user,run_id)
+            old = conn.execute('SELECT body_hash FROM analysis_answers WHERE run_id=%s AND request_id=%s',(run_id,body.request_id)).fetchone()
+            if old:
+                if old['body_hash'] != digest:
+                    raise HTTPException(409,'同一确认请求的内容不同')
+                return run
+            if value['status'] != 'needs_clarification' or run['version'] != body.expected_version or not run['state'].get('pending_scope'):
+                raise HTTPException(409,'范围确认已失效或任务状态已变化')
+            if (time.time()-value['updated_at'].timestamp())>86400 or len(run['state']['answers'])>=2:
+                raise HTTPException(409,'确认已过期或补充次数已耗尽')
+            proposed = TaskContract.model_validate(run['state']['pending_scope'])
+            validate_contract(proposed,runtime.sources()[user['tenant_id']+':'+user['role']],user['allowed_metrics'])
+            repository.capacity(conn,user)
+            conn.execute('UPDATE analysis_runs SET resume_input=%s,version=version+1,updated_at=now() WHERE id=%s',
+                (Jsonb({'answer':{'approved':body.approved},'wait_id':run['state']['wait_id']}),run_id))
+            conn.execute('INSERT INTO analysis_answers VALUES(%s,%s,%s,%s)',(run_id,body.request_id,digest,run['version']+1))
+            conn.execute("UPDATE tasks SET status='pending',ready_at=now(),updated_at=now() WHERE id=%s",(run_id,))
+            repository.event(conn,run_id,'accepted',{'status':'pending','scope_approved':body.approved})
+            return repository.analysis(conn,user,run_id)
 
     @app.post("/api/analysis-runs/{run_id}/resume")
     def resume(run_id: str, user=Depends(current_user), repository=Depends(repo)):

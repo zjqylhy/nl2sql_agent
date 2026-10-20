@@ -8,7 +8,7 @@ from pydantic import Field, model_validator
 
 from .catalog import StrictModel
 
-VERSION = 'push-1'
+VERSION = 'push-2'
 SHANGHAI = timezone(timedelta(hours=8))
 COUNTS = {
     'sent': ('发送量', '次'), 'accepted': ('厂商受理量', '次'),
@@ -38,10 +38,17 @@ DEFINITIONS['active_rate']['definition'] = '活跃期间有前台事件的应用
 DEFINITIONS['delivered']['definition'] = '同一发送批次，在约定观察窗口内有到达回执的逻辑投递数'
 DEFINITIONS['unknown_delivery']['definition'] = '观察窗口内既无到达/点击证据，也无明确失败的已受理投递数'
 DEFINITIONS['click_to_delivery_rate']['definition'] = '窗口内已确认到达且点击的交集 / 窗口内已确认到达数；缺到达回执的点击另列'
-DIMENSIONS = {'app_id': '应用', 'manufacturer': '设备厂商', 'channel': '实际推送通道',
+DIMENSIONS = {'app_id': '应用', 'manufacturer': '设备厂商', 'channel': '实际推送通道', 'template_id': '模板',
               'day': '发送日期', 'month': '发送月份', 'failure_reason': '已知失败原因'}
 ENUMS = {'manufacturer': ['huawei', 'xiaomi', 'oppo', 'vivo', 'apple'],
          'channel': ['huawei_push', 'xiaomi_push', 'oppo_push', 'vivo_push', 'apns', 'fcm']}
+
+
+class PlanIssue(ValueError):
+    """固定错误标识供自然语言入口追问；表单仍沿用严格校验。"""
+    def __init__(self, code, message, fields):
+        super().__init__(message)
+        self.code, self.fields = code, fields
 
 
 class Period(StrictModel):
@@ -56,9 +63,9 @@ class Period(StrictModel):
 
 
 class PushFilter(StrictModel):
-    field: Literal['app_id', 'manufacturer', 'channel', 'failure_reason']
+    field: Literal['app_id', 'manufacturer', 'channel', 'failure_reason', 'template_id']
     op: Literal['in', 'not_in'] = 'in'
-    values: list[str] = Field(min_length=1, max_length=50)
+    values: list[str] = Field(min_length=1, max_length=1000)
 
     @model_validator(mode='after')
     def valid(self):
@@ -76,7 +83,7 @@ class PushPlan(StrictModel):
     dimensions: list[str] = Field(default_factory=list, max_length=2)
     time_range: Period
     observation_hours: int = Field(default=24, ge=1, le=8760, strict=True)
-    as_of: datetime | None = None
+    as_of: datetime | None = Field(default=None, description='仅用于设备状态指标的带时区时点；推送消息指标必须省略或为 null，不是数据截止时间')
     filters: list[PushFilter] = Field(default_factory=list, max_length=8)
 
     @model_validator(mode='after')
@@ -85,14 +92,14 @@ class PushPlan(StrictModel):
             raise ValueError('未知或重复推送指标')
         device = bool(set(self.metrics) & DEVICE_METRICS)
         if device and not set(self.metrics) <= DEVICE_METRICS:
-            raise ValueError('设备与消息为不同粒度，请分别查询')
+            raise PlanIssue('mixed_grain', '设备与消息为不同粒度，请分别查询', ['metrics'])
         permitted = {'app_id', 'manufacturer'} if device else set(DIMENSIONS)
         if len(set(self.dimensions)) != len(self.dimensions) or not set(self.dimensions) <= permitted or {'day', 'month'} <= set(self.dimensions):
             raise ValueError('分组维度不符合当前数据粒度')
         if device and any(f.field not in {'app_id', 'manufacturer'} for f in self.filters):
             raise ValueError('设备指标不按多值通道或推送失败原因筛选')
         if self.as_of is not None and (self.as_of.tzinfo is None or not device):
-            raise ValueError('设备状态时点必须带时区，且只能用于设备指标')
+            raise PlanIssue('device_as_of', '设备状态时点必须带时区，且只能用于设备指标', ['as_of'])
         # 同字段所有包含/排除条件必须有可能同时满足。
         for field in {f.field for f in self.filters}:
             include = [set(f.values) for f in self.filters if f.field == field and f.op == 'in']
@@ -114,14 +121,14 @@ class PushPlan(StrictModel):
         if source.domain != 'push' or cutoff is None:
             raise ValueError('推送数据源必须配置带时区截止时刻')
         if self.time_range.end_exclusive > cutoff or (self.device and self.state_at > cutoff):
-            raise ValueError('查询时间或设备时点超出已发布数据截止时间')
+            raise PlanIssue('source_cutoff', '查询时间或设备时点超出已发布数据截止时间', ['time_range', 'as_of'])
         if source.data_start and self.time_range.start < source.data_start:
-            raise ValueError('查询开始早于已发布数据范围')
+            raise PlanIssue('source_start', '查询开始早于已发布数据范围', ['time_range.start'])
         # 逐投递确认成熟，不能仅因结束时间早于截止就当作完整观察。
         if not self.device and self.time_range.end_exclusive + timedelta(hours=self.observation_hours) > cutoff:
-            raise ValueError('发送区间后的回执观察窗口尚未成熟，请缩短范围或观察时长')
+            raise PlanIssue('observation_pending', '发送区间后的回执观察窗口尚未成熟，请缩短范围或观察时长', ['time_range.end_exclusive', 'observation_hours'])
         if self.device and self.state_at < self.time_range.end_exclusive - timedelta(microseconds=1) and set(self.metrics) & {'active_devices', 'active_valid_devices', 'active_rate'}:
-            raise ValueError('活跃窗口不能晚于所选设备状态时点')
+            raise PlanIssue('activity_as_of', '活跃窗口不能晚于所选设备状态时点', ['time_range', 'as_of'])
 
 
 def required_metrics(plan):
@@ -141,14 +148,19 @@ def required_metrics(plan):
     return sorted(result)
 
 
-def compile_push(plan):
+def whole_days(period):
+    return all(not any((at.hour,at.minute,at.second,at.microsecond))
+               for at in (period.start.astimezone(SHANGHAI),period.end_exclusive.astimezone(SHANGHAI)))
+
+
+def compile_push(plan, *, use_daily=True):
     params = []
     def parameter(value):
         params.append(value)
         return '?'
-    dims = {'app_id': 'd.app_id', 'manufacturer': 'd.manufacturer', 'channel': 'd.channel',
+    dims = {'app_id': 'd.app_id', 'manufacturer': 'd.manufacturer', 'channel': 'd.channel', 'template_id': 'd.template_id',
             'failure_reason': "COALESCE(d.failure_reason,'none')",
-            'day': "TO_CHAR(d.sent_at AT TIME ZONE 'Asia/Shanghai','YYYY-MM-DD')",
+            'day': 'd.sent_day',
             'month': "TO_CHAR(d.sent_at AT TIME ZONE 'Asia/Shanghai','YYYY-MM')"}
     if plan.device:
         at = parameter(plan.state_at)
@@ -166,6 +178,24 @@ def compile_push(plan):
                       'unknown_devices': "SUM(CASE WHEN s.push_status='unknown' THEN 1 ELSE 0 END)",
                       'active_devices': 'SUM(CASE WHEN a.device_id IS NOT NULL THEN 1 ELSE 0 END)',
                       'active_valid_devices': "SUM(CASE WHEN a.device_id IS NOT NULL AND s.push_status='valid' THEN 1 ELSE 0 END)"}
+    elif use_daily and whole_days(plan.time_range):
+        # 只对齐整日时使用精确小时门槛汇总；部分日期范围仍查询逐条明细。
+        hours=parameter(plan.observation_hours)
+        prefix=f'WITH windowed AS (SELECT *,{hours} AS observation_hours FROM metric_push_daily_outcomes) '
+        source='windowed d'
+        start,end=parameter(plan.time_range.start.astimezone(SHANGHAI).date()),parameter(plan.time_range.end_exclusive.astimezone(SHANGHAI).date())
+        where=[f'd.sent_day >= {start}',f'd.sent_day < {end}']
+        dims['month']="TO_CHAR(d.sent_day,'YYYY-MM')"
+        arrived='d.delivered_hour<=d.observation_hours'
+        clicked='d.clicked_hour<=d.observation_hours'
+        aggregates={'sent':'SUM(d.n)','accepted':'SUM(CASE WHEN d.accepted THEN d.n ELSE 0 END)',
+            'delivered':f'SUM(CASE WHEN {arrived} THEN d.n ELSE 0 END)',
+            'clicked':f'SUM(CASE WHEN {clicked} THEN d.n ELSE 0 END)',
+            'delivered_clicked':f'SUM(CASE WHEN {arrived} AND {clicked} THEN d.n ELSE 0 END)',
+            'click_missing_delivery':f'SUM(CASE WHEN {clicked} AND (d.delivered_hour IS NULL OR d.delivered_hour>d.observation_hours) THEN d.n ELSE 0 END)',
+            'failed':'SUM(CASE WHEN NOT d.accepted OR d.expired_hour<=d.observation_hours THEN d.n ELSE 0 END)',
+            'unknown_delivery':'SUM(CASE WHEN d.accepted AND (d.expired_hour IS NULL OR d.expired_hour>d.observation_hours) AND (d.delivered_hour IS NULL OR d.delivered_hour>d.observation_hours) AND (d.clicked_hour IS NULL OR d.clicked_hour>d.observation_hours) THEN d.n ELSE 0 END)',
+            'delivery_duration_sum':f'SUM(CASE WHEN {arrived} THEN d.delivery_duration_sum ELSE 0 END)'}
     else:
         hours = parameter(plan.observation_hours)
         prefix = f'''WITH windowed AS (SELECT *,sent_at + {hours} * interval '1 hour' horizon FROM metric_push_deliveries) '''
@@ -246,7 +276,6 @@ def result_for(plan, raw, source, usage, sql, params):
 
 
 def execute_push(source, plan, allowed, usage):
-    from . import app as runtime, telemetry
     try:
         plan.check_source(source)
     except ValueError as exc:
@@ -254,20 +283,32 @@ def execute_push(source, plan, allowed, usage):
     if not set(required_metrics(plan)) <= set(allowed):
         raise HTTPException(403, '缺少指标或其分子分母的完整权限')
     sql, params = compile_push(plan)
+    raw = query_rows(source,sql,params)
+    result = result_for(plan, raw, source, usage, sql, params)
+    # 行数之外限制实际载荷，避免宽行结果拖垮保存与后续分析。
+    import json
+    if len(json.dumps(result, ensure_ascii=False).encode()) > 524288:
+        raise HTTPException(422, '结果超过 512 KiB，请缩小范围或分组后重查')
+    return result
+
+
+def query_rows(source, sql, params):
+    """指标与维度取值共用同一只读、超时和行数边界。"""
+    from . import app as runtime, telemetry
     try:
         import asyncio
         import os
         import psycopg
         from .push_sql import validate_push_sql
         validate_push_sql(sql, params)
-        telemetry.update(sql_calls=1)
+        telemetry.sql_call()
         with asyncio.Runner(loop_factory=asyncio.SelectorEventLoop if os.name == 'nt' else asyncio.new_event_loop) as runner:
             raw = runner.run(asyncio.wait_for(runtime.execute_postgres(source, sql, params), timeout=15))
         if len(raw) > 1000:
             raise HTTPException(422, '结果超过 1000 组，请缩小查询范围')
     except (psycopg.Error, TimeoutError) as exc:
         raise HTTPException(503, '推送数据暂时不可用或查询超时') from exc
-    return result_for(plan, raw, source, usage, sql, params)
+    return raw
 
 
 def metric_catalog():

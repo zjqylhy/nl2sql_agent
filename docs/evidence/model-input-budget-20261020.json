@@ -1,0 +1,355 @@
+{
+  "source_image": {
+    "passed": true,
+    "source_commit": "5d1e78d46bc95feaa0b20139401ac08f80e4622b",
+    "files": 108,
+    "all_source_bytes_match": true,
+    "runtime_and_validation_dependencies_match": true
+  },
+  "failed_task_replay": {
+    "prior_task_id": "99d88467c42d054da9bf97f47371221e0e757a55b539b479",
+    "source_artifacts": 5,
+    "legacy_result": {
+      "status": "rejected",
+      "code": "input_limit"
+    },
+    "passed": true,
+    "new_input_bytes": 10548,
+    "all_artifact_handles_preserved": true,
+    "recent_source_row_preserved": true,
+    "conditions_unchanged": true,
+    "provider_calls": 0
+  },
+  "deployment": {
+    "passed": true,
+    "source_commit": "5d1e78d46bc95feaa0b20139401ac08f80e4622b",
+    "previous_source_commit": "e08764c59d7db60bc47b8741165367ec8c808c3d",
+    "database_container_unchanged": true,
+    "task_rows_unchanged": true,
+    "config_unchanged_except_budget_and_version": true,
+    "max_input_bytes": 32768,
+    "max_tokens": 400000,
+    "max_cost_unchanged": true,
+    "migration": "0005_task_contracts",
+    "platform_backup_bytes": 705540
+  },
+  "server_tests": {
+    "name": "pytest",
+    "errors": "0",
+    "failures": "1",
+    "skipped": "0",
+    "tests": "550",
+    "time": "687.600",
+    "timestamp": "2026-10-20T09:06:23.851544+00:00",
+    "hostname": "0a2ebeb5ed5f"
+  },
+  "server_dataset_mount_rerun": {
+    "name": "pytest",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "tests": "1",
+    "time": "26.422",
+    "timestamp": "2026-10-20T09:19:27.987830+00:00",
+    "hostname": "c008f08b2c0c"
+  },
+  "real_acceptance": {
+    "run_id": "f9cd84743ff0e379ca5f1b60aeb8bf3ef3164f4859fc8986",
+    "prior_task_id": "99d88467c42d054da9bf97f47371221e0e757a55b539b479",
+    "confirmed_scope_reused": true,
+    "maximum_authorized_calls": 10,
+    "model_calls": 10,
+    "sql_calls": 4,
+    "tokens": 46676,
+    "cost": 46676,
+    "status": "failed",
+    "error": "引用不存在、类型不符或结果不完整",
+    "within_authorized_limit": true,
+    "result_completeness": "partial",
+    "stop_reason": "引用不存在、类型不符或结果不完整",
+    "steps": [
+      {
+        "sequence": 1,
+        "phase": "decide",
+        "status": "completed",
+        "input_bytes": 4374,
+        "action": null,
+        "error_code": null
+      },
+      {
+        "sequence": 2,
+        "phase": "tool",
+        "status": "completed",
+        "input_bytes": null,
+        "action": "query_metrics",
+        "error_code": null
+      },
+      {
+        "sequence": 3,
+        "phase": "decide",
+        "status": "completed",
+        "input_bytes": 5596,
+        "action": null,
+        "error_code": null
+      },
+      {
+        "sequence": 4,
+        "phase": "tool",
+        "status": "completed",
+        "input_bytes": null,
+        "action": "query_metrics",
+        "error_code": null
+      },
+      {
+        "sequence": 5,
+        "phase": "decide",
+        "status": "completed",
+        "input_bytes": 6706,
+        "action": null,
+        "error_code": null
+      },
+      {
+        "sequence": 6,
+        "phase": "tool",
+        "status": "completed",
+        "input_bytes": null,
+        "action": "compare_periods",
+        "error_code": null
+      },
+      {
+        "sequence": 7,
+        "phase": "decide",
+        "status": "completed",
+        "input_bytes": 8033,
+        "action": null,
+        "error_code": null
+      },
+      {
+        "sequence": 8,
+        "phase": "tool",
+        "status": "completed",
+        "input_bytes": null,
+        "action": "query_metrics",
+        "error_code": null
+      },
+      {
+        "sequence": 9,
+        "phase": "decide",
+        "status": "completed",
+        "input_bytes": 10317,
+        "action": null,
+        "error_code": null
+      },
+      {
+        "sequence": 10,
+        "phase": "tool",
+        "status": "completed",
+        "input_bytes": null,
+        "action": "inspect_result",
+        "error_code": null
+      },
+      {
+        "sequence": 11,
+        "phase": "decide",
+        "status": "completed",
+        "input_bytes": 12228,
+        "action": null,
+        "error_code": null
+      },
+      {
+        "sequence": 12,
+        "phase": "tool",
+        "status": "completed",
+        "input_bytes": null,
+        "action": "query_metrics",
+        "error_code": null
+      },
+      {
+        "sequence": 13,
+        "phase": "decide",
+        "status": "completed",
+        "input_bytes": 14514,
+        "action": null,
+        "error_code": null
+      },
+      {
+        "sequence": 14,
+        "phase": "tool",
+        "status": "completed",
+        "input_bytes": null,
+        "action": "compare_periods",
+        "error_code": null
+      },
+      {
+        "sequence": 15,
+        "phase": "decide",
+        "status": "completed",
+        "input_bytes": 17053,
+        "action": null,
+        "error_code": null
+      },
+      {
+        "sequence": 16,
+        "phase": "tool",
+        "status": "completed",
+        "input_bytes": null,
+        "action": "inspect_result",
+        "error_code": null
+      },
+      {
+        "sequence": 17,
+        "phase": "decide",
+        "status": "completed",
+        "input_bytes": 19571,
+        "action": null,
+        "error_code": null
+      },
+      {
+        "sequence": 18,
+        "phase": "tool",
+        "status": "failed",
+        "input_bytes": null,
+        "action": "aggregate_metrics",
+        "error_code": "missing_evidence"
+      },
+      {
+        "sequence": 19,
+        "phase": "decide",
+        "status": "completed",
+        "input_bytes": 19565,
+        "action": null,
+        "error_code": null
+      },
+      {
+        "sequence": 20,
+        "phase": "tool",
+        "status": "failed",
+        "input_bytes": null,
+        "action": "aggregate_metrics",
+        "error_code": "missing_evidence"
+      }
+    ],
+    "frozen_policy": {
+      "max_input_bytes": 32768,
+      "max_tokens": 400000,
+      "max_cost": 1000000,
+      "max_output_tokens": 4096,
+      "model_interval_seconds": 20
+    },
+    "answers": [
+      {
+        "text": "引用不存在、类型不符或结果不完整",
+        "status": "unanswered",
+        "item_id": "a1",
+        "evidence_refs": []
+      }
+    ],
+    "hypotheses": [],
+    "claims": []
+  },
+  "fee_cap_and_gateway_quota_not_increased": true,
+  "notes": [
+    "The first server full run passed 549 tests; one external Olist CSV test failed only because the test container did not mount the existing CSV directory. Its same-image rerun with the read-only CSV mount passed. The original failed XML was retained.",
+    "Input-budget changes were validated with actual inputs up to 19571 UTF-8 bytes including message reserve. This does not establish an overall success rate for normal questions.",
+    "The 10 authorized real model calls were fully used. The task failed on aggregation of a comparison; subsequent recorded-action replay adds no provider requests and does not rewrite that task as successful."
+  ],
+  "local_budget_regression": {
+    "name": "pytest",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "1",
+    "tests": "128",
+    "time": "211.341",
+    "timestamp": "2026-10-20T16:57:32.331184+08:00",
+    "hostname": "DESKTOP-6TCFO17"
+  },
+  "local_ci_repairs": {
+    "name": "pytest",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "tests": "37",
+    "time": "10.068",
+    "timestamp": "2026-10-20T17:04:36.239477+08:00",
+    "hostname": "DESKTOP-6TCFO17"
+  },
+  "local_comparison_aggregation": {
+    "name": "pytest",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "tests": "50",
+    "time": "0.441",
+    "timestamp": "2026-10-20T17:29:31.480772+08:00",
+    "hostname": "DESKTOP-6TCFO17"
+  },
+  "comparison_aggregation_fix": {
+    "source_image": {
+      "passed": true,
+      "source_commit": "b351d1ce5917eafc672a4eb57d2c4e77536e59fa",
+      "files": 109,
+      "all_source_bytes_match": true,
+      "runtime_and_validation_dependencies_match": true
+    },
+    "recorded_failure_replay": {
+      "passed": true,
+      "source_commit": "b351d1ce5917eafc672a4eb57d2c4e77536e59fa",
+      "failed_sequence": 18,
+      "input_kind": "comparison",
+      "output_kind": "comparison",
+      "original_rows_per_period": [
+        25,
+        25
+      ],
+      "aggregated_rows": 5,
+      "numeric_fields_independently_recomputed": 90,
+      "original_artifacts_unchanged": true,
+      "additional_model_calls": 0,
+      "additional_business_queries": 0,
+      "original_failed_task_not_modified": true
+    },
+    "deployment": {
+      "passed": true,
+      "source_commit": "b351d1ce5917eafc672a4eb57d2c4e77536e59fa",
+      "previous_source_commit": "5d1e78d46bc95feaa0b20139401ac08f80e4622b",
+      "database_container_unchanged": true,
+      "task_rows_unchanged": true,
+      "application_config_unchanged": true,
+      "migration": "0005_task_contracts",
+      "platform_backup_bytes": 819654
+    },
+    "server_tests": {
+      "name": "pytest",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "tests": "79",
+      "time": "249.692",
+      "timestamp": "2026-10-20T09:31:48.999563+00:00",
+      "hostname": "242d3f03dc95"
+    },
+    "real_evidence_calculations": {
+      "passed": true,
+      "run_id": "f9cd84743ff0e379ca5f1b60aeb8bf3ef3164f4859fc8986",
+      "ratio_values_recomputed": 104,
+      "comparison_values_recomputed": 156,
+      "report_claims_matched": 0,
+      "additional_model_calls": 0,
+      "additional_business_queries": 0
+    }
+  },
+  "current_runtime_commit": "b351d1ce5917eafc672a4eb57d2c4e77536e59fa",
+  "complete_real_analysis_accepted": false,
+  "latest_real_acceptance": {
+    "evidence_file": "model-input-budget-acceptance-20261020.json",
+    "run_id": "d24958e595f5c9f96d084d79bd39da494a8fb89c7bb56c6e",
+    "runtime_commit": "b351d1ce5917eafc672a4eb57d2c4e77536e59fa",
+    "status": "completed",
+    "model_calls": 10,
+    "sql_calls": 5,
+    "execution_and_numbers_accepted": true,
+    "narrative_wording_requires_qualification": true,
+    "ui_verified_task_id": "d24958e5",
+    "screenshot": "analysis-completed-d24958e5-20261020.png"
+  }
+}

@@ -1,0 +1,1902 @@
+{
+  "date": "2026-10-20",
+  "deployed_runtime_commit": "3ae6d66678af6781a08064b45bd80ee02ee183e8",
+  "source_archive_sha256": "ce0a89acb76128d447fcd02c44ef2f3347d1d62427b15536207fab72f0a3d11d",
+  "reports": {
+    "build-daily-result": {
+      "exit_code": 0,
+      "source_commit": "3ae6d66678af6781a08064b45bd80ee02ee183e8",
+      "identical_dependency_lock": true
+    },
+    "source-image-proof": {
+      "passed": true,
+      "source_commit": "3ae6d66678af6781a08064b45bd80ee02ee183e8",
+      "files": 97,
+      "all_source_bytes_match": true,
+      "runtime_and_validation_dependencies_match": true
+    },
+    "regression-accepted": {
+      "passed": true,
+      "unique_tests_passed": 483,
+      "skipped": 0,
+      "initial_errors": 10,
+      "initial_failures": 0,
+      "initial_seconds": 405.093,
+      "retry_passed": 11,
+      "retry_seconds": 18.247,
+      "reason": "Scale generator disk reserve correctly rejected 384 MiB tmpfs; all scale tests rerun on host working disk.",
+      "full_run_then_targeted_retry": true,
+      "real_model_called": false
+    },
+    "import-report": {
+      "passed": true,
+      "validation_passed": true,
+      "pending_caller_commit": false,
+      "schema": "analytics_push_20261020_large",
+      "revision": "19c0c79dd592a978dedc106743db7c470358e4ee491ac76803867a189649bf10",
+      "counts": {
+        "apps": 3,
+        "devices": 200000,
+        "device_state_history": 260263,
+        "device_channel_history": 288394,
+        "device_activity": 10806113,
+        "push_deliveries": 10000000,
+        "push_attempts": 10605535,
+        "push_events": 7662701
+      },
+      "logical_sha256": {
+        "apps": "946b1c88eeb2e338e1dda1309528fd06d21fd3045a5d0b466eef94b71a8ab8f5",
+        "devices": "202e1229c5a22d6f2f887bb71aed2e59334c1e0b50520ee0cdd6a90c71bf8eca",
+        "device_state_history": "900c5cfac7273daf900836a2c7f92dfb4ae8f95858c55a596753aa3ecf05a94e",
+        "device_channel_history": "8ee682661759e38c801181ea4a1e3bef090e5cf8c5069f7e2a5a4ef93a6994be",
+        "device_activity": "01645541310814eed5a30e668827b6467eed6b8e176eb6d9f96a1ba383110aae",
+        "push_deliveries": "7d7e7da8027311c89456d57885c5c85704e44b79163ed5c4586af1983e5396ea",
+        "push_attempts": "0b4cf1da7288303f1310035824bdf6cf1be2d765f553c4f59b3a7a2e1d1a1545",
+        "push_events": "f56a1f60e61c3828d614171aeb5ced91401157a7fc939fefce32f5717aa5d711"
+      },
+      "database_bytes": 9112870912,
+      "elapsed_seconds": 1463.376,
+      "peak_memory_bytes": 44597248,
+      "visibility_maintained": true,
+      "phases": [
+        {
+          "phase": "copied",
+          "elapsed_seconds": 0.056,
+          "table": "apps",
+          "rows": 3
+        },
+        {
+          "phase": "copied",
+          "elapsed_seconds": 3.683,
+          "table": "devices",
+          "rows": 200000
+        },
+        {
+          "phase": "copied",
+          "elapsed_seconds": 7.445,
+          "table": "device_state_history",
+          "rows": 260263
+        },
+        {
+          "phase": "copied",
+          "elapsed_seconds": 12.346,
+          "table": "device_channel_history",
+          "rows": 288394
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 25.64,
+          "table": "device_activity",
+          "rows": 1000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 38.464,
+          "table": "device_activity",
+          "rows": 2000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 51.899,
+          "table": "device_activity",
+          "rows": 3000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 64.73,
+          "table": "device_activity",
+          "rows": 4000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 77.981,
+          "table": "device_activity",
+          "rows": 5000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 90.924,
+          "table": "device_activity",
+          "rows": 6000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 103.965,
+          "table": "device_activity",
+          "rows": 7000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 116.752,
+          "table": "device_activity",
+          "rows": 8000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 130.116,
+          "table": "device_activity",
+          "rows": 9000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 143.047,
+          "table": "device_activity",
+          "rows": 10000000
+        },
+        {
+          "phase": "copied",
+          "elapsed_seconds": 153.44,
+          "table": "device_activity",
+          "rows": 10806113
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 182.781,
+          "table": "push_deliveries",
+          "rows": 1000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 212.133,
+          "table": "push_deliveries",
+          "rows": 2000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 240.958,
+          "table": "push_deliveries",
+          "rows": 3000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 270.17,
+          "table": "push_deliveries",
+          "rows": 4000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 298.439,
+          "table": "push_deliveries",
+          "rows": 5000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 326.494,
+          "table": "push_deliveries",
+          "rows": 6000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 355.272,
+          "table": "push_deliveries",
+          "rows": 7000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 383.402,
+          "table": "push_deliveries",
+          "rows": 8000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 411.062,
+          "table": "push_deliveries",
+          "rows": 9000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 439.475,
+          "table": "push_deliveries",
+          "rows": 10000000
+        },
+        {
+          "phase": "copied",
+          "elapsed_seconds": 439.477,
+          "table": "push_deliveries",
+          "rows": 10000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 452.59,
+          "table": "push_attempts",
+          "rows": 1000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 466.262,
+          "table": "push_attempts",
+          "rows": 2000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 479.565,
+          "table": "push_attempts",
+          "rows": 3000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 493.191,
+          "table": "push_attempts",
+          "rows": 4000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 506.283,
+          "table": "push_attempts",
+          "rows": 5000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 519.37,
+          "table": "push_attempts",
+          "rows": 6000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 533.03,
+          "table": "push_attempts",
+          "rows": 7000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 546.281,
+          "table": "push_attempts",
+          "rows": 8000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 559.465,
+          "table": "push_attempts",
+          "rows": 9000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 573.282,
+          "table": "push_attempts",
+          "rows": 10000000
+        },
+        {
+          "phase": "copied",
+          "elapsed_seconds": 581.362,
+          "table": "push_attempts",
+          "rows": 10605535
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 599.335,
+          "table": "push_events",
+          "rows": 1000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 617.348,
+          "table": "push_events",
+          "rows": 2000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 634.936,
+          "table": "push_events",
+          "rows": 3000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 653.44,
+          "table": "push_events",
+          "rows": 4000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 671.416,
+          "table": "push_events",
+          "rows": 5000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 689.241,
+          "table": "push_events",
+          "rows": 6000000
+        },
+        {
+          "phase": "copy_progress",
+          "elapsed_seconds": 707.259,
+          "table": "push_events",
+          "rows": 7000000
+        },
+        {
+          "phase": "copied",
+          "elapsed_seconds": 719.357,
+          "table": "push_events",
+          "rows": 7662701
+        },
+        {
+          "phase": "validating",
+          "elapsed_seconds": 792.542
+        },
+        {
+          "phase": "validated",
+          "elapsed_seconds": 1174.239
+        },
+        {
+          "phase": "device_states_created",
+          "elapsed_seconds": 1178.918
+        },
+        {
+          "phase": "ready_to_publish",
+          "elapsed_seconds": 1342.847,
+          "database_bytes": 9112870912
+        },
+        {
+          "phase": "visibility_maintained",
+          "elapsed_seconds": 1463.375
+        }
+      ]
+    },
+    "query-role-tuning": {
+      "passed": true,
+      "scope": "only new snapshot readonly role",
+      "parallel_workers_per_query": 2,
+      "work_mem": "4MB",
+      "database_query_timeout": "10s",
+      "readonly_preserved": true,
+      "postgres_container_memory_limit_restored_after_import": true,
+      "random_page_cost": 1.1,
+      "measured_month_seconds": 1.0343
+    },
+    "pre-backup-result": {
+      "passed": true,
+      "sha256": "be7d9c835130dc0fd7c0308cd990417c37e72942c6cdcd0a4f36f7c955b52202",
+      "tables": 47
+    },
+    "pre-restore-result": {
+      "passed": true,
+      "tables": 47,
+      "all_counts_match": true,
+      "isolated_empty_database": true
+    },
+    "cutover-backup-result": {
+      "passed": true,
+      "sha256": "a89908a60597c3c26ee3f2e92448b0f97923582ab9ea18dedb5f2e7e81800329",
+      "bytes": 20396224,
+      "scope": [
+        "platform",
+        "agent_checkpoint",
+        "analytics_alpha_v1",
+        "analytics_push_20261018"
+      ],
+      "after_api_worker_stopped": true
+    },
+    "compact-result": {
+      "passed": true,
+      "private_fact_cache": true,
+      "raw_rows_unchanged": true,
+      "public_view_columns_preserved": true,
+      "superseded_cover_index_removed": true,
+      "rows": 10000000
+    },
+    "materialize-day-result": {
+      "passed": true,
+      "seconds": 183.954,
+      "physical_day_column": true,
+      "raw_rows_unchanged": true
+    },
+    "cover-all-index-result": {
+      "passed": true,
+      "seconds": 77.406,
+      "supersedes_plain_time_index": true
+    },
+    "daily-outcomes-result": {
+      "passed": true,
+      "seconds": 28.2,
+      "groups": 439172,
+      "sends": 10000000
+    },
+    "daily-parity": {
+      "passed": true,
+      "source_commit": "3ae6d66678af6781a08064b45bd80ee02ee183e8",
+      "cases": [
+        {
+          "hours": 1,
+          "app_filter": false,
+          "metrics": [
+            "sent",
+            "accepted",
+            "delivered",
+            "clicked",
+            "failed",
+            "unknown_delivery",
+            "delivery_rate",
+            "click_rate",
+            "click_to_delivery_rate",
+            "delivery_seconds"
+          ],
+          "groups": 9,
+          "raw_seconds": 0.168,
+          "daily_seconds": 0.3668
+        },
+        {
+          "hours": 1,
+          "app_filter": true,
+          "metrics": [
+            "sent",
+            "accepted",
+            "delivered",
+            "clicked",
+            "failed",
+            "unknown_delivery",
+            "delivery_rate",
+            "click_rate",
+            "click_to_delivery_rate",
+            "delivery_seconds"
+          ],
+          "groups": 9,
+          "raw_seconds": 0.019,
+          "daily_seconds": 0.0036
+        },
+        {
+          "hours": 24,
+          "app_filter": false,
+          "metrics": [
+            "sent",
+            "accepted",
+            "delivered",
+            "clicked",
+            "failed",
+            "unknown_delivery",
+            "delivery_rate",
+            "click_rate",
+            "click_to_delivery_rate",
+            "delivery_seconds"
+          ],
+          "groups": 9,
+          "raw_seconds": 0.1119,
+          "daily_seconds": 0.0107
+        },
+        {
+          "hours": 24,
+          "app_filter": true,
+          "metrics": [
+            "sent",
+            "accepted",
+            "delivered",
+            "clicked",
+            "failed",
+            "unknown_delivery",
+            "delivery_rate",
+            "click_rate",
+            "click_to_delivery_rate",
+            "delivery_seconds"
+          ],
+          "groups": 9,
+          "raw_seconds": 0.0363,
+          "daily_seconds": 0.0055
+        },
+        {
+          "hours": 48,
+          "app_filter": false,
+          "metrics": [
+            "sent",
+            "accepted",
+            "delivered",
+            "clicked",
+            "failed",
+            "unknown_delivery",
+            "delivery_rate",
+            "click_rate",
+            "click_to_delivery_rate",
+            "delivery_seconds"
+          ],
+          "groups": 9,
+          "raw_seconds": 0.1835,
+          "daily_seconds": 0.0099
+        },
+        {
+          "hours": 48,
+          "app_filter": true,
+          "metrics": [
+            "sent",
+            "accepted",
+            "delivered",
+            "clicked",
+            "failed",
+            "unknown_delivery",
+            "delivery_rate",
+            "click_rate",
+            "click_to_delivery_rate",
+            "delivery_seconds"
+          ],
+          "groups": 9,
+          "raw_seconds": 0.0415,
+          "daily_seconds": 0.0056
+        },
+        {
+          "hours": 72,
+          "app_filter": false,
+          "metrics": [
+            "sent",
+            "accepted",
+            "delivered",
+            "clicked",
+            "failed",
+            "unknown_delivery",
+            "delivery_rate",
+            "click_rate",
+            "click_to_delivery_rate",
+            "delivery_seconds"
+          ],
+          "groups": 9,
+          "raw_seconds": 0.1655,
+          "daily_seconds": 0.0081
+        },
+        {
+          "hours": 72,
+          "app_filter": true,
+          "metrics": [
+            "sent",
+            "accepted",
+            "delivered",
+            "clicked",
+            "failed",
+            "unknown_delivery",
+            "delivery_rate",
+            "click_rate",
+            "click_to_delivery_rate",
+            "delivery_seconds"
+          ],
+          "groups": 9,
+          "raw_seconds": 0.0308,
+          "daily_seconds": 0.0048
+        }
+      ],
+      "all_message_metrics": [
+        "sent",
+        "accepted",
+        "delivered",
+        "clicked",
+        "failed",
+        "unknown_delivery",
+        "delivery_rate",
+        "click_rate",
+        "click_to_delivery_rate",
+        "delivery_seconds"
+      ],
+      "query_timeout": "10s",
+      "readonly_identity": true
+    },
+    "query-report": {
+      "passed": true,
+      "main_checks_passed": true,
+      "model_calls": 0,
+      "mode": "real readonly SQL and deterministic tool scenarios",
+      "queries": [
+        {
+          "case": "day_overall",
+          "seconds": 0.1443,
+          "rows": 1,
+          "passed": true,
+          "plan": {
+            "domain": "push",
+            "version": 1,
+            "metrics": [
+              "sent",
+              "accepted",
+              "delivered",
+              "clicked",
+              "delivery_rate",
+              "click_rate"
+            ],
+            "dimensions": [],
+            "time_range": {
+              "start": "2026-09-15T00:00:00+08:00",
+              "end_exclusive": "2026-09-16T00:00:00+08:00"
+            },
+            "observation_hours": 24,
+            "as_of": null,
+            "filters": []
+          },
+          "sent": "54644"
+        },
+        {
+          "case": "day_channel",
+          "seconds": 0.0259,
+          "rows": 6,
+          "passed": true,
+          "plan": {
+            "domain": "push",
+            "version": 1,
+            "metrics": [
+              "sent",
+              "accepted",
+              "delivered",
+              "clicked",
+              "delivery_rate",
+              "click_rate"
+            ],
+            "dimensions": [
+              "channel"
+            ],
+            "time_range": {
+              "start": "2026-09-15T00:00:00+08:00",
+              "end_exclusive": "2026-09-16T00:00:00+08:00"
+            },
+            "observation_hours": 24,
+            "as_of": null,
+            "filters": []
+          },
+          "sent": "54644"
+        },
+        {
+          "case": "day_manufacturer",
+          "seconds": 0.0249,
+          "rows": 5,
+          "passed": true,
+          "plan": {
+            "domain": "push",
+            "version": 1,
+            "metrics": [
+              "sent",
+              "accepted",
+              "delivered",
+              "clicked",
+              "delivery_rate",
+              "click_rate"
+            ],
+            "dimensions": [
+              "manufacturer"
+            ],
+            "time_range": {
+              "start": "2026-09-15T00:00:00+08:00",
+              "end_exclusive": "2026-09-16T00:00:00+08:00"
+            },
+            "observation_hours": 24,
+            "as_of": null,
+            "filters": []
+          },
+          "sent": "54644"
+        },
+        {
+          "case": "day_template_id",
+          "seconds": 0.0315,
+          "rows": 30,
+          "passed": true,
+          "plan": {
+            "domain": "push",
+            "version": 1,
+            "metrics": [
+              "sent",
+              "accepted",
+              "delivered",
+              "clicked",
+              "delivery_rate",
+              "click_rate"
+            ],
+            "dimensions": [
+              "template_id"
+            ],
+            "time_range": {
+              "start": "2026-09-15T00:00:00+08:00",
+              "end_exclusive": "2026-09-16T00:00:00+08:00"
+            },
+            "observation_hours": 24,
+            "as_of": null,
+            "filters": []
+          },
+          "sent": "54644"
+        },
+        {
+          "case": "week_overall",
+          "seconds": 1.2519,
+          "rows": 1,
+          "passed": true,
+          "plan": {
+            "domain": "push",
+            "version": 1,
+            "metrics": [
+              "sent",
+              "accepted",
+              "delivered",
+              "clicked",
+              "delivery_rate",
+              "click_rate"
+            ],
+            "dimensions": [],
+            "time_range": {
+              "start": "2026-09-08T00:00:00+08:00",
+              "end_exclusive": "2026-09-15T00:00:00+08:00"
+            },
+            "observation_hours": 24,
+            "as_of": null,
+            "filters": []
+          },
+          "sent": "382508"
+        },
+        {
+          "case": "week_channel",
+          "seconds": 0.0365,
+          "rows": 6,
+          "passed": true,
+          "plan": {
+            "domain": "push",
+            "version": 1,
+            "metrics": [
+              "sent",
+              "accepted",
+              "delivered",
+              "clicked",
+              "delivery_rate",
+              "click_rate"
+            ],
+            "dimensions": [
+              "channel"
+            ],
+            "time_range": {
+              "start": "2026-09-08T00:00:00+08:00",
+              "end_exclusive": "2026-09-15T00:00:00+08:00"
+            },
+            "observation_hours": 24,
+            "as_of": null,
+            "filters": []
+          },
+          "sent": "382508"
+        },
+        {
+          "case": "week_manufacturer",
+          "seconds": 0.037,
+          "rows": 5,
+          "passed": true,
+          "plan": {
+            "domain": "push",
+            "version": 1,
+            "metrics": [
+              "sent",
+              "accepted",
+              "delivered",
+              "clicked",
+              "delivery_rate",
+              "click_rate"
+            ],
+            "dimensions": [
+              "manufacturer"
+            ],
+            "time_range": {
+              "start": "2026-09-08T00:00:00+08:00",
+              "end_exclusive": "2026-09-15T00:00:00+08:00"
+            },
+            "observation_hours": 24,
+            "as_of": null,
+            "filters": []
+          },
+          "sent": "382508"
+        },
+        {
+          "case": "week_template_id",
+          "seconds": 0.037,
+          "rows": 30,
+          "passed": true,
+          "plan": {
+            "domain": "push",
+            "version": 1,
+            "metrics": [
+              "sent",
+              "accepted",
+              "delivered",
+              "clicked",
+              "delivery_rate",
+              "click_rate"
+            ],
+            "dimensions": [
+              "template_id"
+            ],
+            "time_range": {
+              "start": "2026-09-08T00:00:00+08:00",
+              "end_exclusive": "2026-09-15T00:00:00+08:00"
+            },
+            "observation_hours": 24,
+            "as_of": null,
+            "filters": []
+          },
+          "sent": "382508"
+        },
+        {
+          "case": "month_overall",
+          "seconds": 0.0781,
+          "rows": 1,
+          "passed": true,
+          "plan": {
+            "domain": "push",
+            "version": 1,
+            "metrics": [
+              "sent",
+              "accepted",
+              "delivered",
+              "clicked",
+              "delivery_rate",
+              "click_rate"
+            ],
+            "dimensions": [],
+            "time_range": {
+              "start": "2026-09-01T00:00:00+08:00",
+              "end_exclusive": "2026-10-01T00:00:00+08:00"
+            },
+            "observation_hours": 24,
+            "as_of": null,
+            "filters": []
+          },
+          "sent": "1639320"
+        },
+        {
+          "case": "month_channel",
+          "seconds": 0.0917,
+          "rows": 6,
+          "passed": true,
+          "plan": {
+            "domain": "push",
+            "version": 1,
+            "metrics": [
+              "sent",
+              "accepted",
+              "delivered",
+              "clicked",
+              "delivery_rate",
+              "click_rate"
+            ],
+            "dimensions": [
+              "channel"
+            ],
+            "time_range": {
+              "start": "2026-09-01T00:00:00+08:00",
+              "end_exclusive": "2026-10-01T00:00:00+08:00"
+            },
+            "observation_hours": 24,
+            "as_of": null,
+            "filters": []
+          },
+          "sent": "1639320"
+        },
+        {
+          "case": "month_manufacturer",
+          "seconds": 0.0673,
+          "rows": 5,
+          "passed": true,
+          "plan": {
+            "domain": "push",
+            "version": 1,
+            "metrics": [
+              "sent",
+              "accepted",
+              "delivered",
+              "clicked",
+              "delivery_rate",
+              "click_rate"
+            ],
+            "dimensions": [
+              "manufacturer"
+            ],
+            "time_range": {
+              "start": "2026-09-01T00:00:00+08:00",
+              "end_exclusive": "2026-10-01T00:00:00+08:00"
+            },
+            "observation_hours": 24,
+            "as_of": null,
+            "filters": []
+          },
+          "sent": "1639320"
+        },
+        {
+          "case": "month_template_id",
+          "seconds": 0.0699,
+          "rows": 30,
+          "passed": true,
+          "plan": {
+            "domain": "push",
+            "version": 1,
+            "metrics": [
+              "sent",
+              "accepted",
+              "delivered",
+              "clicked",
+              "delivery_rate",
+              "click_rate"
+            ],
+            "dimensions": [
+              "template_id"
+            ],
+            "time_range": {
+              "start": "2026-09-01T00:00:00+08:00",
+              "end_exclusive": "2026-10-01T00:00:00+08:00"
+            },
+            "observation_hours": 24,
+            "as_of": null,
+            "filters": []
+          },
+          "sent": "1639320"
+        },
+        {
+          "case": "all_overall",
+          "seconds": 0.1637,
+          "rows": 1,
+          "passed": true,
+          "plan": {
+            "domain": "push",
+            "version": 1,
+            "metrics": [
+              "sent",
+              "accepted",
+              "delivered",
+              "clicked",
+              "delivery_rate",
+              "click_rate"
+            ],
+            "dimensions": [],
+            "time_range": {
+              "start": "2026-04-01T00:00:00+08:00",
+              "end_exclusive": "2026-10-01T00:00:00+08:00"
+            },
+            "observation_hours": 24,
+            "as_of": null,
+            "filters": []
+          },
+          "sent": "10000000"
+        },
+        {
+          "case": "all_channel",
+          "seconds": 0.2023,
+          "rows": 6,
+          "passed": true,
+          "plan": {
+            "domain": "push",
+            "version": 1,
+            "metrics": [
+              "sent",
+              "accepted",
+              "delivered",
+              "clicked",
+              "delivery_rate",
+              "click_rate"
+            ],
+            "dimensions": [
+              "channel"
+            ],
+            "time_range": {
+              "start": "2026-04-01T00:00:00+08:00",
+              "end_exclusive": "2026-10-01T00:00:00+08:00"
+            },
+            "observation_hours": 24,
+            "as_of": null,
+            "filters": []
+          },
+          "sent": "10000000"
+        },
+        {
+          "case": "all_manufacturer",
+          "seconds": 0.2011,
+          "rows": 5,
+          "passed": true,
+          "plan": {
+            "domain": "push",
+            "version": 1,
+            "metrics": [
+              "sent",
+              "accepted",
+              "delivered",
+              "clicked",
+              "delivery_rate",
+              "click_rate"
+            ],
+            "dimensions": [
+              "manufacturer"
+            ],
+            "time_range": {
+              "start": "2026-04-01T00:00:00+08:00",
+              "end_exclusive": "2026-10-01T00:00:00+08:00"
+            },
+            "observation_hours": 24,
+            "as_of": null,
+            "filters": []
+          },
+          "sent": "10000000"
+        },
+        {
+          "case": "all_template_id",
+          "seconds": 0.2031,
+          "rows": 30,
+          "passed": true,
+          "plan": {
+            "domain": "push",
+            "version": 1,
+            "metrics": [
+              "sent",
+              "accepted",
+              "delivered",
+              "clicked",
+              "delivery_rate",
+              "click_rate"
+            ],
+            "dimensions": [
+              "template_id"
+            ],
+            "time_range": {
+              "start": "2026-04-01T00:00:00+08:00",
+              "end_exclusive": "2026-10-01T00:00:00+08:00"
+            },
+            "observation_hours": 24,
+            "as_of": null,
+            "filters": []
+          },
+          "sent": "10000000"
+        },
+        {
+          "case": "filtered_app_vendor",
+          "seconds": 0.0369,
+          "rows": 60,
+          "passed": true,
+          "plan": {
+            "domain": "push",
+            "version": 1,
+            "metrics": [
+              "sent",
+              "accepted",
+              "delivered",
+              "clicked",
+              "delivery_rate",
+              "click_rate"
+            ],
+            "dimensions": [
+              "channel",
+              "template_id"
+            ],
+            "time_range": {
+              "start": "2026-09-01T00:00:00+08:00",
+              "end_exclusive": "2026-10-01T00:00:00+08:00"
+            },
+            "observation_hours": 24,
+            "as_of": null,
+            "filters": [
+              {
+                "field": "app_id",
+                "op": "in",
+                "values": [
+                  "app_1"
+                ]
+              },
+              {
+                "field": "manufacturer",
+                "op": "in",
+                "values": [
+                  "xiaomi"
+                ]
+              }
+            ]
+          },
+          "sent": "109146"
+        },
+        {
+          "case": "device_stock_and_activity",
+          "seconds": 6.0758,
+          "passed": true,
+          "totals": {
+            "devices": {
+              "value": "200000",
+              "sample_size": 200000
+            },
+            "valid_devices": {
+              "value": "102087",
+              "sample_size": 200000
+            },
+            "invalid_devices": {
+              "value": "91743",
+              "sample_size": 200000
+            },
+            "unknown_devices": {
+              "value": "6170",
+              "sample_size": 200000
+            },
+            "active_devices": {
+              "value": "192638",
+              "sample_size": 200000
+            }
+          }
+        }
+      ],
+      "max_seconds": 6.0758,
+      "program_steps": [
+        {
+          "step_id": "A",
+          "status": "completed",
+          "cached": false,
+          "result_ref": "56c2c76f9e724be557c3c955434518e7dbdfc5dba7357641f664346453add24b"
+        },
+        {
+          "step_id": "B",
+          "status": "completed",
+          "cached": false,
+          "result_ref": "e3b582e1bcf01e285dab51cc3843879d597966ca0640d2740986c3b7759de187"
+        },
+        {
+          "step_id": "C",
+          "status": "completed",
+          "cached": false,
+          "result_ref": "0a43ddf21fee301a1d5a0afdb030e220e1a82913ad690243b3050101a7c08cbd"
+        }
+      ],
+      "open_analysis_tool_report": {
+        "status": "completed",
+        "result_version": 3,
+        "domain": "push",
+        "catalog_version": "push-2",
+        "plan": {
+          "domain": "push",
+          "version": 1,
+          "metrics": [
+            "click_rate"
+          ],
+          "dimensions": [],
+          "time_range": {
+            "start": "2026-09-01T00:00:00+08:00",
+            "end_exclusive": "2026-09-08T00:00:00+08:00"
+          },
+          "observation_hours": 24,
+          "as_of": null,
+          "filters": [
+            {
+              "field": "app_id",
+              "op": "in",
+              "values": [
+                "app_1"
+              ]
+            }
+          ]
+        },
+        "metrics": [
+          {
+            "id": "click_rate",
+            "name": "点击/发送率",
+            "unit": "%",
+            "definition": "clicked/sent，同一批次与观察窗口；零分母不计算",
+            "version": "push-2"
+          }
+        ],
+        "metrics_used": [
+          "click_rate",
+          "clicked",
+          "sent"
+        ],
+        "dimensions": [],
+        "rows": [
+          {
+            "dimensions": {},
+            "label": "整体",
+            "values": {
+              "click_rate": {
+                "value": "3.816320928591035645660954472",
+                "sample_size": 127505
+              }
+            },
+            "components": {
+              "click_missing_delivery": "310",
+              "clicked": "4866",
+              "sent": "127505"
+            }
+          }
+        ],
+        "totals": {
+          "click_rate": {
+            "value": "3.816320928591035645660954472",
+            "sample_size": 127505
+          }
+        },
+        "coverage": "complete",
+        "data_cutoff": "2026-10-15T00:00:00+08:00",
+        "is_synthetic": true,
+        "period": {
+          "start": "2026-09-01T00:00:00+08:00",
+          "end_exclusive": "2026-09-08T00:00:00+08:00"
+        },
+        "usage": {
+          "parser": "exploration",
+          "tokens": 0
+        },
+        "sql": "WITH windowed AS (SELECT *,? AS observation_hours FROM metric_push_daily_outcomes) SELECT SUM(CASE WHEN d.clicked_hour<=d.observation_hours AND (d.delivered_hour IS NULL OR d.delivered_hour>d.observation_hours) THEN d.n ELSE 0 END) AS c_click_missing_delivery,SUM(CASE WHEN d.clicked_hour<=d.observation_hours THEN d.n ELSE 0 END) AS c_clicked,SUM(d.n) AS c_sent FROM windowed d WHERE d.sent_day >= ? AND d.sent_day < ? AND d.app_id IN (?) LIMIT 1001",
+        "parameters": [
+          "24",
+          "2026-09-01",
+          "2026-09-08",
+          "app_1"
+        ],
+        "message": "模拟数据。",
+        "limitations": [
+          "已确认到达率受回执覆盖影响；缺回执不等于失败。",
+          "比率按总分子/总分母计算，零分母不计算。",
+          "发送窗口与回执观察时长分别限定；不作因果归因。",
+          "解释为模型基于证据的分析，假设尚未验证；程序检查不证明业务因果。"
+        ],
+        "period_name": "baseline",
+        "parent_ref": null,
+        "dataset_revision": "19c0c79dd592a978dedc106743db7c470358e4ee491ac76803867a189649bf10",
+        "task_type": "analysis",
+        "summary": "调查结果与证据",
+        "completeness": "complete",
+        "claims": [
+          {
+            "result_ref": "c818b0c54cafaa20abee5059ae48df20f4acb7221d0ce108e61136ee2662c2ef",
+            "row": 0,
+            "metric": "click_rate",
+            "field": "delta",
+            "value": "-0.097251088192619897258931022",
+            "unit": "百分点"
+          }
+        ],
+        "answers": [
+          {
+            "item_id": "a1",
+            "status": "answered",
+            "evidence_refs": [
+              "9727f66ea697874404ee1784a1057e77d1c790111b1bd975f7f981ab64989d8e",
+              "99fb34a4efb875d09533229c005b6246075542fed37a97261e8534d19d07f982",
+              "c818b0c54cafaa20abee5059ae48df20f4acb7221d0ce108e61136ee2662c2ef"
+            ],
+            "text": "已取得同口径两期证据，业务原因仍待验证"
+          }
+        ],
+        "hypotheses": [],
+        "uninvestigated": [],
+        "investigated": [
+          {
+            "result_ref": "9727f66ea697874404ee1784a1057e77d1c790111b1bd975f7f981ab64989d8e",
+            "period": "baseline",
+            "dimensions": [],
+            "filters": [
+              {
+                "field": "app_id",
+                "op": "in",
+                "values": [
+                  "app_1"
+                ]
+              }
+            ]
+          },
+          {
+            "result_ref": "99fb34a4efb875d09533229c005b6246075542fed37a97261e8534d19d07f982",
+            "period": "current",
+            "dimensions": [],
+            "filters": [
+              {
+                "field": "app_id",
+                "op": "in",
+                "values": [
+                  "app_1"
+                ]
+              }
+            ]
+          }
+        ],
+        "evidence_refs": [
+          "9727f66ea697874404ee1784a1057e77d1c790111b1bd975f7f981ab64989d8e",
+          "99fb34a4efb875d09533229c005b6246075542fed37a97261e8534d19d07f982",
+          "c818b0c54cafaa20abee5059ae48df20f4acb7221d0ce108e61136ee2662c2ef"
+        ],
+        "contract": {
+          "schema_version": 1,
+          "domain": "push",
+          "task_type": "analysis",
+          "question": "核实两个七天窗口的点击率变化",
+          "scope": {
+            "filters": [
+              {
+                "field": "app_id",
+                "op": "in",
+                "values": [
+                  "app_1"
+                ]
+              }
+            ],
+            "periods": {
+              "baseline": {
+                "start": "2026-09-01T00:00:00+08:00",
+                "end_exclusive": "2026-09-08T00:00:00+08:00"
+              },
+              "current": {
+                "start": "2026-09-08T00:00:00+08:00",
+                "end_exclusive": "2026-09-15T00:00:00+08:00"
+              }
+            },
+            "observation_hours": 24,
+            "as_of": null
+          },
+          "target_metrics": [
+            "click_rate"
+          ],
+          "exploration_permissions": {
+            "metrics": [
+              "sent",
+              "accepted",
+              "delivered",
+              "clicked",
+              "failed",
+              "unknown_delivery",
+              "delivery_rate",
+              "click_rate",
+              "click_to_delivery_rate",
+              "delivery_seconds"
+            ],
+            "dimensions": [
+              "app_id",
+              "manufacturer",
+              "channel",
+              "template_id",
+              "day",
+              "month",
+              "failure_reason"
+            ],
+            "filter_fields": [
+              "app_id",
+              "manufacturer",
+              "channel",
+              "failure_reason",
+              "template_id"
+            ]
+          },
+          "answer_items": [
+            {
+              "id": "a1",
+              "text": "核实点击率变化",
+              "source": "question"
+            }
+          ],
+          "result_requirements": null,
+          "execution_plan": null,
+          "capability_version": "push-2"
+        },
+        "review_status": "disabled",
+        "stop_reason": "answered"
+      },
+      "row_limit_guard": true,
+      "large_group_request_rejected": true,
+      "large_group_rejection": {
+        "reason": "row_limit",
+        "row_count_checked": true
+      },
+      "query_explanations": [
+        {
+          "case": "day_overall",
+          "kind": "actual",
+          "explain": [
+            {
+              "Plan": {
+                "Node Type": "Limit",
+                "Parallel Aware": false,
+                "Async Capable": false,
+                "Startup Cost": 1356.94,
+                "Total Cost": 1356.95,
+                "Plan Rows": 1,
+                "Plan Width": 160,
+                "Actual Startup Time": 4.502,
+                "Actual Total Time": 4.506,
+                "Actual Rows": 1,
+                "Actual Loops": 1,
+                "Shared Hit Blocks": 1578,
+                "Shared Read Blocks": 6,
+                "Shared Dirtied Blocks": 0,
+                "Shared Written Blocks": 0,
+                "Local Hit Blocks": 0,
+                "Local Read Blocks": 0,
+                "Local Dirtied Blocks": 0,
+                "Local Written Blocks": 0,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Plans": [
+                  {
+                    "Node Type": "Aggregate",
+                    "Strategy": "Plain",
+                    "Partial Mode": "Simple",
+                    "Parent Relationship": "Outer",
+                    "Parallel Aware": false,
+                    "Async Capable": false,
+                    "Startup Cost": 1356.94,
+                    "Total Cost": 1356.95,
+                    "Plan Rows": 1,
+                    "Plan Width": 160,
+                    "Actual Startup Time": 4.499,
+                    "Actual Total Time": 4.501,
+                    "Actual Rows": 1,
+                    "Actual Loops": 1,
+                    "Shared Hit Blocks": 1578,
+                    "Shared Read Blocks": 6,
+                    "Shared Dirtied Blocks": 0,
+                    "Shared Written Blocks": 0,
+                    "Local Hit Blocks": 0,
+                    "Local Read Blocks": 0,
+                    "Local Dirtied Blocks": 0,
+                    "Local Written Blocks": 0,
+                    "Temp Read Blocks": 0,
+                    "Temp Written Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Bitmap Heap Scan",
+                        "Parent Relationship": "Outer",
+                        "Parallel Aware": false,
+                        "Async Capable": false,
+                        "Relation Name": "push_daily_outcomes",
+                        "Alias": "push_daily_outcomes",
+                        "Startup Cost": 16.64,
+                        "Total Cost": 1312.47,
+                        "Plan Rows": 1368,
+                        "Plan Width": 217,
+                        "Actual Startup Time": 0.596,
+                        "Actual Total Time": 4.128,
+                        "Actual Rows": 2181,
+                        "Actual Loops": 1,
+                        "Recheck Cond": "((sent_day >= '2026-09-15'::date) AND (sent_day < '2026-09-16'::date))",
+                        "Rows Removed by Index Recheck": 0,
+                        "Exact Heap Blocks": 1580,
+                        "Lossy Heap Blocks": 0,
+                        "Shared Hit Blocks": 1578,
+                        "Shared Read Blocks": 6,
+                        "Shared Dirtied Blocks": 0,
+                        "Shared Written Blocks": 0,
+                        "Local Hit Blocks": 0,
+                        "Local Read Blocks": 0,
+                        "Local Dirtied Blocks": 0,
+                        "Local Written Blocks": 0,
+                        "Temp Read Blocks": 0,
+                        "Temp Written Blocks": 0,
+                        "Plans": [
+                          {
+                            "Node Type": "Bitmap Index Scan",
+                            "Parent Relationship": "Outer",
+                            "Parallel Aware": false,
+                            "Async Capable": false,
+                            "Index Name": "push_daily_outcomes_sent_day_app_id_idx",
+                            "Startup Cost": 0.0,
+                            "Total Cost": 16.3,
+                            "Plan Rows": 1368,
+                            "Plan Width": 0,
+                            "Actual Startup Time": 0.309,
+                            "Actual Total Time": 0.31,
+                            "Actual Rows": 2181,
+                            "Actual Loops": 1,
+                            "Index Cond": "((sent_day >= '2026-09-15'::date) AND (sent_day < '2026-09-16'::date))",
+                            "Shared Hit Blocks": 4,
+                            "Shared Read Blocks": 0,
+                            "Shared Dirtied Blocks": 0,
+                            "Shared Written Blocks": 0,
+                            "Local Hit Blocks": 0,
+                            "Local Read Blocks": 0,
+                            "Local Dirtied Blocks": 0,
+                            "Local Written Blocks": 0,
+                            "Temp Read Blocks": 0,
+                            "Temp Written Blocks": 0
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              "Planning": {
+                "Shared Hit Blocks": 113,
+                "Shared Read Blocks": 0,
+                "Shared Dirtied Blocks": 0,
+                "Shared Written Blocks": 0,
+                "Local Hit Blocks": 0,
+                "Local Read Blocks": 0,
+                "Local Dirtied Blocks": 0,
+                "Local Written Blocks": 0,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0
+              },
+              "Planning Time": 0.969,
+              "Triggers": [],
+              "Execution Time": 4.631
+            }
+          ]
+        },
+        {
+          "case": "all_overall",
+          "kind": "actual",
+          "explain": [
+            {
+              "Plan": {
+                "Node Type": "Limit",
+                "Parallel Aware": false,
+                "Async Capable": false,
+                "Startup Cost": 15004.22,
+                "Total Cost": 15004.23,
+                "Plan Rows": 1,
+                "Plan Width": 160,
+                "Actual Startup Time": 152.082,
+                "Actual Total Time": 156.416,
+                "Actual Rows": 1,
+                "Actual Loops": 1,
+                "Shared Hit Blocks": 3249,
+                "Shared Read Blocks": 2063,
+                "Shared Dirtied Blocks": 0,
+                "Shared Written Blocks": 0,
+                "Local Hit Blocks": 0,
+                "Local Read Blocks": 0,
+                "Local Dirtied Blocks": 0,
+                "Local Written Blocks": 0,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0,
+                "Plans": [
+                  {
+                    "Node Type": "Aggregate",
+                    "Strategy": "Plain",
+                    "Partial Mode": "Finalize",
+                    "Parent Relationship": "Outer",
+                    "Parallel Aware": false,
+                    "Async Capable": false,
+                    "Startup Cost": 15004.22,
+                    "Total Cost": 15004.23,
+                    "Plan Rows": 1,
+                    "Plan Width": 160,
+                    "Actual Startup Time": 152.08,
+                    "Actual Total Time": 156.413,
+                    "Actual Rows": 1,
+                    "Actual Loops": 1,
+                    "Shared Hit Blocks": 3249,
+                    "Shared Read Blocks": 2063,
+                    "Shared Dirtied Blocks": 0,
+                    "Shared Written Blocks": 0,
+                    "Local Hit Blocks": 0,
+                    "Local Read Blocks": 0,
+                    "Local Dirtied Blocks": 0,
+                    "Local Written Blocks": 0,
+                    "Temp Read Blocks": 0,
+                    "Temp Written Blocks": 0,
+                    "Plans": [
+                      {
+                        "Node Type": "Gather",
+                        "Parent Relationship": "Outer",
+                        "Parallel Aware": false,
+                        "Async Capable": false,
+                        "Startup Cost": 15003.95,
+                        "Total Cost": 15004.16,
+                        "Plan Rows": 2,
+                        "Plan Width": 160,
+                        "Actual Startup Time": 151.005,
+                        "Actual Total Time": 156.377,
+                        "Actual Rows": 3,
+                        "Actual Loops": 1,
+                        "Workers Planned": 2,
+                        "Workers Launched": 2,
+                        "Single Copy": false,
+                        "Shared Hit Blocks": 3249,
+                        "Shared Read Blocks": 2063,
+                        "Shared Dirtied Blocks": 0,
+                        "Shared Written Blocks": 0,
+                        "Local Hit Blocks": 0,
+                        "Local Read Blocks": 0,
+                        "Local Dirtied Blocks": 0,
+                        "Local Written Blocks": 0,
+                        "Temp Read Blocks": 0,
+                        "Temp Written Blocks": 0,
+                        "Plans": [
+                          {
+                            "Node Type": "Aggregate",
+                            "Strategy": "Plain",
+                            "Partial Mode": "Partial",
+                            "Parent Relationship": "Outer",
+                            "Parallel Aware": false,
+                            "Async Capable": false,
+                            "Startup Cost": 14003.95,
+                            "Total Cost": 14003.96,
+                            "Plan Rows": 1,
+                            "Plan Width": 160,
+                            "Actual Startup Time": 143.816,
+                            "Actual Total Time": 143.817,
+                            "Actual Rows": 1,
+                            "Actual Loops": 3,
+                            "Shared Hit Blocks": 3249,
+                            "Shared Read Blocks": 2063,
+                            "Shared Dirtied Blocks": 0,
+                            "Shared Written Blocks": 0,
+                            "Local Hit Blocks": 0,
+                            "Local Read Blocks": 0,
+                            "Local Dirtied Blocks": 0,
+                            "Local Written Blocks": 0,
+                            "Temp Read Blocks": 0,
+                            "Temp Written Blocks": 0,
+                            "Workers": [],
+                            "Plans": [
+                              {
+                                "Node Type": "Seq Scan",
+                                "Parent Relationship": "Outer",
+                                "Parallel Aware": true,
+                                "Async Capable": false,
+                                "Relation Name": "push_daily_outcomes",
+                                "Alias": "push_daily_outcomes",
+                                "Startup Cost": 0.0,
+                                "Total Cost": 8056.83,
+                                "Plan Rows": 182988,
+                                "Plan Width": 217,
+                                "Actual Startup Time": 0.021,
+                                "Actual Total Time": 96.772,
+                                "Actual Rows": 146391,
+                                "Actual Loops": 3,
+                                "Filter": "((sent_day >= '2026-04-01'::date) AND (sent_day < '2026-10-01'::date))",
+                                "Rows Removed by Filter": 0,
+                                "Shared Hit Blocks": 3249,
+                                "Shared Read Blocks": 2063,
+                                "Shared Dirtied Blocks": 0,
+                                "Shared Written Blocks": 0,
+                                "Local Hit Blocks": 0,
+                                "Local Read Blocks": 0,
+                                "Local Dirtied Blocks": 0,
+                                "Local Written Blocks": 0,
+                                "Temp Read Blocks": 0,
+                                "Temp Written Blocks": 0,
+                                "Workers": []
+                              }
+                            ]
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              },
+              "Planning": {
+                "Shared Hit Blocks": 8,
+                "Shared Read Blocks": 0,
+                "Shared Dirtied Blocks": 0,
+                "Shared Written Blocks": 0,
+                "Local Hit Blocks": 0,
+                "Local Read Blocks": 0,
+                "Local Dirtied Blocks": 0,
+                "Local Written Blocks": 0,
+                "Temp Read Blocks": 0,
+                "Temp Written Blocks": 0
+              },
+              "Planning Time": 0.269,
+              "Triggers": [],
+              "Execution Time": 156.513
+            }
+          ]
+        }
+      ]
+    },
+    "switch-result": {
+      "passed": true,
+      "source_commit": "3ae6d66678af6781a08064b45bd80ee02ee183e8",
+      "previous_source_commit": "18b23e960566d0f714e2e5b6be644b68bec12e5b",
+      "postgres_container_unchanged": true,
+      "old_rows_unchanged": true,
+      "tables_compared": 16,
+      "waiting_tasks_preserved": 2,
+      "orders_mapping_unchanged": true,
+      "push_mapping_switched": true,
+      "schema": "0005_task_contracts",
+      "snapshot_revision": "19c0c79dd592a978dedc106743db7c470358e4ee491ac76803867a189649bf10",
+      "rollback_configuration_preserved": true
+    },
+    "smoke-result": {
+      "passed": true,
+      "source_commit": "3ae6d66678af6781a08064b45bd80ee02ee183e8",
+      "real_model_called": false,
+      "homepage_and_health": true,
+      "login": true,
+      "two_task_types": true,
+      "send_count": 10000000,
+      "device_count": 200000,
+      "dependency_steps": [
+        "A",
+        "B",
+        "C"
+      ],
+      "separate_evidence_retrievable": true,
+      "sse": true,
+      "current_snapshot_history": true,
+      "legacy_orders_reports": 2,
+      "task_ids": [
+        "60d4c6ed59c123f46086bf79f932e51f14f5521ef0c2dde4",
+        "5a39d1ff8b76e56b3d1b6e7c3129ab988ff2ccc58f4d33b0",
+        "78060d227db2f432625fd1b30f0def41d71c688c74283941"
+      ]
+    },
+    "runtime-postcheck": {
+      "passed": true,
+      "source_files_verified": 97,
+      "images": {
+        "api": {
+          "id": "sha256:09c2a09fd3a528622fd065b2eb315503d77a8df9d89f1d08fdc1d6c6d55b7573",
+          "commit": "3ae6d66678af6781a08064b45bd80ee02ee183e8"
+        },
+        "worker": {
+          "id": "sha256:09c2a09fd3a528622fd065b2eb315503d77a8df9d89f1d08fdc1d6c6d55b7573",
+          "commit": "3ae6d66678af6781a08064b45bd80ee02ee183e8"
+        },
+        "web": {
+          "id": "sha256:43de07460f76c6f46db1974f4a6ee788ac2c22d8b82959429a4199bda861c665",
+          "commit": "3ae6d66678af6781a08064b45bd80ee02ee183e8"
+        }
+      },
+      "only_loopback_http": true,
+      "postgres_memory_restored": true,
+      "query_timeout_unchanged": true,
+      "model_configuration_unchanged": true,
+      "backup_timer_active": true
+    },
+    "postcheck-result": {
+      "passed": true,
+      "source_commit": "3ae6d66678af6781a08064b45bd80ee02ee183e8",
+      "backup_seconds": 252.293,
+      "backup_sha256": "53ec369b72c3f6cf2c1e0711aba2d7e3883e2940cc01a867f8511a9649326da3",
+      "backup_tables": 62,
+      "backup_bytes": 830832490,
+      "pre_backup_restore_verified": true,
+      "post_backup_full_restore_performed": false,
+      "remaining_disk_bytes": 5779476480,
+      "real_model_called": false
+    }
+  },
+  "final_schema_bytes": 10749673472,
+  "private_tables_denied": true,
+  "production_smoke_model_calls": 0,
+  "interface_and_boundary_regression": {
+    "source_commit": "1fc6cfe7bd85636f5f81f65b35dad6fe323d1890",
+    "tests": 5,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 27.396,
+    "test_names": [
+      "test_invalid_model_plan_clarifies_and_resumes_same_task[False]",
+      "test_invalid_model_plan_clarifies_and_resumes_same_task[True]",
+      "test_actual_api_worker_query_and_sse",
+      "test_actual_postgres_row_1001_is_rejected",
+      "test_verification_distinguishes_deadline_from_database_failure"
+    ]
+  },
+  "earlier_core_regression": {
+    "source_commit": "cb0ca1e06b9e897d07540ef6f6b18e3f777d2e92",
+    "tests": 39,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 157.639,
+    "test_names": [
+      "test_arbitrary_windows_match_independent_exported_oracle[0]",
+      "test_arbitrary_windows_match_independent_exported_oracle[1]",
+      "test_arbitrary_windows_match_independent_exported_oracle[2]",
+      "test_arbitrary_windows_match_independent_exported_oracle[3]",
+      "test_duplicate_receipts_and_cross_app_devices_do_not_multiply",
+      "test_no_samples_is_not_zero_rate_and_parameter_binding_blocks_injection",
+      "test_template_content_and_grouping_match_generated_records",
+      "test_invalid_grain_fields_or_time_rejected[change0]",
+      "test_invalid_grain_fields_or_time_rejected[change1]",
+      "test_invalid_grain_fields_or_time_rejected[change2]",
+      "test_invalid_grain_fields_or_time_rejected[change3]",
+      "test_invalid_grain_fields_or_time_rejected[change4]",
+      "test_invalid_grain_fields_or_time_rejected[change5]",
+      "test_invalid_grain_fields_or_time_rejected[change6]",
+      "test_invalid_grain_fields_or_time_rejected[change7]",
+      "test_cutoff_observation_and_metric_dependencies_enforced",
+      "test_actual_api_worker_query_and_sse",
+      "test_complete_program_replaces_fixed_business_goals[summary]",
+      "test_complete_program_replaces_fixed_business_goals[devices]",
+      "test_complete_program_replaces_fixed_business_goals[comparison]",
+      "test_tool_cannot_finish_early_or_change_confirmed_plan",
+      "test_old_fixed_push_goal_no_longer_accepted_for_new_analysis",
+      "test_push_metadata_binds_cutoff_and_single_query_permission_revocation",
+      "test_import_conflicting_duplicate_or_overlapping_history_rejected",
+      "test_import_is_immutable_readonly_and_app_scoped",
+      "test_query_clarification_persists_same_task_and_both_rounds",
+      "test_query_clarification_rejects_invalid_resume[expired]",
+      "test_query_clarification_rejects_invalid_resume[canceled]",
+      "test_query_clarification_rejects_invalid_resume[limit]",
+      "test_query_clarification_rejects_invalid_resume[binding]",
+      "test_query_clarification_rejects_invalid_resume[owner]",
+      "test_query_clarification_rejects_invalid_resume[tenant]",
+      "test_query_clarification_crash_receipts_do_not_repeat_model[False]",
+      "test_query_clarification_crash_receipts_do_not_repeat_model[True]",
+      "test_query_clarification_rechecks_permissions_and_legacy_wait",
+      "test_query_clarification_requires_actual_question_and_server_context",
+      "test_invalid_model_plan_clarifies_and_resumes_same_task[False]",
+      "test_invalid_model_plan_clarifies_and_resumes_same_task[True]",
+      "test_structured_invalid_observation_still_fails_without_model"
+    ]
+  },
+  "final_core_regression": {
+    "source_commit": "3ae6d66678af6781a08064b45bd80ee02ee183e8",
+    "tests": 41,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "seconds": 159.042,
+    "test_names": [
+      "test_arbitrary_windows_match_independent_exported_oracle[0]",
+      "test_arbitrary_windows_match_independent_exported_oracle[1]",
+      "test_arbitrary_windows_match_independent_exported_oracle[2]",
+      "test_arbitrary_windows_match_independent_exported_oracle[3]",
+      "test_duplicate_receipts_and_cross_app_devices_do_not_multiply",
+      "test_no_samples_is_not_zero_rate_and_parameter_binding_blocks_injection",
+      "test_template_content_and_grouping_match_generated_records",
+      "test_invalid_grain_fields_or_time_rejected[change0]",
+      "test_invalid_grain_fields_or_time_rejected[change1]",
+      "test_invalid_grain_fields_or_time_rejected[change2]",
+      "test_invalid_grain_fields_or_time_rejected[change3]",
+      "test_invalid_grain_fields_or_time_rejected[change4]",
+      "test_invalid_grain_fields_or_time_rejected[change5]",
+      "test_invalid_grain_fields_or_time_rejected[change6]",
+      "test_invalid_grain_fields_or_time_rejected[change7]",
+      "test_cutoff_observation_and_metric_dependencies_enforced",
+      "test_actual_api_worker_query_and_sse",
+      "test_complete_program_replaces_fixed_business_goals[summary]",
+      "test_complete_program_replaces_fixed_business_goals[devices]",
+      "test_complete_program_replaces_fixed_business_goals[comparison]",
+      "test_tool_cannot_finish_early_or_change_confirmed_plan",
+      "test_old_fixed_push_goal_no_longer_accepted_for_new_analysis",
+      "test_push_metadata_binds_cutoff_and_single_query_permission_revocation",
+      "test_import_conflicting_duplicate_or_overlapping_history_rejected",
+      "test_import_is_immutable_readonly_and_app_scoped",
+      "test_query_clarification_persists_same_task_and_both_rounds",
+      "test_query_clarification_rejects_invalid_resume[expired]",
+      "test_query_clarification_rejects_invalid_resume[canceled]",
+      "test_query_clarification_rejects_invalid_resume[limit]",
+      "test_query_clarification_rejects_invalid_resume[binding]",
+      "test_query_clarification_rejects_invalid_resume[owner]",
+      "test_query_clarification_rejects_invalid_resume[tenant]",
+      "test_query_clarification_crash_receipts_do_not_repeat_model[False]",
+      "test_query_clarification_crash_receipts_do_not_repeat_model[True]",
+      "test_query_clarification_rechecks_permissions_and_legacy_wait",
+      "test_query_clarification_requires_actual_question_and_server_context",
+      "test_invalid_model_plan_clarifies_and_resumes_same_task[False]",
+      "test_invalid_model_plan_clarifies_and_resumes_same_task[True]",
+      "test_structured_invalid_observation_still_fails_without_model",
+      "test_actual_postgres_row_1001_is_rejected",
+      "test_verification_distinguishes_deadline_from_database_failure"
+    ]
+  },
+  "final_runtime_and_test_image_files_match_source": true,
+  "backend_files_verified": 97,
+  "limitations": [
+    "Synthetic sends cover April through September 2026, with October 15 cutoff.",
+    "Serial queries after import and maintenance; not a concurrency or cold-cache capacity guarantee.",
+    "Row limit and deadline are verified separately; large-request timeout is not a proof of row-count completion.",
+    "No external model calls during deployment; deterministic tools and protocols do not establish provider understanding quality.",
+    "Old push task records retain their frozen old dataset binding; current mapping may hide them.",
+    "Pre-deployment backup was restored and counted in an empty test database; the full post-deployment large backup was not restored."
+  ],
+  "final_local_regression": {
+    "tests": "57",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "120.359"
+  },
+  "local_data_cleanup": {
+    "local_databases_deleted": [
+      "push_scale_medium_a5440f9a",
+      "push_scale_large_ef8e428d"
+    ],
+    "local_roles_deleted": [
+      "push_scale_medium_a5440f9a_ro",
+      "push_scale_large_ef8e428d_ro"
+    ],
+    "reports_preserved": true,
+    "verified": true,
+    "local_large_files_absent": true,
+    "temporary_sample_directories_deleted": 9
+  }
+}

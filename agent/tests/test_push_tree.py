@@ -105,6 +105,29 @@ def test_tree_presentation_reuses_evidence_and_raw_model_response(push_platform,
     assert len([c for c in calls if not c['summary']])==1
 
 
+def test_tree_invalid_plan_clarification_keeps_current_conditions(push_platform,monkeypatch):
+    client,repo,_=push_platform
+    tree=root(client,repo); initial=tree['cursor_id']
+    period={'start':'2026-08-01T00:00:00+08:00','end_exclusive':'2026-10-15T00:00:00+08:00'}
+    calls=mock_model(monkeypatch,[{'action':'query','patch':{'time_range':period,'observation_hours':48,'as_of':'2026-10-15T00:00:00+08:00'}},
+                                 {'action':'query','patch':{'time_range':{**period,'end_exclusive':'2026-10-01T00:00:00+08:00'},'observation_hours':48,'as_of':None}}])
+    tree,_=send(client,tree,'改查最近两个月，观察48小时')
+    claimed=run_once(repo); tree=get(client,tree)
+    task=tree['task']
+    assert task['status']=='needs_clarification' and task['clarification']['can_answer'],tree
+    assert '2026-10-13T00:00+08:00' in task['result']['message']
+    with repo.db.transaction() as conn:
+        assert conn.execute('SELECT telemetry FROM task_attempts WHERE task_id=%s AND execution_version=%s',(claimed['id'],claimed['execution_version'])).fetchone()['telemetry'].get('sql_calls',0)==0
+    body={'answer':'查8月1日至10月1日，仍观察48小时','request_id':str(uuid4()),'expected_version':task['clarification']['version']}
+    assert client.post('/api/tasks/'+task['id']+'/answers',json=body).status_code==202
+    run_once(repo); tree=get(client,tree)
+    assert tree['active_task_id'] is None and tree['result']['plan']['observation_hours']==48
+    assert tree['result']['plan']['dimensions']==['manufacturer']
+    assert tree['result']['totals']['sent']['value']=='7320'
+    assert initial in tree['path_ids'] and len([c for c in calls if not c['summary']])==2
+    assert calls[-1]['payload']['clarifications'][0]['answer']==body['answer']
+
+
 def test_tree_clarification_cancel_and_optimistic_version(push_platform,monkeypatch):
     client,repo,_=push_platform
     tree=root(client,repo); first=tree['cursor_id']; oldversion=tree['version']
@@ -173,8 +196,12 @@ def test_tree_long_history_summary_is_branch_scoped_and_originals_remain(push_pl
     for i in range(4):
         tree,_=send(client,tree,'详细解释这版结果，保留现有条件。'+('展示偏好说明。'*25))
         run_once(repo); tree=get(client,tree)
-        assert tree['messages'][-1]['kind']=='answer',tree['messages'][-1]
+        assert tree['messages'][-1]['kind']=='answer',tree['messages'][-1]['content']
     assert any(c['summary'] for c in calls)
+    final_payload=[c['payload'] for c in calls if not c['summary']][-1]
+    ancestors={m['id'] for m in tree['messages'][:-1] if m['kind']=='answer'}
+    assert {node for group in final_payload['versions'] for node in group['message_ids']}==ancestors
+    assert len(final_payload['versions'])==1
     with repo.db.transaction() as conn:
         summaries=conn.execute('SELECT * FROM push_summaries WHERE thread_id=%s',(tree['id'],)).fetchall()
         assert summaries

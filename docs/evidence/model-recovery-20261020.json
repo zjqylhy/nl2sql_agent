@@ -1,0 +1,164 @@
+{
+  "date": "2026-10-20",
+  "code_source_commit": "eba12ada5ea778887920504689205326c940cf40",
+  "deployed_url": "http://localhost:8088",
+  "quota": {
+    "passed": true,
+    "old_monthly_tokens": 1000000,
+    "new_monthly_tokens": 2000000,
+    "budget_micro": 40000000,
+    "other_policy_fields_unchanged": true,
+    "config_version": 32,
+    "user_authorized": true
+  },
+  "quota_current": {
+    "log_sample": 0,
+    "budget_micro": 40000000,
+    "monthly_tokens": 2000000
+  },
+  "local_tests": {
+    "tests": "25",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "time": "93.049"
+  },
+  "server": {
+    "source-image-proof.json": {
+      "passed": true,
+      "source_commit": "eba12ada5ea778887920504689205326c940cf40",
+      "files": 101,
+      "all_source_bytes_match": true,
+      "runtime_and_validation_dependencies_match": true
+    },
+    "switch-result.json": {
+      "passed": true,
+      "source_commit": "eba12ada5ea778887920504689205326c940cf40",
+      "previous_source_commit": "6631664b8be0f344e365f8f3045195a5ee2847b7",
+      "database_container_unchanged": true,
+      "task_rows_unchanged": true,
+      "application_config_unchanged": true,
+      "migration": "0005_task_contracts",
+      "platform_backup_bytes": 562222
+    },
+    "live-validation.json": {
+      "passed": true,
+      "source_commit": "eba12ada5ea778887920504689205326c940cf40",
+      "parent_task_id": "d474648c6c26957bc25499f3df7b1198100f7a6dfc3b5423",
+      "retry_task_id": "8968654824d7b9c32813157c72d5a789302d243e6cf66511",
+      "parent_failure_retained": true,
+      "question_and_clarifications_preserved": true,
+      "period": {
+        "start": "2026-08-01T00:00:00+08:00",
+        "end_exclusive": "2026-09-15T00:00:00+08:00"
+      },
+      "apps": [
+        "app_1",
+        "app_2",
+        "app_3"
+      ],
+      "raw_table_oracle_matches": true,
+      "observation_hours": null,
+      "result_kind": "dimension_values",
+      "independent_evidence_retrievable": true,
+      "model_calls": 1,
+      "sql_calls": 1,
+      "input_tokens": 1519,
+      "output_tokens": 2412,
+      "elapsed_ms": {
+        "sql": 61.247,
+        "db_connect": 23.687,
+        "initial_model": 10102.436
+      },
+      "retry_events": 1,
+      "legacy_error_sanitized": true,
+      "images": {
+        "api": "sha256:1bcc3f76a21c5bbe79bc8e2a36a5f40c1caea3e6c386340c86d20664930aa7db",
+        "worker": "sha256:1bcc3f76a21c5bbe79bc8e2a36a5f40c1caea3e6c386340c86d20664930aa7db",
+        "web": "sha256:e3ad371cf8ff70794bd6cd4903769d32ac779436d9b2d4ed883251ffdc90322f"
+      }
+    },
+    "server_tests": {
+      "tests": "30",
+      "errors": "0",
+      "failures": "0",
+      "skipped": "0",
+      "time": "171.095"
+    },
+    "approved_diagnostic": {
+      "http_status": 200,
+      "root_keys": [
+        "schema_version",
+        "domain",
+        "task_type",
+        "question",
+        "scope",
+        "result_requirements",
+        "execution_plan"
+      ],
+      "total_tokens": 1978,
+      "model_calls": 1,
+      "sql_calls": 0,
+      "sampling_globally_enabled": false
+    },
+    "prior_failures": [
+      {
+        "task_id": "c561499de12617545e647475aa55d04a954cb61da1a3fb7d",
+        "model_calls": 1,
+        "sql_calls": 0,
+        "error_code": "model_rate_limit"
+      },
+      {
+        "task_id": "6c82fef070a2a6fd0f85bc7796c462dd1290e6b706cb4563",
+        "model_calls": 1,
+        "sql_calls": 0,
+        "error_code": ""
+      },
+      {
+        "task_id": "6c82fef070a2a6fd0f85bc7796c462dd1290e6b706cb4563",
+        "model_calls": 1,
+        "sql_calls": 0,
+        "error_code": ""
+      },
+      {
+        "task_id": "d474648c6c26957bc25499f3df7b1198100f7a6dfc3b5423",
+        "model_calls": 1,
+        "sql_calls": 0,
+        "error_code": "model_envelope"
+      }
+    ]
+  },
+  "supplemental_real_calls": {
+    "authorized_maximum": 2,
+    "used": 2,
+    "diagnostic_calls": 1,
+    "acceptance_calls": 1,
+    "automatic_retries": 0
+  },
+  "screenshots": [
+    "model-retry-button-20261020.jpg",
+    "model-values-success-20261020.jpg"
+  ],
+  "cleanup": {
+    "local_new_test_sample_directories_removed": 6,
+    "local_sample_bytes_removed": 351671014,
+    "large_local_business_data_regenerated": false
+  },
+  "limits": [
+    "1000 distinct combinations per result",
+    "10 second database deadline",
+    "15 second query client deadline",
+    "512 KiB result size",
+    "values results start new tasks for changed requirements"
+  ],
+  "browser_fixture": {
+    "retry_requests": 1,
+    "request_keys": [
+      [
+        "request_id",
+        "expected_execution_version"
+      ]
+    ],
+    "parent_status": "failed"
+  }
+}

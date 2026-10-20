@@ -7,11 +7,15 @@ from collections import Counter, defaultdict
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-def generate(output):
+def generate(output, *, devices=None, deliveries=None, seed=20261018):
+    # 小样本保持原有固定数字，供独立回归；显式数量走不缓存历史记录的大样本生成器。
+    if devices is not None or deliveries is not None:
+        from .generate_push_large import generate_large
+        return generate_large(output, devices=devices, deliveries=deliveries, seed=seed)
     ROOT = Path(output).resolve()
     DATA = ROOT / 'data'
     DATA.mkdir(parents=True, exist_ok=True)
-    R = random.Random(20261018)
+    R = random.Random(seed)
     TZ = timezone(timedelta(hours=8))
     START = datetime(2026, 4, 1, tzinfo=TZ)
     END = datetime(2026, 10, 1, tzinfo=TZ)
@@ -144,7 +148,13 @@ def generate(output):
                 route = route_at(rid, sent)
                 permission = state_at(key, sent)['notification_permission']
                 blocked = permission == 'denied' or route['token_status'] == 'invalid'
+                # 不额外消耗随机数，保证补充文案不会改变原有发送/回执样本。
+                template_index = (day + int(d['device_id'].rsplit('_', 1)[-1])) % 3
+                content = [('服务提醒', '你有一条新的服务进度，请打开应用查看。'),
+                           ('活动通知', '本期模拟活动已开始，点击查看活动详情。'),
+                           ('内容推荐', '为你准备了新的模拟内容，欢迎查看。')][template_index]
                 row = {'delivery_id': f'dlv_{len(deliveries)+1:07d}', 'message_id': f"msg_{app['app_id']}_{date:%Y%m%d}",
+                       'template_id': f'tpl_{template_index+1:02d}', 'title': content[0], 'body': content[1],
                        'app_id': key[0], 'device_id': key[1], 'manufacturer': d['manufacturer'],
                        'route_id': rid, 'channel': route['channel'], 'sent_at': iso(sent),
                        'accepted_at': None, 'delivered_at': None, 'clicked_at': None,
@@ -247,7 +257,7 @@ def generate(output):
                          'delivery_rate_denominator': 'sent_count', 'click_rate_denominator': 'sent_count'})
     write('expected_results', expected)
 
-    validation = {'passed': True, 'seed': 20261018, 'is_synthetic': True,
+    validation = {'passed': True, 'seed': seed, 'is_synthetic': True,
                   'counts': {n: len(rows) for n, rows in TABLES.items()},
                   'device_status_at_cutoff': dict(Counter(x['push_status'] for x in devices)),
                   'duplicate_event_receipts': len(events)-len({x['event_id'] for x in events}),
@@ -263,4 +273,8 @@ def generate(output):
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, default=Path('data/push'))
-    generate(parser.parse_args().output)
+    parser.add_argument('--devices', type=int)
+    parser.add_argument('--deliveries', type=int)
+    parser.add_argument('--seed', type=int, default=20261018)
+    args=parser.parse_args()
+    generate(args.output, devices=args.devices, deliveries=args.deliveries, seed=args.seed)

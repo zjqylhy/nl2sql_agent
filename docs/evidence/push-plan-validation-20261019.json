@@ -1,0 +1,222 @@
+{
+  "date": "2026-10-19",
+  "source_archive_sha256": "b80e4bf058d6ce04b838c1b2f3366132833cfad389e279e8908a3c39fe6800ec",
+  "source_hashes": {
+    "agent/runtime/push.py": "2ff1318cc2b7dd0461e974e2551fdff4348e74a0aa819b33f07f089e65295d36",
+    "agent/runtime/push_query.py": "be1dfae7ddd849e95a6b7609a8acac518fc7181a8c5a8d59711f153801ec95f0",
+    "agent/runtime/push_plan_validation.py": "b08860a90fe824cd6849e795606fc1b691fed247277e0fe2f40604080d3e6d41",
+    "agent/runtime/telemetry.py": "d1d338f7b2108d3332c7c3715f86e79783a9e82a0dc3438787f1f59eecec6540",
+    "agent/platform_app/push_thread_runtime.py": "c9fe6ef496031eef4bb4d1114a8c6d0a9f9c61b62a1d93442efa23fba224739e",
+    "agent/tools/eval_push_queries.py": "a4dbca004d539cd0f04348e509ac135b9f7ee5f566c5d2c2b05831269f22bd8f",
+    "evals/push_queries.py": "e4c087499987a11e3653409e34722d1392076778a82666f4a4d5cb6e88cffb21"
+  },
+  "full_regression": {
+    "exit_code": 0,
+    "summary": "426 passed in 251.34s (0:04:11)"
+  },
+  "sql_oracle_plans": 19,
+  "live": {
+    "fixture_sha256": "e4c087499987a11e3653409e34722d1392076778a82666f4a4d5cb6e88cffb21",
+    "requests": 25,
+    "distinct_cases": 20,
+    "passed_cases": 9,
+    "latest_errors": {
+      "model_truncated": 1,
+      "model_rate_limit": 10
+    },
+    "batches": [
+      {
+        "directory": "push-plan-20261019-2",
+        "authorized_max_requests": 20,
+        "actual_requests": 20,
+        "passed": 6,
+        "error_counts": {
+          "model_rate_limit": 14
+        }
+      },
+      {
+        "directory": "push-plan-20261019-3",
+        "authorized_max_requests": 14,
+        "actual_requests": 5,
+        "passed": 3,
+        "error_counts": {
+          "model_truncated": 1,
+          "model_rate_limit": 1
+        }
+      }
+    ],
+    "cases": [
+      {
+        "id": "daily_vendor",
+        "passed": true,
+        "status": "completed",
+        "error_code": "",
+        "mismatches": []
+      },
+      {
+        "id": "app_channel",
+        "passed": true,
+        "status": "completed",
+        "error_code": "",
+        "mismatches": []
+      },
+      {
+        "id": "exclude_vendor",
+        "passed": true,
+        "status": "completed",
+        "error_code": "",
+        "mismatches": []
+      },
+      {
+        "id": "vendor_and_app",
+        "passed": true,
+        "status": "completed",
+        "error_code": "",
+        "mismatches": []
+      },
+      {
+        "id": "two_channels",
+        "passed": true,
+        "status": "completed",
+        "error_code": "",
+        "mismatches": []
+      },
+      {
+        "id": "click_denominator",
+        "passed": true,
+        "status": "completed",
+        "error_code": "",
+        "mismatches": []
+      },
+      {
+        "id": "failed_reason",
+        "passed": true,
+        "status": "completed",
+        "error_code": "",
+        "mismatches": []
+      },
+      {
+        "id": "device_status",
+        "passed": true,
+        "status": "completed",
+        "error_code": "",
+        "mismatches": []
+      },
+      {
+        "id": "active_devices",
+        "passed": false,
+        "status": "error",
+        "error_code": "model_truncated",
+        "mismatches": [
+          "status"
+        ]
+      },
+      {
+        "id": "active_valid",
+        "passed": false,
+        "status": "error",
+        "error_code": "model_rate_limit",
+        "mismatches": [
+          "status"
+        ]
+      },
+      {
+        "id": "delivery_latency",
+        "passed": false,
+        "status": "error",
+        "error_code": "model_rate_limit",
+        "mismatches": [
+          "status"
+        ]
+      },
+      {
+        "id": "month_app",
+        "passed": false,
+        "status": "error",
+        "error_code": "model_rate_limit",
+        "mismatches": [
+          "status"
+        ]
+      },
+      {
+        "id": "arbitrary_range",
+        "passed": false,
+        "status": "error",
+        "error_code": "model_rate_limit",
+        "mismatches": [
+          "status"
+        ]
+      },
+      {
+        "id": "missing_observation",
+        "passed": true,
+        "status": "needs_clarification",
+        "error_code": "",
+        "mismatches": []
+      },
+      {
+        "id": "immature_window",
+        "passed": false,
+        "status": "error",
+        "error_code": "model_rate_limit",
+        "mismatches": [
+          "status"
+        ]
+      },
+      {
+        "id": "mixed_grain",
+        "passed": false,
+        "status": "error",
+        "error_code": "model_rate_limit",
+        "mismatches": [
+          "status"
+        ]
+      },
+      {
+        "id": "unsupported_causality",
+        "passed": false,
+        "status": "error",
+        "error_code": "model_rate_limit",
+        "mismatches": [
+          "status"
+        ]
+      },
+      {
+        "id": "unknown_manufacturer",
+        "passed": false,
+        "status": "error",
+        "error_code": "model_rate_limit",
+        "mismatches": [
+          "status"
+        ]
+      },
+      {
+        "id": "clarification_48",
+        "passed": false,
+        "status": "error",
+        "error_code": "model_rate_limit",
+        "mismatches": [
+          "status"
+        ]
+      },
+      {
+        "id": "clarification_dates",
+        "passed": false,
+        "status": "error",
+        "error_code": "model_rate_limit",
+        "mismatches": [
+          "status"
+        ]
+      }
+    ],
+    "parser_matches_final_snapshot": true,
+    "sql_executed": false,
+    "known_total_tokens": 23663,
+    "requests_without_token_usage": 15
+  },
+  "production_images": {
+    "api": "push-analysis-platform:b617488571087a302a2b12d262cf63be52d3ff2c",
+    "worker": "push-analysis-platform:b617488571087a302a2b12d262cf63be52d3ff2c"
+  },
+  "production_changed": false
+}

@@ -29,6 +29,10 @@ class State(TypedDict, total=False):
     retry_sql: bool
     model_retries: int
     no_progress: int
+    observed_rows: list[str]
+    pending_scope: dict | None
+    applied_resume_round: int
+    report_ref: str | None
 
 
 def build_graph(repo, task, saver):
@@ -38,11 +42,19 @@ def build_graph(repo, task, saver):
         with repo.db.transaction() as conn:
             user = repo.execution(conn, task)
             run = conn.execute("SELECT * FROM analysis_runs WHERE id=%s", (task["id"],)).fetchone()
-            artifacts = [r["body"] for r in conn.execute("SELECT body FROM analysis_artifacts WHERE run_id=%s ORDER BY created_at,result_ref", (task["id"],))]
+            current = conn.execute('SELECT contract_version FROM tasks WHERE id=%s',(task['id'],)).fetchone()['contract_version']
+            contract = conn.execute('SELECT body FROM task_contracts WHERE task_id=%s AND version=%s',(task['id'],current)).fetchone() if current else None
+            # 新约定尚待本轮账本保存时不读取旧版本证据。
+            changed = contract and contract['body'] != state.get('spec')
+            artifacts = [] if changed else [r["body"] for r in conn.execute("SELECT body FROM analysis_artifacts WHERE run_id=%s AND contract_version=%s AND body->>'kind'<>'report' ORDER BY created_at,result_ref", (task["id"],current))]
+            from .task_budget import model_call_limit
+            call_limit=model_call_limit(conn,task['id'])
         value = Snapshot(**identity(user).model_dump(), binding=run["binding"], question=state["question"],
             spec=state.get("spec"), artifacts=artifacts, answers=state.get("answers", []), feedback=state.get("feedback", {}),
             max_output_tokens=run["policy"].get("max_output_tokens", 1024),
+            max_input_bytes=run['policy'].get('max_input_bytes',6000),
             model_timeout_seconds=run["policy"].get("model_timeout_seconds", 20))
+        value.budget = {name:max(0,limit-run['state'].get(name,0)) for name,limit in [('model_calls',call_limit),('actions',12),('sql_calls',6),('active_ms',180000)]}
         checked(value)
         return value, run
 
@@ -52,9 +64,9 @@ def build_graph(repo, task, saver):
 
     def model_interval(state):
         with repo.db.transaction() as conn:
-            run = conn.execute("SELECT policy,state FROM analysis_runs WHERE id=%s", (task["id"],)).fetchone()
+            run = conn.execute("SELECT policy,state,metadata FROM analysis_runs WHERE id=%s", (task["id"],)).fetchone()
         seconds = run["policy"].get("model_interval_seconds", 0)
-        needs_model = run['policy']['strategy'] != 'fixed' or state.get('spec') is None
+        needs_model = run['metadata'].get('domain')=='push' or run['policy']['strategy'] != 'fixed' or state.get('spec') is None
         if seconds and needs_model and run["state"]["model_calls"]:
             # 等待不占 Worker 线程，不预占尚未发送的模型费用，也不会重放已完成调用。
             interrupt({"kind": "backoff", "wait_id": state["op_id"], "seconds": seconds, "message": "等待已配置的模型调用间隔"})
@@ -62,8 +74,10 @@ def build_graph(repo, task, saver):
 
     def decision(state):
         request, run = snapshot(state)
-        fixed = run["policy"]["strategy"] == "fixed" and state.get("spec") is not None
-        spec_only = run['policy']['strategy'] == 'fixed' and not fixed
+        # 开放分析必须由观测驱动；旧订单域的固定策略仍按原协议运行。
+        open_push = run['metadata'].get('domain') == 'push' or (state.get('spec') or {}).get('task_type') == 'analysis'
+        fixed = not open_push and run["policy"]["strategy"] == "fixed" and state.get("spec") is not None
+        spec_only = not open_push and run['policy']['strategy'] == 'fixed' and not fixed
         phase = "fixed" if fixed else "decide"
         payload = {"spec": request.spec.model_dump(mode="json") if request.spec else None,
                    "answers": request.answers, "feedback": request.feedback, "artifact_refs": state.get("refs", [])}
@@ -105,24 +119,43 @@ def build_graph(repo, task, saver):
         if output.get("status") == "needs_clarification":
             if len(state.get("answers", [])) >= 2:
                 return {"status": "failed", "message": "补充轮数已耗尽"}
-            return {"status": "waiting", "message": output["message"]}
+            return {"status": "waiting", "message": output["message"], 'pending_scope':output.get('scope_proposal')}
         if output.get("status") != "completed":
             if output.get("error_code") in {"sql_timeout", "sql_connection", "sql_unknown"} and state.get("sql_retries", 0) == 0:
                 return {"sql_retries": 1, "retry_sql": True, "status": "backoff", "feedback": output}
             return failure(state, output)
         art = output["artifact"]
         refs = state.get("refs", [])
-        no_progress = state.get("no_progress", 0) + 1 if art["result_ref"] in refs else 0
+        observed_rows=set(state.get('observed_rows',[]))
+        repeated=art['result_ref'] in refs
+        if art['kind']=='observation':
+            rows={f"{art['data']['source_ref']}:{r['source_row']}" for r in art['data']['rows']}
+            # 页大小或排序参数改变但返回相同行，不算调查取得新进展。
+            repeated=not bool(rows-observed_rows)
+            observed_rows.update(rows)
+        no_progress = state.get("no_progress", 0) + 1 if repeated else 0
         if no_progress >= 2:
             message = '重复调用未产生新证据，已停止'
             return {'status':'failed','message':message,'feedback':{'status':'error','error_code':'no_progress','message':message}}
-        return {"refs": list(dict.fromkeys([*refs, art["result_ref"]])), "no_progress": no_progress,
-            "status": "completed" if art["kind"] == "report" else "decide", "retry_sql": False,
-            "feedback": {"status": "completed", "result_ref": art["result_ref"], "outcome": art["data"].get("outcome")}}
+        report_status = 'failed' if art['data'].get('completeness') == 'partial' else 'completed'
+        feedback={"status": "completed", "result_ref": art["result_ref"], "outcome": art["data"].get("outcome")}
+        if repeated:
+            feedback['message']='本次没有读到新行；请换调查方向或明确未回答事项后提交报告，不要重复读取相同行。'
+        return {"refs": list(dict.fromkeys([*refs, art["result_ref"]])), "no_progress": no_progress,'observed_rows':sorted(observed_rows),
+            "status": report_status if art["kind"] == "report" else "decide", "retry_sql": False,
+            "feedback": feedback,'report_ref':art['result_ref'] if art['kind']=='report' else state.get('report_ref')}
 
     def wait_for_answer(state):
         # 此节点只执行 interrupt 和纯状态变换，恢复从开头执行也没有外部副作用。
-        answer = interrupt({"kind": "clarification", "message": state["message"], "wait_id": state["op_id"]})
+        answer = interrupt({"kind": "clarification", "message": state["message"], "wait_id": state["op_id"], 'scope_proposal':state.get('pending_scope')})
+        if state.get('pending_scope'):
+            if not isinstance(answer,dict) or type(answer.get('approved')) is not bool:
+                return {'status':'failed','message':'范围变更需要明确确认，不能用自由文本代替'}
+            approved = answer['approved']
+            return {'spec':state['pending_scope'] if approved else state['spec'],'pending_scope':None,
+                'refs':[] if approved else state.get('refs',[]),'no_progress':0,'observed_rows':[] if approved else state.get('observed_rows',[]),
+                'answers':[*state.get('answers',[]),'已确认具体范围变更' if approved else '拒绝扩大范围，请在原约定内完成'],
+                'status':'decide','feedback':{},'message':''}
         return {"answers": [*state.get("answers", []), answer], "status": "decide", "feedback": {}, "message": ""}
 
     def backoff(state):
@@ -148,7 +181,7 @@ def build_graph(repo, task, saver):
     graph.add_edge("prepare_tool", "tool")
     graph.add_edge("tool", "observe")
     graph.add_conditional_edges("observe", lambda s: s["status"], {"decide": "prepare_decision", "waiting": "wait_for_answer", "backoff": "backoff", "failed": END, "completed": END})
-    graph.add_edge("wait_for_answer", "prepare_decision")
+    graph.add_conditional_edges('wait_for_answer',lambda s:s['status'],{'decide':'prepare_decision','failed':END})
     graph.add_edge("backoff", "prepare_tool")
     graph.add_edge("model_backoff", "prepare_decision")
     return graph.compile(checkpointer=saver)

@@ -1,12 +1,13 @@
 """无状态分析适配器；每个内部请求只执行一次决策或一个工具。"""
 import hashlib
+import json
 import os
 from typing import Literal
 
 import httpx
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import Field, ValidationError, model_validator
+from pydantic import Field, TypeAdapter, ValidationError, model_validator
 
 from . import app as runtime
 from .analysis import (Action, AnalysisError, Calculate, Clarify, ClarifyArgs, Compare, Decision, Finish, Lookup, Query, Rank,
@@ -15,7 +16,8 @@ from .analysis import (Action, AnalysisError, Calculate, Clarify, ClarifyArgs, C
 from .catalog import StrictModel, catalog
 from .model_transport import ModelConfigurationError, ModelTransport
 from .multiturn import source_metadata
-from .push_analysis import PushSpec, PushAction, PushDecision
+from .task_contracts import TaskContract, validate_contract, with_capabilities
+from .exploration import ExplorationAction, ExplorationDecision
 
 router = APIRouter(prefix="/internal/analysis", dependencies=[Depends(runtime.authenticated)])
 
@@ -32,7 +34,8 @@ def metadata(identity):
         raise HTTPException(503, "分析需要已配置的不可变数据版本")
     meta = source_metadata(source, identity.tenant_id, identity.role)
     model = os.environ.get("LLM_MODEL", "")
-    version = 'push-1' if source.domain == 'push' else VERSION
+    from .push import VERSION as PUSH_VERSION
+    version = PUSH_VERSION if source.domain == 'push' else VERSION
     return source, {**meta, "binding": hashlib.sha256((meta["binding"] + source.dataset_revision + version + model).encode()).hexdigest(),
                     "dataset_revision": source.dataset_revision, "runtime_version": version, "model": model}
 
@@ -51,16 +54,18 @@ def context(identity: Identity):
 class Snapshot(Identity):
     binding: str = Field(pattern=r"^[a-f0-9]{64}$")
     question: str = Field(min_length=1, max_length=2000)
-    spec: Spec | PushSpec | None = None
+    spec: Spec | TaskContract | None = None
     artifacts: list[dict] = Field(default_factory=list, max_length=12)
     feedback: dict = Field(default_factory=dict)
     answers: list[str] = Field(default_factory=list, max_length=2)
     max_output_tokens: int = Field(default=1024, ge=256, le=4096, strict=True)
+    max_input_bytes: int = Field(default=6000, ge=1024, le=65536, strict=True)
     model_timeout_seconds: int = Field(default=20, ge=5, le=60, strict=True)
+    budget: dict = Field(default_factory=dict)
 
 
 class ToolRequest(Snapshot):
-    action: Action | PushAction
+    action: Action | ExplorationAction
 
 
 def checked(snapshot):
@@ -68,14 +73,12 @@ def checked(snapshot):
     if snapshot.binding != meta["binding"]:
         reject("binding_changed", "数据、目录或运行版本已变化，请新建任务")
     if snapshot.spec:
-        if (isinstance(snapshot.spec, PushSpec)) != (source.domain == 'push'):
+        if isinstance(snapshot.spec, TaskContract) != (source.domain == 'push'):
             reject(message='任务规格与数据域不一致')
         snapshot.spec.check_anchor(source.analysis_date)
-        if isinstance(snapshot.spec, PushSpec):
-            from .push_analysis import plans
+        if isinstance(snapshot.spec,TaskContract):
             try:
-                for plan in plans(snapshot.spec):
-                    plan.check_source(source)
+                validate_contract(snapshot.spec,source,snapshot.allowed_metrics)
             except ValueError as exc:
                 reject(message=str(exc))
         if not set(metric_ids(snapshot.spec)) <= set(snapshot.allowed_metrics):
@@ -116,8 +119,9 @@ def tool(request: ToolRequest):
     try:
         source = checked(request)
         if source.domain == 'push':
-            from .push_tools import tool as push_tool
-            return push_tool(request, source)
+            from .exploration import tool as explore_tool
+            request.action = TypeAdapter(ExplorationAction).validate_python(request.action.model_dump(mode='json'))
+            return explore_tool(request,source)
         action, spec = request.action, request.spec
         if isinstance(action, Clarify):
             return {"status": "needs_clarification", **action.arguments.model_dump()}
@@ -179,7 +183,7 @@ def tool(request: ToolRequest):
 
 
 class SpecResponse(StrictModel):
-    spec: Spec | PushSpec | None
+    spec: Spec | None
     clarification: ClarifyArgs | None
 
     @model_validator(mode='after')
@@ -196,8 +200,7 @@ Do not guess missing dates,N,or absolute/rate ranking. Preserve all filters: {fi
 
 def spec_prompt(request, anchor):
     if getattr(runtime.sources().get(request.tenant_id+':'+request.role), 'domain', 'orders') == 'push':
-        from .push_analysis import prompt
-        return prompt(request, anchor, spec_only=True)
+        reject(message='推送明确取数使用完整计划，开放分析不使用固定规格解析')
     prompt = ('Olist task specification parser. JSON only, no tools or action keys. Return exactly '
               '{"spec":SPEC,"clarification":null} or {"spec":null,"clarification":{"missing_fields":[goal|current|baseline|ranking|n|filters|expression],"message":"short Chinese question"}}.\n'
               + SPEC_GUIDANCE)
@@ -229,8 +232,8 @@ def resolve_action_refs(action, artifacts):
 
 def decision_prompt(request, anchor):
     if getattr(runtime.sources().get(request.tenant_id+':'+request.role), 'domain', 'orders') == 'push':
-        from .push_analysis import prompt
-        return prompt(request, anchor)
+        from .exploration import prompt
+        return prompt(request,anchor)
     # 模型只看小型摘要，确定性工具仍读取完整证据，不裁剪原始业务条件。
     summaries = []
     for i,a in enumerate(request.artifacts, 1):
@@ -281,11 +284,12 @@ def model_decision(request: Snapshot, *, spec_only):
     sent = False
     try:
         source = checked(request)
-        decision_type = PushDecision if source.domain == 'push' else Decision
+        decision_type = ExplorationDecision if source.domain == 'push' else Decision
         prompt, question = (spec_prompt if spec_only else decision_prompt)(request, source.analysis_date)
         # 对显式配置的 byte-BPE 模型用 UTF-8 字节数保守预留；不冒充实际 Token。
-        bound = len(prompt.encode()) + len(question.encode()) + 256
-        if bound > 6000:
+        from .model_budget import input_bytes
+        bound = input_bytes(prompt,question)
+        if bound > request.max_input_bytes:
             reject("input_limit", "分析上下文超过输入预算，请缩短问题或新建任务")
         transport = ModelTransport.from_env()
         with transport.bounded_client(timeout=request.model_timeout_seconds) as client:
@@ -304,8 +308,22 @@ def model_decision(request: Snapshot, *, spec_only):
                 'spec':None,'action':{'action':'request_clarification','arguments':parsed.clarification.model_dump()}}
             decision = decision_type.model_validate(value)
         else:
-            decision = decision_type.model_validate_json(choice["message"]["content"])
+            value = json.loads(choice["message"]["content"])
+            if isinstance(request.spec, TaskContract) and isinstance(value, dict):
+                # 已确认约定来自服务端。模型只需提交动作，不能在每一轮重新生成任务边界。
+                if set(value) == {'action'}:
+                    value = {**value, 'spec':request.spec}
+                elif isinstance(value.get('spec'), dict):
+                    echoed = dict(value['spec'])
+                    # 旧格式可省略程序生成字段；若显式提交不同值，后续相等检查仍拒绝。
+                    for name in ('exploration_permissions', 'capability_version'):
+                        if name not in echoed:
+                            echoed[name] = request.spec.model_dump(mode='json')[name]
+                    value = {**value, 'spec':echoed}
+            decision = decision_type.model_validate(value)
             decision = decision_type.model_validate({'spec':decision.spec,'action':resolve_action_refs(decision.action.model_dump(mode='json'),request.artifacts)})
+        if isinstance(decision.spec,TaskContract) and request.spec is None:
+            decision.spec = with_capabilities(decision.spec,request.allowed_metrics)
         if request.spec and decision.spec != request.spec:
             reject("invalid_arguments", "模型不能改变已经确认的分析条件")
         if decision.spec:
@@ -351,7 +369,9 @@ def fixed_decide(request: Snapshot):
         source = checked(request)
         if request.spec is None:
             reject("missing_conditions", "固定流程也需要先提取并确认规格")
-        decision = (PushDecision if source.domain == 'push' else Decision).model_validate(next_action(request.spec, request.artifacts))
+        if source.domain == 'push':
+            reject(message='开放分析不能使用旧固定目标调度')
+        decision = Decision.model_validate(next_action(request.spec, request.artifacts))
         return {"status": "completed", "decision": decision.model_dump(mode="json"), "model_sent": False}
     except (AnalysisError, ValidationError) as exc:
         return {**safe_error(exc), "model_sent": False}

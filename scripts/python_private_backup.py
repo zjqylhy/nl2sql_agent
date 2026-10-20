@@ -27,7 +27,8 @@ def run(env_file, source):
         config = Path(temporary) / "database.env"
         descriptor = os.open(config, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         with os.fdopen(descriptor, "w") as stream:
-            stream.write("BACKUP_DATABASE_URL=postgresql://platform_migrator:" + password + "@postgres:5432/platform?sslmode=disable\n")
+            # 大快照的元数据计数也属于维护操作，不继承用户查询的 10 秒截止。
+            stream.write("BACKUP_DATABASE_URL=postgresql://platform_migrator:" + password + "@postgres:5432/platform?sslmode=disable&options=-c%20statement_timeout%3D0\n")
         subprocess.run(["docker", "run", "--rm", "--network", "olist-python-agent_backend",
             "--env-file", str(config), "--read-only", "--tmpfs", "/tmp", "--cap-drop", "ALL",
             "--security-opt", "no-new-privileges:true", "-v", str(source) + ":/workspace:ro",
