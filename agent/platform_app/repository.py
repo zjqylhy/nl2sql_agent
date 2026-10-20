@@ -193,7 +193,11 @@ class Repository:
         if not run:
             raise HTTPException(404, "分析任务不存在")
         artifacts = [r["body"] for r in conn.execute("SELECT body FROM analysis_artifacts WHERE run_id=%s AND contract_version=%s ORDER BY created_at,result_ref", (run_id,task.get('contract_version',0)))]
-        steps = conn.execute("SELECT s.id,s.sequence,s.phase,s.input->>'action' action,s.input->'arguments' arguments,s.status,s.started_at,s.ended_at,s.output->>'error_code' error_code,a.cached FROM analysis_steps s JOIN analysis_step_attempts a ON a.step_id=s.id WHERE run_id=%s ORDER BY sequence", (run_id,)).fetchall()
+        steps = conn.execute("SELECT s.id,s.sequence,s.phase,s.input->>'action' action,s.input->'arguments' arguments,s.output->'decision'->'action' decision,s.status,s.started_at,s.ended_at,s.output->>'error_code' error_code,a.cached FROM analysis_steps s JOIN analysis_step_attempts a ON a.step_id=s.id WHERE run_id=%s ORDER BY sequence", (run_id,)).fetchall()
+        from .step_descriptions import describe_step
+        for step in steps:
+            step['description']=describe_step(step,run['state'].get('spec'))
+            step.pop('decision',None)
         usage = conn.execute("SELECT coalesce(sum(actual_tokens),0) known_tokens,coalesce(sum(actual_cost),0) known_cost_micros,count(*) FILTER(WHERE status IN ('reserved','unknown')) unknown_calls FROM analysis_budget_ledger WHERE run_id=%s", (run_id,)).fetchone()
         return dict(id=run_id, question=task["input"]["question"], status=task["status"], version=run["version"], metadata=run["metadata"], policy=run["policy"], state=run["state"], metrics_used=run["required_metrics"], artifacts=artifacts, steps=steps, usage=run["state"].get("archived_usage", usage), retry=task['retry'])
 
