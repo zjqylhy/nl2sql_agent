@@ -1,0 +1,66 @@
+{
+  "date": "2026-10-21",
+  "deployment_commit": "2da55e20d4c57d108237a68cbcea814bb9dabb08",
+  "previous_source": "/srv/olist/python/releases/9273ce6e3385636295d29849d883c655412b683e",
+  "current_source": "/srv/olist/python/releases/2da55e20d4c57d108237a68cbcea814bb9dabb08",
+  "model_base_url": "https://api.linhengyi.xyz/v1",
+  "existing_key_model_and_budgets_unchanged": true,
+  "api_worker_images_unchanged": true,
+  "web_database_containers_unchanged": true,
+  "old_tunnel_container_removed": true,
+  "rollback_key_material_retained_on_server": true,
+  "business_tables_unchanged": true,
+  "task_count": 110,
+  "api_worker_checks": {
+    "api": {
+      "unauthenticated_http": 401,
+      "authenticated_http": 200,
+      "model_available": true,
+      "runtime_target_verified": true,
+      "standard_ca_verified": true
+    },
+    "worker": {
+      "unauthenticated_http": 401,
+      "authenticated_http": 200,
+      "model_available": true,
+      "runtime_target_verified": true,
+      "standard_ca_verified": true
+    }
+  },
+  "application_checks": {
+    "home_http": 200,
+    "health_http": 200,
+    "login_http": 200,
+    "historical_tasks_http": 200,
+    "historical_tasks_returned": 50,
+    "logout_http": 200,
+    "secure_cookie_preserved": true
+  },
+  "external_model_generation_requests": 0,
+  "gateway_readonly_http_requests": 10,
+  "post_tunnel_removal_checks": {
+    "api": {
+      "authenticated_models_http": 200,
+      "standard_tls_and_target_verified": true
+    },
+    "worker": {
+      "authenticated_models_http": 200,
+      "standard_tls_and_target_verified": true
+    }
+  },
+  "obsolete_active_environment_removed": true,
+  "backup_timer_active": true,
+  "backup_service_uses_current_source": true,
+  "source_archive_sha256": "95fdb00861dd798f878dab7310013149331e9e315edf2d84c08987d71a28149d",
+  "regression": {
+    "local_passed": 27,
+    "local_failed": 0,
+    "initial_sandbox_run": "22 passed, 1 failed, 4 errors; local sockets and temporary directories restricted; passed after rerun with required permissions"
+  },
+  "real_model_generation_validated": false,
+  "manual_acceptance": "pending",
+  "rollback_directory": "/srv/olist/python/deployments/20261021-gateway-domain",
+  "operations_wrapper_uses_current_configuration": true,
+  "operations_wrapper_compose_verified": true,
+  "operations_wrapper_rollback_saved": true
+}

@@ -1,0 +1,17 @@
+{
+	# 域名入口只使用 TCP 80/443；证书状态由宿主 systemd 服务持久保存。
+	acme_ca https://acme-v02.api.letsencrypt.org/directory
+	servers {
+		protocols h1 h2
+	}
+}
+
+nl2sql-agent.linhengyi.xyz {
+	header Strict-Transport-Security "max-age=86400"
+	reverse_proxy 127.0.0.1:8088 {
+		# 默认不信任公网传入的代理链；移除其他来源声明，统一使用 Caddy 生成的头。
+		header_up -Forwarded
+		# 即时刷新事件流，保持现有任务进度推送行为。
+		flush_interval -1
+	}
+}

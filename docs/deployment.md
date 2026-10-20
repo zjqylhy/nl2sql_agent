@@ -1,5 +1,9 @@
 # 本地与云部署
 
+2026-10-21：正式浏览器入口已启用为 <https://nl2sql-agent.linhengyi.xyz>，HTTP 自动跳转 HTTPS，登录页和工作台共用备案页脚。Caddy 配置、独立前端版本、验证范围、限制及回退准备见[域名 HTTPS 发布记录](domain-https-deployment.md)。以下旧部署材料保留其历史背景，当前云端运行方式以该记录及 Python Compose 为准。
+
+同日，远程 API/Worker 已切换到模型网关 `https://api.linhengyi.xyz/v1`，旧模型 SSH 隧道依赖退役。镜像、只读鉴权、零生成请求验收及回退信息见[网关域名发布记录](gateway-domain-deployment.md)。
+
 2026-10-12：用户确认在 8.155.128.79 自建 PostgreSQL/MySQL，备案期间通过 SSH 隧道访问，不购买 RDS/ACR。独立规格与限制见[私有部署方案](ecs-private-deployment-spec.md)，配置入口为 deploy/compose.private.yaml，操作见[私有运维手册](ecs-private-operations.md)。下述 RDS/HTTPS 发布模板保留为后续正式迁移路线。
 
 2026-10-10：用户明确云端目标为阿里云 ECS + Docker Compose。后续实现须遵循 [阿里云部署要求](aliyun-deployment-design.md)；云模板已补齐双数据库 CA、宿主 TLS 入口、探针、资源限制、日志轮换和可信代理配置，尚未在阿里云验收。Kubernetes 保留为后续参考，当前交付优先 ECS 路径。
