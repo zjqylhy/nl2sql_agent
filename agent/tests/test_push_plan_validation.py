@@ -49,10 +49,10 @@ def request():
 
 
 def test_reproduced_as_of_preserves_rejected_plan_and_never_runs_sql(source,monkeypatch):
-    from agent.runtime import push_query
+    from agent.runtime import query_executor
     invalid=value(as_of='2026-10-15T00:00:00+08:00')
     calls=model(monkeypatch,{'plan':invalid})
-    monkeypatch.setattr(push_query,'execute_push',lambda *args:pytest.fail('invalid plan executed'))
+    monkeypatch.setattr(query_executor,'execute_push',lambda *args:pytest.fail('invalid plan executed'))
     with telemetry.capture(None) as trace:
         result=run_push_query(request(),source)
     assert result['status']=='needs_clarification'
@@ -64,7 +64,7 @@ def test_reproduced_as_of_preserves_rejected_plan_and_never_runs_sql(source,monk
     sent=json.loads(calls[0]['messages'][1]['content'])
     assert sent['original_question']==request().input.question and sent['clarifications'][0]['answer']=='48小时'
     prompt=calls[0]['messages'][0]['content']
-    assert 'as_of 只用于设备' in prompt and '数据开始=2026-04-01' in prompt and '不能自行截断' in prompt
+    assert 'as_of device-only' in prompt and 'Data start=2026-04-01' in prompt and 'Preserve ALL original and clarified' in prompt
 
 
 def test_observation_boundary_keeps_48_hours_without_shifting_dates(source):
@@ -173,3 +173,12 @@ def test_live_runner_respects_request_interval(monkeypatch,tmp_path):
     monkeypatch.setattr(evaluation.time,'sleep',sleeps.append)
     evaluation.run(tmp_path/'paced',2)
     assert len(calls)==2 and len(sleeps)==1 and sleeps[0]>19
+
+
+def test_live_runner_valid_plan_uses_current_executor_without_database(monkeypatch,tmp_path):
+    from agent.tools.eval_push_queries import run
+    from evals.push_queries import CASES
+    case=CASES[0]
+    calls=model(monkeypatch,{'plan':case['plan']})
+    results=run(tmp_path/'valid',1,[case['id']])
+    assert len(calls)==1 and results[0]['passed'] and results[0]['actual']['rows']==[]

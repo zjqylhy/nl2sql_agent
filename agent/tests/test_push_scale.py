@@ -4,6 +4,7 @@ from collections import Counter
 import gzip
 import json
 import shutil
+from types import SimpleNamespace
 
 import psycopg
 import pytest
@@ -15,10 +16,17 @@ from agent.tools.push_bundle import BundleReader
 from agent.tests.test_python_platform import platform
 
 
+def small_bundle(root):
+    # 这里只验证千行流式协议；CI 的小型临时盘无需满足千万行生成的容量要求。
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr('agent.tools.generate_push_large.shutil.disk_usage',lambda _:SimpleNamespace(free=8*1024**3))
+        generate(root,devices=90,deliveries=1000)
+
+
 @pytest.fixture(scope='module')
 def scaled_bundle(tmp_path_factory):
     root=tmp_path_factory.mktemp('scale_parent')/'bundle'
-    generate(root,devices=90,deliveries=1000)
+    small_bundle(root)
     return root
 
 
@@ -35,13 +43,21 @@ def test_compressed_records_hash_matches_uncompressed(scaled_bundle,tmp_path):
 
 def test_generation_reproducible_and_cannot_overwrite(scaled_bundle,tmp_path):
     target=tmp_path/'reproduction'
-    generate(target,devices=90,deliveries=1000)
+    small_bundle(target)
     original=json.loads((scaled_bundle/'validation.json').read_text())
     reproduced=json.loads((target/'validation.json').read_text())
     assert original['files']==reproduced['files']
     assert original['passed'] and reproduced['passed']
     with pytest.raises(ValueError,match='不能覆盖'):
         generate(target,devices=90,deliveries=1000)
+
+
+def test_large_generator_rejects_insufficient_disk_before_writing(monkeypatch,tmp_path):
+    monkeypatch.setattr('agent.tools.generate_push_large.shutil.disk_usage',lambda _:SimpleNamespace(free=0))
+    target=tmp_path/'insufficient-disk'
+    with pytest.raises(ValueError,match='8 GiB'):
+        generate(target,devices=90,deliveries=1000)
+    assert not target.exists()
 
 
 def test_reader_rejects_ambiguous_or_oversized_input(tmp_path):

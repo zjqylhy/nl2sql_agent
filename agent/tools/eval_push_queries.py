@@ -9,10 +9,10 @@ from unittest.mock import patch
 
 from fastapi import HTTPException
 
-from agent.runtime import push_query, telemetry
+from agent.runtime import push_query, query_executor, telemetry
 from agent.runtime.app import QueryRequest
 from agent.runtime.model_transport import ModelTransport
-from agent.runtime.push import DEFINITIONS, DEVICE_METRICS
+from agent.runtime.push import DEFINITIONS, DEVICE_METRICS, result_for
 from evals.push_queries import CASES
 
 
@@ -57,7 +57,7 @@ def run(output, max_requests, case_ids=None, interval_seconds=20):
     # 同一输出目录不能再次发起请求，避免重启脚本超出人工授权额度。
     with ledger.open('x',encoding='utf-8'):
         pass
-    source=SimpleNamespace(domain='push', data_start=datetime.fromisoformat('2026-04-01T00:00:00+08:00'),
+    source=SimpleNamespace(domain='push', is_synthetic=True, data_start=datetime.fromisoformat('2026-04-01T00:00:00+08:00'),
                            data_cutoff=datetime.fromisoformat('2026-10-15T00:00:00+08:00'))
     original=ModelTransport.post
     sent=0
@@ -90,8 +90,9 @@ def run(output, max_requests, case_ids=None, interval_seconds=20):
         return response
     def validate_only(source,plan,allowed,usage):
         plan.check_source(source)
-        return {'status':'completed','plan':plan.model_dump(mode='json'),'usage':usage}
-    with patch.object(ModelTransport,'post',post), patch.object(push_query,'execute_push',validate_only):
+        # 经过当前执行器的结果检查，但仅构造空样本，不连接任何业务数据库。
+        return result_for(plan,[],source,usage,'',[])
+    with patch.object(ModelTransport,'post',post), patch.object(query_executor,'execute_push',validate_only):
         for item in selected:
             current_id=item['id']
             visible={}; started=time.monotonic()
