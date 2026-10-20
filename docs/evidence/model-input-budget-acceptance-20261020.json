@@ -1,0 +1,497 @@
+{
+  "source_image": {
+    "passed": true,
+    "source_commit": "b351d1ce5917eafc672a4eb57d2c4e77536e59fa",
+    "files": 109,
+    "all_source_bytes_match": true,
+    "runtime_and_validation_dependencies_match": true
+  },
+  "failed_task_replay": {
+    "passed": true,
+    "source_commit": "b351d1ce5917eafc672a4eb57d2c4e77536e59fa",
+    "failed_sequence": 18,
+    "input_kind": "comparison",
+    "output_kind": "comparison",
+    "original_rows_per_period": [
+      25,
+      25
+    ],
+    "aggregated_rows": 5,
+    "numeric_fields_independently_recomputed": 90,
+    "original_artifacts_unchanged": true,
+    "additional_model_calls": 0,
+    "additional_business_queries": 0,
+    "original_failed_task_not_modified": true
+  },
+  "deployment": {
+    "passed": true,
+    "source_commit": "b351d1ce5917eafc672a4eb57d2c4e77536e59fa",
+    "previous_source_commit": "5d1e78d46bc95feaa0b20139401ac08f80e4622b",
+    "database_container_unchanged": true,
+    "task_rows_unchanged": true,
+    "application_config_unchanged": true,
+    "migration": "0005_task_contracts",
+    "platform_backup_bytes": 819654
+  },
+  "server_tests": {
+    "name": "pytest",
+    "errors": "0",
+    "failures": "0",
+    "skipped": "0",
+    "tests": "79",
+    "time": "249.692",
+    "timestamp": "2026-10-20T09:31:48.999563+00:00",
+    "hostname": "242d3f03dc95"
+  },
+  "real_acceptance": {
+    "run_id": "d24958e595f5c9f96d084d79bd39da494a8fb89c7bb56c6e",
+    "prior_task_id": "99d88467c42d054da9bf97f47371221e0e757a55b539b479",
+    "confirmed_scope_reused": true,
+    "maximum_authorized_calls": 10,
+    "model_calls": 10,
+    "sql_calls": 5,
+    "tokens": 46038,
+    "cost": 46038,
+    "status": "completed",
+    "error": "",
+    "within_authorized_limit": true,
+    "result_completeness": "complete",
+    "stop_reason": "answered",
+    "steps": [
+      {
+        "sequence": 1,
+        "phase": "decide",
+        "status": "completed",
+        "input_bytes": 4506,
+        "action": null,
+        "error_code": null
+      },
+      {
+        "sequence": 2,
+        "phase": "tool",
+        "status": "completed",
+        "input_bytes": null,
+        "action": "query_metrics",
+        "error_code": null
+      },
+      {
+        "sequence": 3,
+        "phase": "decide",
+        "status": "completed",
+        "input_bytes": 5970,
+        "action": null,
+        "error_code": null
+      },
+      {
+        "sequence": 4,
+        "phase": "tool",
+        "status": "completed",
+        "input_bytes": null,
+        "action": "query_metrics",
+        "error_code": null
+      },
+      {
+        "sequence": 5,
+        "phase": "decide",
+        "status": "completed",
+        "input_bytes": 7322,
+        "action": null,
+        "error_code": null
+      },
+      {
+        "sequence": 6,
+        "phase": "tool",
+        "status": "completed",
+        "input_bytes": null,
+        "action": "compare_periods",
+        "error_code": null
+      },
+      {
+        "sequence": 7,
+        "phase": "decide",
+        "status": "completed",
+        "input_bytes": 8934,
+        "action": null,
+        "error_code": null
+      },
+      {
+        "sequence": 8,
+        "phase": "tool",
+        "status": "completed",
+        "input_bytes": null,
+        "action": "query_metrics",
+        "error_code": null
+      },
+      {
+        "sequence": 9,
+        "phase": "decide",
+        "status": "completed",
+        "input_bytes": 11259,
+        "action": null,
+        "error_code": null
+      },
+      {
+        "sequence": 10,
+        "phase": "tool",
+        "status": "completed",
+        "input_bytes": null,
+        "action": "query_metrics",
+        "error_code": null
+      },
+      {
+        "sequence": 11,
+        "phase": "decide",
+        "status": "completed",
+        "input_bytes": 13585,
+        "action": null,
+        "error_code": null
+      },
+      {
+        "sequence": 12,
+        "phase": "tool",
+        "status": "completed",
+        "input_bytes": null,
+        "action": "query_metrics",
+        "error_code": null
+      },
+      {
+        "sequence": 13,
+        "phase": "decide",
+        "status": "completed",
+        "input_bytes": 15997,
+        "action": null,
+        "error_code": null
+      },
+      {
+        "sequence": 14,
+        "phase": "tool",
+        "status": "completed",
+        "input_bytes": null,
+        "action": "inspect_result",
+        "error_code": null
+      },
+      {
+        "sequence": 15,
+        "phase": "decide",
+        "status": "completed",
+        "input_bytes": 17255,
+        "action": null,
+        "error_code": null
+      },
+      {
+        "sequence": 16,
+        "phase": "tool",
+        "status": "completed",
+        "input_bytes": null,
+        "action": "inspect_result",
+        "error_code": null
+      },
+      {
+        "sequence": 17,
+        "phase": "decide",
+        "status": "completed",
+        "input_bytes": 18569,
+        "action": null,
+        "error_code": null
+      },
+      {
+        "sequence": 18,
+        "phase": "tool",
+        "status": "completed",
+        "input_bytes": null,
+        "action": "inspect_result",
+        "error_code": null
+      },
+      {
+        "sequence": 19,
+        "phase": "decide",
+        "status": "completed",
+        "input_bytes": 20351,
+        "action": null,
+        "error_code": null
+      },
+      {
+        "sequence": 20,
+        "phase": "tool",
+        "status": "completed",
+        "input_bytes": null,
+        "action": "finish",
+        "error_code": null
+      }
+    ],
+    "frozen_policy": {
+      "max_input_bytes": 32768,
+      "max_tokens": 400000,
+      "max_cost": 1000000,
+      "max_output_tokens": 4096,
+      "model_interval_seconds": 20
+    },
+    "answers": [
+      {
+        "text": "到达率和点击率均下降。到达率下降主要来自发送失败增加，失败原因中 permission_denied 与 invalid_token 明显增加；点击率下降主要是失败发送占比上升的构成效应，成功送达口径下的点击率基本稳定。",
+        "status": "answered",
+        "item_id": "a1",
+        "evidence_refs": [
+          "160631524edd58677cef945eb3606a23ac07a8da16e53dce4c9b86bb9db6682c",
+          "666a76eea122ec5dd8e151ed30dc811a37ee2bc59ca1d4919d2059d8558c866d",
+          "edc1d5deb55c4688a70db36bde9896c22f8d6be805e5cf8acbe08fa94049254f"
+        ]
+      }
+    ],
+    "investigated": [
+      {
+        "period": "current",
+        "filters": [
+          {
+            "op": "in",
+            "field": "app_id",
+            "values": [
+              "app_3"
+            ]
+          }
+        ],
+        "dimensions": [],
+        "result_ref": "69410a90b7a0311de6a593703def4678ad762639c5322e0a330a5499db5e9759"
+      },
+      {
+        "period": "baseline",
+        "filters": [
+          {
+            "op": "in",
+            "field": "app_id",
+            "values": [
+              "app_3"
+            ]
+          }
+        ],
+        "dimensions": [],
+        "result_ref": "4f983fd3a5e60fe6246098036daabe2e1b10e6906bc68dd5e13852cbb8c2f7a6"
+      },
+      {
+        "period": "current",
+        "filters": [
+          {
+            "op": "in",
+            "field": "app_id",
+            "values": [
+              "app_3"
+            ]
+          }
+        ],
+        "dimensions": [
+          "failure_reason"
+        ],
+        "result_ref": "666a76eea122ec5dd8e151ed30dc811a37ee2bc59ca1d4919d2059d8558c866d"
+      },
+      {
+        "period": "baseline",
+        "filters": [
+          {
+            "op": "in",
+            "field": "app_id",
+            "values": [
+              "app_3"
+            ]
+          }
+        ],
+        "dimensions": [
+          "failure_reason"
+        ],
+        "result_ref": "edc1d5deb55c4688a70db36bde9896c22f8d6be805e5cf8acbe08fa94049254f"
+      },
+      {
+        "period": "current",
+        "filters": [
+          {
+            "op": "in",
+            "field": "app_id",
+            "values": [
+              "app_3"
+            ]
+          }
+        ],
+        "dimensions": [
+          "manufacturer",
+          "failure_reason"
+        ],
+        "result_ref": "3b573206fe0095eceba592d91b5d6bca49270bdeaec8b68aabb2d0e4238463ac"
+      }
+    ],
+    "uninvestigated": [
+      "manufacturer、channel、template、day 维度的基期对比及 permission_denied/invalid_token 的具体来源未进一步下钻。"
+    ],
+    "limitations": [
+      "已确认到达率受回执覆盖影响；缺回执不等于失败。",
+      "比率按总分子/总分母计算，零分母不计算。",
+      "发送窗口与回执观察时长分别限定；不作因果归因。",
+      "解释为模型基于证据的分析，假设尚未验证；程序检查不证明业务因果。"
+    ],
+    "hypotheses": [
+      "permission_denied 与 invalid_token 上升可能与设备权限状态、token 失效、渠道或模板变化有关，需按 manufacturer/channel/template/day 做基期对比验证。"
+    ],
+    "claims": [
+      {
+        "row": 0,
+        "unit": "百分点",
+        "field": "delta",
+        "value": "-6.00581046628021833698557709",
+        "metric": "delivery_rate",
+        "result_ref": "160631524edd58677cef945eb3606a23ac07a8da16e53dce4c9b86bb9db6682c"
+      },
+      {
+        "row": 0,
+        "unit": "%",
+        "field": "rate",
+        "value": "-10.93908974092176316957931218",
+        "metric": "delivery_rate",
+        "result_ref": "160631524edd58677cef945eb3606a23ac07a8da16e53dce4c9b86bb9db6682c"
+      },
+      {
+        "row": 0,
+        "unit": "百分点",
+        "field": "delta",
+        "value": "-1.043701176411423950322609658",
+        "metric": "click_rate",
+        "result_ref": "160631524edd58677cef945eb3606a23ac07a8da16e53dce4c9b86bb9db6682c"
+      },
+      {
+        "row": 0,
+        "unit": "%",
+        "field": "rate",
+        "value": "-11.12153997430425364512684008",
+        "metric": "click_rate",
+        "result_ref": "160631524edd58677cef945eb3606a23ac07a8da16e53dce4c9b86bb9db6682c"
+      },
+      {
+        "row": 0,
+        "unit": "次",
+        "field": "delta",
+        "value": "37224",
+        "metric": "failed",
+        "result_ref": "160631524edd58677cef945eb3606a23ac07a8da16e53dce4c9b86bb9db6682c"
+      },
+      {
+        "row": 0,
+        "unit": "次",
+        "field": "value",
+        "value": "83120",
+        "metric": "failed",
+        "result_ref": "666a76eea122ec5dd8e151ed30dc811a37ee2bc59ca1d4919d2059d8558c866d"
+      },
+      {
+        "row": 0,
+        "unit": "次",
+        "field": "value",
+        "value": "72566",
+        "metric": "failed",
+        "result_ref": "edc1d5deb55c4688a70db36bde9896c22f8d6be805e5cf8acbe08fa94049254f"
+      },
+      {
+        "row": 2,
+        "unit": "次",
+        "field": "value",
+        "value": "165252",
+        "metric": "failed",
+        "result_ref": "666a76eea122ec5dd8e151ed30dc811a37ee2bc59ca1d4919d2059d8558c866d"
+      },
+      {
+        "row": 2,
+        "unit": "次",
+        "field": "value",
+        "value": "137258",
+        "metric": "failed",
+        "result_ref": "edc1d5deb55c4688a70db36bde9896c22f8d6be805e5cf8acbe08fa94049254f"
+      },
+      {
+        "row": 1,
+        "unit": "%",
+        "field": "value",
+        "value": "15.44662916741829154299020974",
+        "metric": "click_rate",
+        "result_ref": "666a76eea122ec5dd8e151ed30dc811a37ee2bc59ca1d4919d2059d8558c866d"
+      },
+      {
+        "row": 1,
+        "unit": "%",
+        "field": "value",
+        "value": "15.48819482197242048530125271",
+        "metric": "click_rate",
+        "result_ref": "edc1d5deb55c4688a70db36bde9896c22f8d6be805e5cf8acbe08fa94049254f"
+      }
+    ]
+  },
+  "fee_cap_and_gateway_quota_not_increased": true,
+  "independent_calculations": {
+    "passed": true,
+    "run_id": "d24958e595f5c9f96d084d79bd39da494a8fb89c7bb56c6e",
+    "query_values_recomputed": 296,
+    "comparison_values_recomputed": 8,
+    "decompositions_checked": 0,
+    "report_claims_matched": 11,
+    "additional_model_calls": 0,
+    "additional_business_queries": 0
+  },
+  "statistical_and_language_review": {
+    "passed": true,
+    "run_id": "d24958e595f5c9f96d084d79bd39da494a8fb89c7bb56c6e",
+    "metrics": {
+      "delivery_rate": {
+        "baseline": "54.90228719683352076009669450",
+        "current": "48.89647673055330242311111741",
+        "delta_percentage_points": "-6.00581046628021833698557709",
+        "within_group_contribution": "-0.03303879129832423041171166629",
+        "structure_contribution": "-5.972771674981894106573865424",
+        "structure_share_of_delta_percent": "99.44988621462796074339496596"
+      },
+      "click_rate": {
+        "baseline": "9.384502315532218217881398705",
+        "current": "8.340801139120794267558789047",
+        "delta_percentage_points": "-1.043701176411423950322609658",
+        "within_group_contribution": "-0.02381480754728909280179885652",
+        "structure_contribution": "-1.019886368864134857520810804",
+        "structure_share_of_delta_percent": "97.71823505755047981870850961"
+      }
+    },
+    "additional_model_calls": 0,
+    "additional_business_queries": 0,
+    "none_group_contains_not_confirmed_delivered": [
+      {
+        "sent": "342138",
+        "delivered": "310014",
+        "unknown_delivery": "28985"
+      },
+      {
+        "sent": "304895",
+        "delivered": "276092",
+        "unknown_delivery": "25934"
+      }
+    ],
+    "language_review": {
+      "issue": "The answer calls failure_reason=none a successfully delivered group. The group includes unconfirmed deliveries; this wording is broader than its cited evidence.",
+      "correct_interpretation": "The click/sent rate within the no-recorded-failure group is nearly stable. This is not a verification of the click/confirmed-delivery rate.",
+      "raw_model_report_preserved": true,
+      "causal_business_hypotheses_remain_unverified": true
+    }
+  },
+  "acceptance": {
+    "execution": "passed",
+    "numerical_integrity": "passed",
+    "statistical_explanation": "independently_supported",
+    "narrative_wording": "needs_qualification",
+    "raw_model_report_preserved": true,
+    "general_question_success_rate_measured": false,
+    "note": "The none failure-reason group includes unconfirmed deliveries. The phrase successfully delivered group is too strong; the cited measure is click/sent within the no-recorded-failure group."
+  },
+  "durable_usage_ledger": {
+    "calls": 10,
+    "settled": 10,
+    "unknown": 0,
+    "actual_tokens": 46038
+  },
+  "ui_verification": {
+    "task_id": "d24958e5",
+    "status": "completed",
+    "screenshot": "analysis-completed-d24958e5-20261020.png",
+    "user_other_task_not_modified": true
+  }
+}

@@ -339,5 +339,17 @@
     }
   },
   "current_runtime_commit": "b351d1ce5917eafc672a4eb57d2c4e77536e59fa",
-  "complete_real_analysis_accepted": false
+  "complete_real_analysis_accepted": false,
+  "latest_real_acceptance": {
+    "evidence_file": "model-input-budget-acceptance-20261020.json",
+    "run_id": "d24958e595f5c9f96d084d79bd39da494a8fb89c7bb56c6e",
+    "runtime_commit": "b351d1ce5917eafc672a4eb57d2c4e77536e59fa",
+    "status": "completed",
+    "model_calls": 10,
+    "sql_calls": 5,
+    "execution_and_numbers_accepted": true,
+    "narrative_wording_requires_qualification": true,
+    "ui_verified_task_id": "d24958e5",
+    "screenshot": "analysis-completed-d24958e5-20261020.png"
+  }
 }
