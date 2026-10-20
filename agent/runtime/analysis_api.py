@@ -1,5 +1,6 @@
 """无状态分析适配器；每个内部请求只执行一次决策或一个工具。"""
 import hashlib
+import json
 import os
 from typing import Literal
 
@@ -305,7 +306,19 @@ def model_decision(request: Snapshot, *, spec_only):
                 'spec':None,'action':{'action':'request_clarification','arguments':parsed.clarification.model_dump()}}
             decision = decision_type.model_validate(value)
         else:
-            decision = decision_type.model_validate_json(choice["message"]["content"])
+            value = json.loads(choice["message"]["content"])
+            if isinstance(request.spec, TaskContract) and isinstance(value, dict):
+                # 已确认约定来自服务端。模型只需提交动作，不能在每一轮重新生成任务边界。
+                if set(value) == {'action'}:
+                    value = {**value, 'spec':request.spec}
+                elif isinstance(value.get('spec'), dict):
+                    echoed = dict(value['spec'])
+                    # 旧格式可省略程序生成字段；若显式提交不同值，后续相等检查仍拒绝。
+                    for name in ('exploration_permissions', 'capability_version'):
+                        if name not in echoed:
+                            echoed[name] = request.spec.model_dump(mode='json')[name]
+                    value = {**value, 'spec':echoed}
+            decision = decision_type.model_validate(value)
             decision = decision_type.model_validate({'spec':decision.spec,'action':resolve_action_refs(decision.action.model_dump(mode='json'),request.artifacts)})
         if isinstance(decision.spec,TaskContract) and request.spec is None:
             decision.spec = with_capabilities(decision.spec,request.allowed_metrics)

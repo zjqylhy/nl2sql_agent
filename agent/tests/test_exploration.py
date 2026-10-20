@@ -48,6 +48,43 @@ def test_group_changes_and_ratio_decomposition_match_independent_expected():
     assert sum(Decimal(r['values']['click_rate']['value']) for r in result['rows']) == -2
 
 
+def test_calendar_period_rates_can_be_compared_without_changing_dates_but_counts_cannot():
+    from agent.runtime.push_calculations import compare_data
+    a,b=[evidence(p)['data'] for p in ['baseline','current']]
+    a['period']={'start':'2026-08-14T00:00:00+08:00','end_exclusive':'2026-09-14T00:00:00+08:00'}
+    b['period']={'start':'2026-09-14T00:00:00+08:00','end_exclusive':'2026-10-14T00:00:00+08:00'}
+    with pytest.raises(AnalysisError,match='计数与时延'):compatible(a,b)
+    for data in (a,b):
+        data['plan']['metrics']=['click_rate']
+        data['metrics']=[m for m in data['metrics'] if m['id']=='click_rate']
+    assert compatible(a,b)
+    result=compare_data(a,b)
+    assert Decimal(result['rows'][0]['values']['click_rate']['delta'])==-2
+    assert result['baseline']==a['period'] and result['period']==b['period']
+    b['period']['start']='2026-09-13T00:00:00+08:00'
+    with pytest.raises(AnalysisError,match='不得重叠'):compatible(a,b)
+
+
+def test_unequal_period_warning_survives_tool_evidence_and_final_report():
+    periods={'baseline':{'start':'2026-08-14T00:00:00+08:00','end_exclusive':'2026-09-14T00:00:00+08:00'},
+             'current':{'start':'2026-09-14T00:00:00+08:00','end_exclusive':'2026-10-14T00:00:00+08:00'}}
+    items=[]
+    for name in periods:
+        data=deepcopy(evidence(name)['data']);data['period']=periods[name]
+        data['plan'].update(metrics=['click_rate'],time_range=periods[name])
+        data['metrics']=[m for m in data['metrics'] if m['id']=='click_rate']
+        items.append(artifact('query',data,data['metrics_used'],'a'*64))
+    req=request({'action':'compare_periods','arguments':{'baseline_ref':items[0]['result_ref'],'current_ref':items[1]['result_ref']}},items)
+    spec=req.spec.model_dump(mode='json');spec['scope']['periods']=periods;req.spec=TaskContract.model_validate(spec)
+    comparison=tool(req,source())['artifact'];items.append(comparison)
+    args=ReportArgs(evidence_refs=[i['result_ref'] for i in items],
+        answers=[{'item_id':'a1','status':'answered','text':'已核对整体比率变化，原因尚待验证','evidence_refs':[comparison['result_ref']]}],
+        claims=[{'result_ref':comparison['result_ref'],'row':0,'metric':'click_rate','field':'delta'}])
+    result=report(args,items,req.spec,'a'*64,source())['data']
+    assert result['completeness']=='complete'
+    assert any('两期长度不同' in line for line in result['limitations'])
+
+
 def test_structure_change_is_not_average_of_rates_or_causal_proof():
     a,b = [evidence(p,['channel'])['data'] for p in ['baseline','current']]
     for data, counts in [(a,[(800,80),(200,4)]),(b,[(200,20),(800,16)])]:

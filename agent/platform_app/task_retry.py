@@ -20,7 +20,9 @@ def retry_info(conn, user, task):
             return info
         step = conn.execute("SELECT phase,output FROM analysis_steps WHERE run_id=%s ORDER BY sequence DESC LIMIT 1", (task['id'],)).fetchone()
         code = (step['output'] or {}).get('error_code', '') if step and step['phase'] == 'decide' else ''
-        available = code.startswith('model_') or code == 'unknown_execution'
+        available = code.startswith('model_') or code == 'unknown_execution' or (
+            code in {'invalid_arguments','missing_conditions','missing_evidence'} and
+            bool((step['output'] or {}).get('model_sent')))
     else:
         if task.get('query_binding') != binding(user)['binding']:
             return info
