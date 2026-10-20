@@ -55,6 +55,7 @@ class QueryRequest(BaseModel):
     context: QueryContext | None = None
     push_dialogue: list["PushClarification"] = Field(default_factory=list, max_length=2)
     initial_max_output_tokens: int = Field(default=2048,ge=256,le=4096,strict=True)
+    initial_max_input_bytes: int = Field(default=6000,ge=1024,le=65536,strict=True)
     initial_model: str | None = None
 
 

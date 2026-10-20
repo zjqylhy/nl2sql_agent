@@ -3,9 +3,6 @@ import json
 
 from .push import DEFINITIONS, DIMENSIONS, ENUMS
 
-INPUT_BUDGET = 6000
-MESSAGE_OVERHEAD = 256
-
 # 只精简可重复的协议说明，不截断问题、补充记录或目录，也不调用模型压缩。
 PROTOCOL = (
     'Return one JSON: {"plan":PLAN} for single query, {"contract":CONTRACT} for multi-step query or analysis, '

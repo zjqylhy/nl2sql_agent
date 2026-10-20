@@ -59,6 +59,7 @@ class Snapshot(Identity):
     feedback: dict = Field(default_factory=dict)
     answers: list[str] = Field(default_factory=list, max_length=2)
     max_output_tokens: int = Field(default=1024, ge=256, le=4096, strict=True)
+    max_input_bytes: int = Field(default=6000, ge=1024, le=65536, strict=True)
     model_timeout_seconds: int = Field(default=20, ge=5, le=60, strict=True)
     budget: dict = Field(default_factory=dict)
 
@@ -286,8 +287,9 @@ def model_decision(request: Snapshot, *, spec_only):
         decision_type = ExplorationDecision if source.domain == 'push' else Decision
         prompt, question = (spec_prompt if spec_only else decision_prompt)(request, source.analysis_date)
         # 对显式配置的 byte-BPE 模型用 UTF-8 字节数保守预留；不冒充实际 Token。
-        bound = len(prompt.encode()) + len(question.encode()) + 256
-        if bound > 6000:
+        from .model_budget import input_bytes
+        bound = input_bytes(prompt,question)
+        if bound > request.max_input_bytes:
             reject("input_limit", "分析上下文超过输入预算，请缩短问题或新建任务")
         transport = ModelTransport.from_env()
         with transport.bounded_client(timeout=request.model_timeout_seconds) as client:

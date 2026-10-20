@@ -89,6 +89,7 @@ def execute_query(repo, task):
         request = runtime.QueryRequest(tenant_id=user["tenant_id"], role=user["role"], allowed_metrics=user["allowed_metrics"],
             input=task["input"], execution={"task_id": task["id"], "execution_version": task["execution_version"]}, context=task["conversation_context"],
             initial_max_output_tokens=(task.get('intent_policy') or {}).get('max_output_tokens',2048),
+            initial_max_input_bytes=(task.get('intent_policy') or {}).get('max_input_bytes',6000),
             initial_model=(task.get('intent_policy') or {}).get('model'),
             **({"push_dialogue": task["query_dialogue"]} if task["query_dialogue"] else {}))
         try:

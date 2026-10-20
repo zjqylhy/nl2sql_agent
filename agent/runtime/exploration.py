@@ -9,6 +9,7 @@ from .catalog import StrictModel
 from .push import DEFINITIONS, DIMENSIONS, PushFilter, PushPlan, execute_push, required_metrics
 from .push_calculations import aggregate, compare_data
 from .task_contracts import Scope, TaskContract, validate_contract
+from .model_budget import LEGACY_INPUT_BYTES, MESSAGE_OVERHEAD
 
 
 class QueryArgs(StrictModel):
@@ -462,7 +463,7 @@ def prompt(request, anchor):
         'capabilities':None if request.spec else {'metrics':allowed_metrics,'dimensions':list(DIMENSIONS)},
         'evidence':[],'omitted_evidence_count':0,'remaining_budget':request.budget,
         'feedback':request.feedback,'anchor':str(anchor)}
-    available = 6000-256-len(GUIDANCE.encode())-len(canonical(payload).encode())
+    available = getattr(request,'max_input_bytes',LEGACY_INPUT_BYTES)-MESSAGE_OVERHEAD-len(GUIDANCE.encode())-len(canonical(payload).encode())
     if available<100:
         reject('input_limit','任务约束本身超过上下文预算，请缩短问题或新建任务')
     payload['evidence'] = evidence_summaries(request.artifacts,max_bytes=available-50)

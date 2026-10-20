@@ -121,7 +121,7 @@ class Ledger:
             if step["phase"] == "decide":
                 usage = output.get("usage") or {}
                 tokens = [usage.get("prompt_tokens"), usage.get("completion_tokens")]
-                known = all(type(v) is int and 0 <= v <= limit for v, limit in zip(tokens, [6000, policy.max_output_tokens]))
+                known = all(type(v) is int and 0 <= v <= limit for v, limit in zip(tokens, [policy.max_input_bytes, policy.max_output_tokens]))
                 if output.get("model_sent") is False:
                     tokens, known = [0, 0], True
                 if known:

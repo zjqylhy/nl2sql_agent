@@ -48,6 +48,7 @@ def build_graph(repo, task, saver):
         value = Snapshot(**identity(user).model_dump(), binding=run["binding"], question=state["question"],
             spec=state.get("spec"), artifacts=artifacts, answers=state.get("answers", []), feedback=state.get("feedback", {}),
             max_output_tokens=run["policy"].get("max_output_tokens", 1024),
+            max_input_bytes=run['policy'].get('max_input_bytes',6000),
             model_timeout_seconds=run["policy"].get("model_timeout_seconds", 20))
         value.budget = {name:max(0,limit-run['state'].get(name,0)) for name,limit in [('model_calls',10),('actions',12),('sql_calls',6),('active_ms',180000)]}
         checked(value)

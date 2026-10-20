@@ -7,7 +7,8 @@ from fastapi import HTTPException
 
 from . import telemetry
 from .model_transport import ModelConfigurationError, ModelTransport
-from .push_intent_context import INPUT_BUDGET, MESSAGE_OVERHEAD, initial_messages
+from .push_intent_context import initial_messages
+from .model_budget import input_bytes
 from .push_plan_validation import parse_model_json, validate_model_plan
 from .task_contracts import TaskContract, form_contract
 
@@ -52,7 +53,7 @@ def parse_query(request, source):
         if not os.getenv('LLM_API_KEY'):
             return {'status': 'needs_clarification', 'message': '请用表单明确指标、起止时间、分组与观察时长；自然语言解析需配置模型。'}
         prompt, question = initial_messages(request, source)
-        if len(prompt.encode())+len(question.encode())+MESSAGE_OVERHEAD > INPUT_BUDGET:
+        if input_bytes(prompt,question) > request.initial_max_input_bytes:
             telemetry.update(error_code="input_budget")
             raise HTTPException(422,"问题与补充条件超过输入上限，未调用模型；请精简重复内容或使用表单")
         try:

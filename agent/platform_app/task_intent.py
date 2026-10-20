@@ -24,7 +24,7 @@ def reserve_initial(conn,task):
         if not trace.get('model_calls'):
             continue
         a,b = trace.get('input_tokens'),trace.get('output_tokens')
-        known = type(a) is int and type(b) is int and 0<=a<=6000 and 0<=b<=policy.max_output_tokens
+        known = type(a) is int and type(b) is int and 0<=a<=policy.max_input_bytes and 0<=b<=policy.max_output_tokens
         tokens += a+b if known else policy.reserved_tokens
         cost += policy.cost(a,b) if known else policy.reserved_cost
         calls += trace['model_calls']
@@ -54,7 +54,7 @@ def promote_analysis(repo, task, output):
             if not trace.get('model_calls'):
                 continue
             a,b = trace.get('input_tokens'),trace.get('output_tokens')
-            known = type(a) is int and type(b) is int and 0<=a<=6000 and 0<=b<=policy.max_output_tokens
+            known = type(a) is int and type(b) is int and 0<=a<=policy.max_input_bytes and 0<=b<=policy.max_output_tokens
             records.append((row,trace,a+b if known else None,policy.cost(a,b) if known else None))
             state['model_calls'] += trace['model_calls']
             state['tokens'] += a+b if known else policy.reserved_tokens
