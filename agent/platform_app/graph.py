@@ -29,6 +29,7 @@ class State(TypedDict, total=False):
     retry_sql: bool
     model_retries: int
     no_progress: int
+    observed_rows: list[str]
     pending_scope: dict | None
 
 
@@ -120,14 +121,24 @@ def build_graph(repo, task, saver):
             return failure(state, output)
         art = output["artifact"]
         refs = state.get("refs", [])
-        no_progress = state.get("no_progress", 0) + 1 if art["result_ref"] in refs else 0
+        observed_rows=set(state.get('observed_rows',[]))
+        repeated=art['result_ref'] in refs
+        if art['kind']=='observation':
+            rows={f"{art['data']['source_ref']}:{r['source_row']}" for r in art['data']['rows']}
+            # 页大小或排序参数改变但返回相同行，不算调查取得新进展。
+            repeated=not bool(rows-observed_rows)
+            observed_rows.update(rows)
+        no_progress = state.get("no_progress", 0) + 1 if repeated else 0
         if no_progress >= 2:
             message = '重复调用未产生新证据，已停止'
             return {'status':'failed','message':message,'feedback':{'status':'error','error_code':'no_progress','message':message}}
         report_status = 'failed' if art['data'].get('completeness') == 'partial' else 'completed'
-        return {"refs": list(dict.fromkeys([*refs, art["result_ref"]])), "no_progress": no_progress,
+        feedback={"status": "completed", "result_ref": art["result_ref"], "outcome": art["data"].get("outcome")}
+        if repeated:
+            feedback['message']='本次没有读到新行；请换调查方向或明确未回答事项后提交报告，不要重复读取相同行。'
+        return {"refs": list(dict.fromkeys([*refs, art["result_ref"]])), "no_progress": no_progress,'observed_rows':sorted(observed_rows),
             "status": report_status if art["kind"] == "report" else "decide", "retry_sql": False,
-            "feedback": {"status": "completed", "result_ref": art["result_ref"], "outcome": art["data"].get("outcome")}}
+            "feedback": feedback}
 
     def wait_for_answer(state):
         # 此节点只执行 interrupt 和纯状态变换，恢复从开头执行也没有外部副作用。
@@ -137,7 +148,7 @@ def build_graph(repo, task, saver):
                 return {'status':'failed','message':'范围变更需要明确确认，不能用自由文本代替'}
             approved = answer['approved']
             return {'spec':state['pending_scope'] if approved else state['spec'],'pending_scope':None,
-                'refs':[] if approved else state.get('refs',[]),'no_progress':0,
+                'refs':[] if approved else state.get('refs',[]),'no_progress':0,'observed_rows':[] if approved else state.get('observed_rows',[]),
                 'answers':[*state.get('answers',[]),'已确认具体范围变更' if approved else '拒绝扩大范围，请在原约定内完成'],
                 'status':'decide','feedback':{},'message':''}
         return {"answers": [*state.get("answers", []), answer], "status": "decide", "feedback": {}, "message": ""}
