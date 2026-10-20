@@ -11,6 +11,7 @@ from agent.runtime import app as runtime
 from .policy import Policy
 from .repository import binding, new_state
 from .task_contracts import save_contract
+from .task_budget import model_call_limit, initial_records, usage_snapshot, other_budget_reason
 
 
 def reserve_initial(conn,task):
@@ -18,17 +19,8 @@ def reserve_initial(conn,task):
     if not task.get('intent_policy') or task['input'].get('push_plan') or task['input'].get('query_contract'):
         return None
     policy = Policy.model_validate(task['intent_policy'])
-    tokens = cost = calls = 0
-    for row in conn.execute('SELECT telemetry FROM task_attempts WHERE task_id=%s',(task['id'],)):
-        trace = row['telemetry'] or {}
-        if not trace.get('model_calls'):
-            continue
-        a,b = trace.get('input_tokens'),trace.get('output_tokens')
-        known = type(a) is int and type(b) is int and 0<=a<=policy.max_input_bytes and 0<=b<=policy.max_output_tokens
-        tokens += a+b if known else policy.reserved_tokens
-        cost += policy.cost(a,b) if known else policy.reserved_cost
-        calls += trace['model_calls']
-    if calls>=10 or tokens+policy.reserved_tokens>policy.max_tokens or cost+policy.reserved_cost>policy.max_cost:
+    usage=usage_snapshot(conn,task)
+    if usage['model_calls']>=model_call_limit(conn,task['id']) or other_budget_reason(usage,policy):
         raise HTTPException(422,'剩余模型预算不足以开始意图识别或条件补充')
     return {'reserved_tokens':policy.reserved_tokens,'reserved_cost':policy.reserved_cost,'model':policy.model}
 
@@ -47,29 +39,23 @@ def promote_analysis(repo, task, output):
         validate_contract(contract,runtime.sources()[user['tenant_id']+':'+user['role']],user['allowed_metrics'])
         state = new_state(contract.model_dump(mode='json'))
         state['answers'] = [x['answer'] for x in current['query_dialogue']]
-        traces = conn.execute('SELECT execution_version,telemetry,call_ms FROM task_attempts WHERE task_id=%s ORDER BY execution_version',(task['id'],)).fetchall()
-        records = []
-        for row in traces:
-            trace = row['telemetry'] or {}
-            if not trace.get('model_calls'):
-                continue
-            a,b = trace.get('input_tokens'),trace.get('output_tokens')
-            known = type(a) is int and type(b) is int and 0<=a<=policy.max_input_bytes and 0<=b<=policy.max_output_tokens
-            records.append((row,trace,a+b if known else None,policy.cost(a,b) if known else None))
-            state['model_calls'] += trace['model_calls']
-            state['tokens'] += a+b if known else policy.reserved_tokens
-            state['cost'] += policy.cost(a,b) if known else policy.reserved_cost
-            state['active_ms'] += row['call_ms'] or int(sum(trace.get('stages_ms',{}).values()))
-        if state['model_calls']>=10 or state['tokens']>policy.max_tokens or state['cost']>policy.max_cost:
+        records=initial_records(conn,current)
+        for row in records:
+            state['model_calls']+=row['model_calls']
+            state['tokens']+=row['tokens']
+            state['cost']+=row['cost']
+            state['active_ms']+=row.get('active_ms',0)
+        if state['model_calls']>model_call_limit(conn,task['id']) or state['tokens']>policy.max_tokens or state['cost']>policy.max_cost:
             raise HTTPException(422,'初始解析已用尽分析预算，不能继续调查')
         state['sequence'] = len(records)
         conn.execute("UPDATE tasks SET kind='analysis' WHERE id=%s",(task['id'],))
         conn.execute('INSERT INTO analysis_runs(id,tenant_id,user_id,role,binding,metadata,policy,state,required_metrics,request_id,request_hash) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)',
             (task['id'],task['tenant_id'],task['user_id'],user['role'],meta['binding'],Jsonb(meta),Jsonb(policy.model_dump()),Jsonb(state),contract.required_metrics(),str(uuid4()),hashlib.sha256(canonical([task['input']['question'],contract.model_dump(mode='json')]).encode()).hexdigest()))
-        for sequence,(row,trace,tokens,cost) in enumerate(records,1):
+        for sequence,row in enumerate(records,1):
+            tokens,cost=(row['tokens'],row['cost']) if row['known'] else (None,None)
             step = hashlib.sha256(f"{task['id']}:intent:{row['execution_version']}".encode()).hexdigest()[:48]
-            conn.execute("INSERT INTO analysis_steps(id,tenant_id,run_id,sequence,action_key,phase,execution_version,input,output,status,ended_at) VALUES(%s,%s,%s,%s,%s,'decide',%s,%s,%s,'completed',now())",
-                (step,task['tenant_id'],task['id'],sequence,step,row['execution_version'],Jsonb({'protocol':'initial-intent-and-plan'}),Jsonb({'model_sent':True,'status':'completed','decision_type':'analysis'})))
+            conn.execute("INSERT INTO analysis_steps(id,tenant_id,run_id,sequence,action_key,phase,execution_version,input,output,status,ended_at,resume_round) VALUES(%s,%s,%s,%s,%s,'decide',%s,%s,%s,'completed',now(),%s)",
+                (step,task['tenant_id'],task['id'],sequence,step,row['execution_version'],Jsonb({'protocol':'initial-intent-and-plan'}),Jsonb({'model_sent':True,'status':'completed','decision_type':'analysis'}),row['resume_round']))
             conn.execute("INSERT INTO analysis_step_attempts(step_id,execution_version,status) VALUES(%s,%s,'completed')",(step,row['execution_version']))
             conn.execute('INSERT INTO analysis_budget_ledger(step_id,run_id,reserved_tokens,reserved_cost,actual_tokens,actual_cost,status) VALUES(%s,%s,%s,%s,%s,%s,%s)',
                 (step,task['id'],policy.reserved_tokens,policy.reserved_cost,tokens,cost,'settled' if tokens is not None else 'unknown'))

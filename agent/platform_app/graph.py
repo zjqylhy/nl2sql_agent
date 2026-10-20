@@ -31,6 +31,8 @@ class State(TypedDict, total=False):
     no_progress: int
     observed_rows: list[str]
     pending_scope: dict | None
+    applied_resume_round: int
+    report_ref: str | None
 
 
 def build_graph(repo, task, saver):
@@ -44,13 +46,15 @@ def build_graph(repo, task, saver):
             contract = conn.execute('SELECT body FROM task_contracts WHERE task_id=%s AND version=%s',(task['id'],current)).fetchone() if current else None
             # 新约定尚待本轮账本保存时不读取旧版本证据。
             changed = contract and contract['body'] != state.get('spec')
-            artifacts = [] if changed else [r["body"] for r in conn.execute("SELECT body FROM analysis_artifacts WHERE run_id=%s AND contract_version=%s ORDER BY created_at,result_ref", (task["id"],current))]
+            artifacts = [] if changed else [r["body"] for r in conn.execute("SELECT body FROM analysis_artifacts WHERE run_id=%s AND contract_version=%s AND body->>'kind'<>'report' ORDER BY created_at,result_ref", (task["id"],current))]
+            from .task_budget import model_call_limit
+            call_limit=model_call_limit(conn,task['id'])
         value = Snapshot(**identity(user).model_dump(), binding=run["binding"], question=state["question"],
             spec=state.get("spec"), artifacts=artifacts, answers=state.get("answers", []), feedback=state.get("feedback", {}),
             max_output_tokens=run["policy"].get("max_output_tokens", 1024),
             max_input_bytes=run['policy'].get('max_input_bytes',6000),
             model_timeout_seconds=run["policy"].get("model_timeout_seconds", 20))
-        value.budget = {name:max(0,limit-run['state'].get(name,0)) for name,limit in [('model_calls',10),('actions',12),('sql_calls',6),('active_ms',180000)]}
+        value.budget = {name:max(0,limit-run['state'].get(name,0)) for name,limit in [('model_calls',call_limit),('actions',12),('sql_calls',6),('active_ms',180000)]}
         checked(value)
         return value, run
 
@@ -139,7 +143,7 @@ def build_graph(repo, task, saver):
             feedback['message']='本次没有读到新行；请换调查方向或明确未回答事项后提交报告，不要重复读取相同行。'
         return {"refs": list(dict.fromkeys([*refs, art["result_ref"]])), "no_progress": no_progress,'observed_rows':sorted(observed_rows),
             "status": report_status if art["kind"] == "report" else "decide", "retry_sql": False,
-            "feedback": feedback}
+            "feedback": feedback,'report_ref':art['result_ref'] if art['kind']=='report' else state.get('report_ref')}
 
     def wait_for_answer(state):
         # 此节点只执行 interrupt 和纯状态变换，恢复从开头执行也没有外部副作用。

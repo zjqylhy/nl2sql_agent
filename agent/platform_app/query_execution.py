@@ -15,9 +15,8 @@ from .task_contracts import save_contract
 class QueryExecution:
     def __init__(self, repo, task):
         self.repo, self.task = repo, task
-        self.table = 'query_followup_receipts' if task['query_version'] else 'query_receipts'
-        self.where = 'task_id=%s AND version=%s' if task['query_version'] else 'task_id=%s'
-        self.keys = (task['id'],task['query_version']) if task['query_version'] else (task['id'],)
+        from .task_budget import receipt_key
+        self.table,self.where,self.keys=receipt_key(task)
 
     def read(self, conn):
         receipt = conn.execute(f'SELECT output FROM {self.table} WHERE {self.where} FOR UPDATE', self.keys).fetchone()

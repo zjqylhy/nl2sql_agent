@@ -127,6 +127,12 @@ class Repository:
             run = conn.execute("SELECT * FROM analysis_runs WHERE id=%s", (run_id,)).fetchone()
             meta = binding(user, True) if check_binding else run["metadata"]
             changed_code = any(run["metadata"].get(k) != meta.get(k) for k in ("graph_version", "code_digest"))
+            if changed_code and task.get('resume_round'):
+                from .resume_compatibility import compatibility
+                proof = compatibility(run['metadata'],meta)
+                resume = conn.execute('SELECT recovery FROM task_resume_rounds WHERE task_id=%s AND round_no=%s',
+                                      (run_id,task['resume_round'])).fetchone()
+                changed_code = not (proof and resume and resume['recovery'].get('compatibility')==proof)
             historical=False
             if task['status'] not in ACTIVE and run['metadata'].get('runtime_version')=='push-1':
                 from .historical_results import legacy_push_binding
@@ -146,7 +152,8 @@ class Repository:
             from .push_threads import Threads
             Threads(self).authorize(conn,user,task['push_thread_id'])
         from .task_retry import retry_info
-        task['retry'] = retry_info(conn,user,task)
+        task['retry'] = retry_info(conn,user,task,self)
+        task['resume_rounds'] = conn.execute('SELECT round_no,status,additional_model_calls,usage_before,usage_after,previous_failure,created_at FROM task_resume_rounds WHERE task_id=%s ORDER BY round_no',(run_id,)).fetchall()
         return task
 
     def conversation(self, conn, user, conversation_id, *, lock=False):
@@ -193,13 +200,15 @@ class Repository:
         if not run:
             raise HTTPException(404, "分析任务不存在")
         artifacts = [r["body"] for r in conn.execute("SELECT body FROM analysis_artifacts WHERE run_id=%s AND contract_version=%s ORDER BY created_at,result_ref", (run_id,task.get('contract_version',0)))]
-        steps = conn.execute("SELECT s.id,s.sequence,s.phase,s.input->>'action' action,s.input->'arguments' arguments,s.output->'decision'->'action' decision,s.status,s.started_at,s.ended_at,s.output->>'error_code' error_code,a.cached FROM analysis_steps s JOIN analysis_step_attempts a ON a.step_id=s.id WHERE run_id=%s ORDER BY sequence", (run_id,)).fetchall()
+        steps = conn.execute("SELECT s.id,s.sequence,s.resume_round,s.phase,s.input->>'action' action,s.input->'arguments' arguments,s.output->'decision'->'action' decision,s.status,s.started_at,s.ended_at,s.output->>'error_code' error_code,a.cached FROM analysis_steps s JOIN analysis_step_attempts a ON a.step_id=s.id WHERE run_id=%s ORDER BY sequence", (run_id,)).fetchall()
         from .step_descriptions import describe_step
         for step in steps:
             step['description']=describe_step(step,run['state'].get('spec'))
             step.pop('decision',None)
         usage = conn.execute("SELECT coalesce(sum(actual_tokens),0) known_tokens,coalesce(sum(actual_cost),0) known_cost_micros,count(*) FILTER(WHERE status IN ('reserved','unknown')) unknown_calls FROM analysis_budget_ledger WHERE run_id=%s", (run_id,)).fetchone()
-        return dict(id=run_id, question=task["input"]["question"], status=task["status"], version=run["version"], metadata=run["metadata"], policy=run["policy"], state=run["state"], metrics_used=run["required_metrics"], artifacts=artifacts, steps=steps, usage=run["state"].get("archived_usage", usage), retry=task['retry'])
+        report_ref=run['state'].get('current_report_ref') if run['state'].get('report_round',0)==task['resume_round'] else None
+        report = conn.execute("SELECT body->'data' data FROM analysis_artifacts WHERE run_id=%s AND contract_version=%s AND body->>'kind'='report' AND (result_ref=%s OR (%s AND resume_round=0)) ORDER BY created_at DESC,result_ref LIMIT 1",(run_id,task['contract_version'],report_ref,task['resume_round']==0 and not report_ref)).fetchone()
+        return dict(id=run_id, question=task["input"]["question"], status=task["status"], version=run["version"], metadata=run["metadata"], policy=run["policy"], state=run["state"], metrics_used=run["required_metrics"], artifacts=artifacts, steps=steps, usage=run["state"].get("archived_usage", usage), retry=task['retry'],resume_round=task['resume_round'],resume_rounds=task['resume_rounds'],report=report['data'] if report else None)
 
     def execution(self, conn, task, *, authorize=True):
         current = conn.execute("SELECT * FROM tasks WHERE id=%s FOR UPDATE", (task["id"],)).fetchone()
@@ -252,6 +261,11 @@ class Repository:
             Threads(self).finish(conn,task,status,result,message)
         conn.execute("UPDATE tasks SET status=%s,result=%s,error=%s,lease_until=NULL,updated_at=now() WHERE id=%s", (status, Jsonb(result), message, task["id"]))
         conn.execute("UPDATE task_attempts SET state=%s,ended_at=now() WHERE task_id=%s AND execution_version=%s", (status if status != "pending" else "completed", task["id"], task["execution_version"]))
+        if task.get('resume_round') and status in {'completed','failed','canceled'}:
+            from .task_budget import usage_snapshot
+            run = conn.execute('SELECT * FROM analysis_runs WHERE id=%s',(task['id'],)).fetchone() if task['kind']=='analysis' else None
+            conn.execute('UPDATE task_resume_rounds SET status=%s,usage_after=%s,ended_at=now() WHERE task_id=%s AND round_no=%s',
+                         (status,Jsonb(usage_snapshot(conn,task,run)),task['id'],task['resume_round']))
         if status not in ACTIVE or (status == "needs_clarification" and task["kind"] == "query"):
             conn.execute("UPDATE task_outbox SET delivered_at=now() WHERE task_id=%s", (task["id"],))
         self.event(conn, task["id"], {"completed": "done", "failed": "error", "needs_clarification": "clarification"}.get(status, "step"), {"status": status, "message": message})

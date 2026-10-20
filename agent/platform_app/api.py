@@ -66,6 +66,7 @@ class Answer(Version):
 class Retry(StrictModel):
     request_id: str = Field(pattern=UUID)
     expected_execution_version: int = Field(ge=0, strict=True)
+    additional_model_calls: int = Field(default=0, ge=0, le=10, strict=True)
 
 
 class ScopeConfirmation(Version):
@@ -300,7 +301,7 @@ def create_app(db=None, policy=None, *, origin=None, secure_cookie=None, trusted
     def retry_task(run_id: str, body: Retry, request: Request, user=Depends(current_user), repository=Depends(repo)):
         from .task_retry import create_retry
         with repository.db.transaction() as conn:
-            value = create_retry(repository,conn,user,run_id,body.request_id,body.expected_execution_version,request.app.state.policy)
+            value = create_retry(repository,conn,user,run_id,body.request_id,body.expected_execution_version,request.app.state.policy,body.additional_model_calls)
             return public_task(value)
 
     @app.post('/api/push-threads', status_code=201)
@@ -379,6 +380,11 @@ def create_app(db=None, policy=None, *, origin=None, secure_cookie=None, trusted
                 conn.execute("UPDATE task_attempts SET state='canceled',ended_at=now() WHERE task_id=%s AND state='running'", (run_id,))
                 conn.execute("UPDATE analysis_steps SET status='canceled',ended_at=now() WHERE run_id=%s AND status='running'", (run_id,))
                 conn.execute("UPDATE analysis_budget_ledger SET status='unknown' WHERE run_id=%s AND status='reserved'", (run_id,))
+                if value.get('resume_round'):
+                    from .task_budget import usage_snapshot
+                    run=conn.execute('SELECT * FROM analysis_runs WHERE id=%s',(run_id,)).fetchone() if value['kind']=='analysis' else None
+                    conn.execute("UPDATE task_resume_rounds SET status='canceled',usage_after=%s,ended_at=now() WHERE task_id=%s AND round_no=%s",
+                                 (Jsonb(usage_snapshot(conn,value,run)),run_id,value['resume_round']))
                 if value["conversation_id"]:
                     conn.execute("UPDATE conversations SET active_task_id=NULL,version=version+1,updated_at=now() WHERE id=%s AND active_task_id=%s", (value["conversation_id"], run_id))
                 if value["kind"] == "analysis":

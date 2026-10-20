@@ -15,7 +15,7 @@ from psycopg.types.json import Jsonb
 from agent.runtime import app as runtime, telemetry
 from agent.runtime.analysis import AnalysisError
 from .checkpoints import FencedPostgresSaver, LeaseLost
-from .graph import build_graph
+from .graph import build_graph, State
 from .ledger import BudgetExceeded
 
 
@@ -30,8 +30,9 @@ def preserve_partial(conn,repo,task,run,spec,message):
     items = [r['body'] for r in conn.execute('SELECT body FROM analysis_artifacts WHERE run_id=%s AND contract_version=%s ORDER BY created_at,result_ref',(task['id'],current))]
     result = partial_report(TaskContract.model_validate(spec),items,run['binding'],runtime.sources()[user['tenant_id']+':'+user['role']],message)
     if result:
-        conn.execute('INSERT INTO analysis_artifacts(tenant_id,run_id,result_ref,body,contract_version) VALUES(%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING',
-            (task['tenant_id'],task['id'],result['result_ref'],Jsonb(result),current))
+        conn.execute('INSERT INTO analysis_artifacts(tenant_id,run_id,result_ref,body,contract_version,resume_round) VALUES(%s,%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING',
+            (task['tenant_id'],task['id'],result['result_ref'],Jsonb(result),current,task.get('resume_round',0)))
+        conn.execute("UPDATE analysis_runs SET state=state||%s WHERE id=%s",(Jsonb({'current_report_ref':result['result_ref'],'report_round':task.get('resume_round',0)}),task['id']))
     return result['data'] if result else None
 
 
@@ -60,10 +61,9 @@ def execute_query(repo, task):
     with repo.db.transaction() as conn:
         user = repo.execution(conn, task)
         # 首轮回执维持旧契约；显式补充按版本分开，不能复用上一轮澄清结果。
-        version = task["query_version"]
-        table = "query_followup_receipts" if version else "query_receipts"
-        where = "task_id=%s AND version=%s" if version else "task_id=%s"
-        keys = (task["id"], version) if version else (task["id"],)
+        from .task_budget import receipt_key
+        version = task['query_version']
+        table,where,keys=receipt_key(task)
         receipt = conn.execute(f"SELECT * FROM {table} WHERE {where} FOR UPDATE", keys).fetchone()
         if receipt and receipt["status"] == "running":
             if (receipt['output'] or {}).get('program_state'):
@@ -80,10 +80,12 @@ def execute_query(repo, task):
         else:
             from .task_intent import reserve_initial
             reservation = reserve_initial(conn,task)
+            usage = dict(execution_version=task['execution_version'],model_calls=1,tokens=reservation['reserved_tokens'],
+                         cost=reservation['reserved_cost'],known=False,active_ms=0) if reservation else None
             if version:
-                conn.execute("INSERT INTO query_followup_receipts(task_id,version,status,output) VALUES(%s,%s,'running',%s)", (*keys,Jsonb({'intent_reservation':reservation}) if reservation else None))
+                conn.execute("INSERT INTO query_followup_receipts(task_id,resume_round,version,status,output,model_usage) VALUES(%s,%s,%s,'running',%s,%s)", (*keys,Jsonb({'intent_reservation':reservation}) if reservation else None,Jsonb(usage) if usage else None))
             else:
-                conn.execute("INSERT INTO query_receipts(task_id,status,output) VALUES(%s,'running',%s)", (*keys,Jsonb({'intent_reservation':reservation}) if reservation else None))
+                conn.execute("INSERT INTO query_receipts(task_id,resume_round,status,output,model_usage) VALUES(%s,%s,'running',%s,%s)", (*keys,Jsonb({'intent_reservation':reservation}) if reservation else None,Jsonb(usage) if usage else None))
             output = None
     if output is None:
         request = runtime.QueryRequest(tenant_id=user["tenant_id"], role=user["role"], allowed_metrics=user["allowed_metrics"],
@@ -107,6 +109,17 @@ def execute_query(repo, task):
                         output = runtime.run_query(request)
         finally:
             with repo.db.transaction() as conn:
+                repo.execution(conn,task)
+                from .policy import Policy
+                if task.get('intent_policy'):
+                    p=Policy.model_validate(task['intent_policy'])
+                    a,b=trace.get('input_tokens'),trace.get('output_tokens')
+                    known=trace.get('total_tokens') is not None and all(type(v) is int and 0<=v<=bound for v,bound in zip((a,b),(p.max_input_bytes,p.max_output_tokens)))
+                    usage=dict(execution_version=task['execution_version'],model_calls=trace.get('model_calls',0),
+                        tokens=a+b if known else p.reserved_tokens if trace.get('model_calls') else 0,
+                        cost=p.cost(a,b) if known else p.reserved_cost if trace.get('model_calls') else 0,
+                        known=known or not trace.get('model_calls'),active_ms=int(sum(trace.get('stages_ms',{}).values())))
+                    conn.execute(f'UPDATE {table} SET model_usage=%s WHERE {where}',(Jsonb(usage),*keys))
                 conn.execute("UPDATE task_attempts SET telemetry=%s,error_code=%s WHERE task_id=%s AND execution_version=%s", (Jsonb(trace), trace.get("error_code", ""), task["id"], task["execution_version"]))
         output["telemetry"] = trace
         if output['status'] == 'analysis_ready':
@@ -139,6 +152,27 @@ def execute_analysis(repo, task):
         config = {"configurable": {"thread_id": task["id"]}, "recursion_limit": 180}
         checkpoint = graph.get_state(config)
         value = None
+        if task.get('resume_round'):
+            with repo.db.transaction() as conn:
+                user=repo.execution(conn,task)
+                record=conn.execute('SELECT * FROM task_resume_rounds WHERE task_id=%s AND round_no=%s',(task['id'],task['resume_round'])).fetchone()
+                if record and record['recovery']['mode']=='analysis_decision' and checkpoint.values.get('applied_resume_round',0)<task['resume_round']:
+                    from .task_recovery import analysis_recovery, apply_recovery
+                    recovery=analysis_recovery(repo,conn,user,task,run,runtime.sources()[user['tenant_id']+':'+user['role']])
+                    if recovery!=record['recovery']:
+                        raise HTTPException(409,'接纳后恢复来源已变化，未发起新调用')
+                    if not checkpoint.values or not checkpoint.config or checkpoint.config['configurable']['checkpoint_id']!=recovery['checkpoint_id']:
+                        raise HTTPException(409,'原生流程存档与恢复快照不一致，未发起新调用')
+                    changes=apply_recovery(conn,task,run,checkpoint.values,recovery,task['resume_round'])
+                else:
+                    changes=None
+            # 存档写入使用领取后的围栏连接；轮次标记和恢复状态一起提交。
+            if changes:
+                graph.update_state(config,changes,as_node='interpret')
+                checkpoint=graph.get_state(config)
+            with repo.db.transaction() as conn:
+                repo.execution(conn,task)
+                conn.execute("UPDATE task_resume_rounds SET status='running' WHERE task_id=%s AND round_no=%s AND status='accepted'",(task['id'],task['resume_round']))
         if not checkpoint.values:
             value = dict(question=task["input"]["question"], spec=run["state"].get("spec"), answers=run['state'].get('answers',[]), feedback={}, sequence=run['state'].get('sequence',0), refs=[])
         elif checkpoint.interrupts:
@@ -148,7 +182,20 @@ def execute_analysis(repo, task):
                 value = Command(resume=True)
             elif response and response["wait_id"] == waiting["wait_id"]:
                 value = Command(resume=response["answer"])
-        result = graph.invoke(value, config, durability="sync")
+        try:
+            result = graph.invoke(value, config, durability="sync")
+        finally:
+            # API账号不能读取checkpoint schema。仅Worker发布可恢复状态，实际恢复再核对原生存档。
+            try:
+                saved=graph.get_state(config)
+                if saved.values:
+                    projection={'checkpoint_id':saved.config['configurable']['checkpoint_id'],
+                                'state':{k:v for k,v in saved.values.items() if k in State.__annotations__}}
+                    with repo.db.transaction() as conn:
+                        repo.execution(conn,task)
+                        conn.execute('UPDATE analysis_runs SET recovery_checkpoint=%s WHERE id=%s',(Jsonb(projection),task['id']))
+            except LeaseLost:
+                pass
         checkpoint = graph.get_state(config)
         with repo.db.transaction() as conn:
             repo.execution(conn, task)
@@ -173,7 +220,9 @@ def execute_analysis(repo, task):
                 if status == "completed":
                     state["message"] = ""
             conn.execute("UPDATE analysis_runs SET state=%s,resume_input=NULL,version=version+1,updated_at=now() WHERE id=%s", (Jsonb(state), task["id"]))
-            report = conn.execute("SELECT body FROM analysis_artifacts WHERE run_id=%s AND contract_version=(SELECT contract_version FROM tasks WHERE id=%s) AND body->>'kind'='report' ORDER BY created_at DESC LIMIT 1", (task["id"],task['id'])).fetchone()
+            report = conn.execute("SELECT body FROM analysis_artifacts WHERE run_id=%s AND result_ref=%s AND body->>'kind'='report'", (task['id'],result.get('report_ref',''))).fetchone()
+            if report:
+                conn.execute('UPDATE analysis_runs SET state=state||%s WHERE id=%s',(Jsonb({'current_report_ref':report['body']['result_ref'],'report_round':task.get('resume_round',0)}),task['id']))
             data = report['body']['data'] if report else preserve_partial(conn,repo,task,current,state.get('spec'),state.get('message') or '调查停止，仍有未完成事项') if status=='failed' else None
             repo.finish(conn, task, status, data or {"partial": True}, state.get("message", ""))
 
@@ -193,9 +242,10 @@ def execute(repo, task):
                 if task["kind"] == "analysis":
                     row = conn.execute("SELECT * FROM analysis_runs WHERE id=%s", (task["id"],)).fetchone()
                     state = {**row["state"], "phase": "failed", "message": message}
+                    state['recovery_failure']={'error_code':exc.code if isinstance(exc,BudgetExceeded) else 'not_recoverable','message':message}
+                    conn.execute("UPDATE analysis_runs SET state=%s,version=version+1 WHERE id=%s", (Jsonb(state), task["id"]))
                     if isinstance(exc,BudgetExceeded):
                         partial = preserve_partial(conn,repo,task,row,state.get('spec'),message)
-                    conn.execute("UPDATE analysis_runs SET state=%s,version=version+1 WHERE id=%s", (Jsonb(state), task["id"]))
                 repo.finish(conn, task, "failed", result=partial, message=message, authorize=isinstance(exc,BudgetExceeded))
         except (LeaseLost, HTTPException):
             pass

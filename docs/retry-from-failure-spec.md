@@ -1,6 +1,8 @@
 # 从失败位置继续重试：需求规格
 
-状态：需求已由用户确认，技术方案待确认，尚未开始实现。2026-10-20。
+状态：需求与技术方案均已由用户确认，实现及隔离验证完成，待人工验收。2026-10-20。
+
+实现、验证结果及发布限制见 [retry-from-failure-validation.md](retry-from-failure-validation.md)。
 
 确认内容：保留原任务、成功结果和累计消耗，只从失败决策继续；原模型次数耗尽后，可由用户明确追加最多10次模型调用，其他预算不自动提高。技术方案见 [retry-from-failure-technical-design.md](retry-from-failure-technical-design.md)。
 
