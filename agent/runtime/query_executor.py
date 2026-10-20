@@ -9,7 +9,8 @@ from .analysis import canonical
 
 from .push import PushFilter, execute_push, result_for, values_for
 from .push_calculations import aggregate, compare_data, filter_rows, select
-from .query_program import AggregateStep, CompareStep, FilterStep, ProgramError, QueryStep, SortStep, validate_program
+from .query_program import AggregateStep, CompareStep, FilterStep, ProgramError, QueryStep, ValuesStep, SortStep, validate_program
+from .push_values import ValuesPlan, execute_values
 
 
 def check_result(data, description):
@@ -21,6 +22,12 @@ def check_result(data, description):
         raise ProgramError('result', '实际指标或分组与推导结构不一致')
     if data['plan']['observation_hours'] != description['observation_hours']:
         raise ProgramError('result', '实际观察口径改变')
+    if description['kind']=='dimension_values':
+        if data.get('result_kind')!='dimension_values':
+            raise ProgramError('result','维度取值结果类型不符')
+        keys=[tuple(row['dimensions'][d] for d in description['dimensions']) for row in data['rows']]
+        if len(set(keys))!=len(keys):
+            raise ProgramError('result','维度取值含重复组合')
     for row in data['rows']:
         if set(row['dimensions']) != set(description['dimensions']) or set(row['values']) != set(description['metrics']):
             raise ProgramError('result', '实际结果字段缺失或多出')
@@ -46,8 +53,13 @@ def execute_program(contract, source, allowed, *, hooks=None, usage=None, query=
                 data = saved
             else:
                 if hooks:
-                    hooks.begin(key, validated.plan_hash, isinstance(step, QueryStep))
-                if isinstance(step, QueryStep):
+                    hooks.begin(key, validated.plan_hash, isinstance(step, (QueryStep,ValuesStep)))
+                if isinstance(step, ValuesStep):
+                    plan=ValuesPlan(dimensions=step.dimensions,time_range=contract.scope.periods[step.period],filters=[*contract.scope.filters,*step.filters])
+                    data=execute_values(source,plan,current_allowed,usage or {'parser':'program','tokens':0})
+                    if data.get('plan')!=plan.model_dump(mode='json') or data.get('period')!=plan.time_range.model_dump(mode='json'):
+                        raise ProgramError(key,'实际维度查询范围或参数与计划不一致')
+                elif isinstance(step, QueryStep):
                     filters, empty = list(step.filters), False
                     for ref in step.filters_from:
                         parent = results[ref.step]

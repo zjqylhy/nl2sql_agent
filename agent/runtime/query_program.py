@@ -8,6 +8,7 @@ from pydantic import Field
 from .analysis import canonical
 from .catalog import StrictModel
 from .push import DEFINITIONS, PushFilter, compile_push, required_metrics
+from .push_values import ValuesPlan, compile_values
 from .task_contracts import RowPredicate, Selection, TaskContract, validate_contract
 
 
@@ -47,6 +48,14 @@ class SortStep(StrictModel):
     tie_breakers: list[dict[str, str]] = Field(min_length=1, max_length=2)
 
 
+class ValuesStep(StrictModel):
+    id: str = Field(pattern=r'^[A-Za-z][A-Za-z0-9_]{0,39}$')
+    op: Literal['query_values']
+    period: str
+    dimensions: list[str] = Field(min_length=1,max_length=2)
+    filters: list[PushFilter] = Field(default_factory=list,max_length=4)
+
+
 class AggregateStep(StrictModel):
     id: str = Field(pattern=r'^[A-Za-z][A-Za-z0-9_]{0,39}$')
     op: Literal['aggregate']
@@ -68,12 +77,12 @@ class FilterStep(StrictModel):
     predicate: RowPredicate
 
 
-Step = Annotated[Union[QueryStep, SortStep, AggregateStep, CompareStep, FilterStep], Field(discriminator='op')]
+Step = Annotated[Union[QueryStep, ValuesStep, SortStep, AggregateStep, CompareStep, FilterStep], Field(discriminator='op')]
 
 
 class Output(StrictModel):
     step: str
-    metrics: list[str] = Field(min_length=1, max_length=12)
+    metrics: list[str] = Field(default_factory=list, max_length=12)
     dimensions: list[str] = Field(default_factory=list, max_length=2)
 
 
@@ -92,6 +101,8 @@ class ValidatedProgram:
 
 
 def dependencies(step):
+    if isinstance(step,ValuesStep):
+        return set()
     if isinstance(step, QueryStep):
         return {x.step for x in step.filters_from}
     if isinstance(step, CompareStep):
@@ -124,14 +135,25 @@ def validate_program(contract: TaskContract, source, allowed):
         visit(output.step)
     if set(order) != set(steps):
         raise ProgramError('steps', '存在不服务最终输出的多余步骤')
-    if sum(isinstance(s, QueryStep) for s in program.steps) > 6:
+    if sum(isinstance(s, (QueryStep,ValuesStep)) for s in program.steps) > 6:
         raise ProgramError('steps', 'SQL 查询数超过 6 次')
-    if sum(isinstance(s, QueryStep) for s in program.steps) > 1 and not source.dataset_revision:
+    if sum(isinstance(s, (QueryStep,ValuesStep)) for s in program.steps) > 1 and not source.dataset_revision:
         raise ProgramError('scope', '多查询依赖需要已发布的不可变数据版本')
     descriptions = {}
     for key in order:
         step = steps[key]
-        if isinstance(step, QueryStep):
+        if isinstance(step, ValuesStep):
+            if step.period not in contract.scope.periods:
+                raise ProgramError(key,'引用未约定的期间')
+            plan = ValuesPlan(dimensions=step.dimensions,time_range=contract.scope.periods[step.period],filters=[*contract.scope.filters,*step.filters])
+            plan.check_source(source)
+            compile_values(plan)
+            if 'sent' not in allowed:
+                raise ProgramError(key,'维度取值所需发送记录权限未授权')
+            descriptions[key]=dict(metrics=[],dimensions=step.dimensions,periods=[step.period],
+                filters=[f.model_dump(mode='json') for f in plan.filters],selection=None,max_rows=1000,
+                kind='dimension_values',observation_hours=None,device=False)
+        elif isinstance(step, QueryStep):
             plan = contract.plan_for(step.period, step.metrics, step.dimensions, step.filters)
             plan.check_source(source)
             if not set(required_metrics(plan)) <= set(allowed):
@@ -178,7 +200,7 @@ def validate_program(contract: TaskContract, source, allowed):
             descriptions[key] = {**parent, 'max_rows':step.limit, 'selection':selection.model_dump(mode='json')}
         elif isinstance(step, AggregateStep):
             parent = descriptions[step.input]
-            if not set(step.dimensions) <= set(parent['dimensions']) or parent['kind'] == 'comparison':
+            if not set(step.dimensions) <= set(parent['dimensions']) or parent['kind'] != 'query':
                 raise ProgramError(key, '汇总不能创建新维度或直接合并比较值')
             if parent['device'] and not {'app_id'} <= set(step.dimensions) and 'app_id' in parent['dimensions']:
                 raise ProgramError(key, '跨应用设备计数不能冒充物理设备去重数')
@@ -196,6 +218,8 @@ def validate_program(contract: TaskContract, source, allowed):
     covered = set()
     for output in program.outputs:
         desc = descriptions[output.step]
+        if (desc['kind']=='dimension_values') != (req.kind=='dimension_values'):
+            raise ProgramError('outputs','维度取值与指标取数的结果类型不符')
         if desc.get('row_filter') and expected_selection is None:
             raise ProgramError('outputs','用户要求完整结果，计划却额外筛掉分组')
         if output.metrics != req.metrics or output.dimensions != req.dimensions or desc['metrics'] != req.metrics or desc['dimensions'] != req.dimensions:

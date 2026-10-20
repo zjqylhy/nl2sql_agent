@@ -26,7 +26,11 @@ def retry_info(conn, user, task):
             return info
         row = conn.execute('SELECT telemetry FROM task_attempts WHERE task_id=%s AND execution_version=%s',
                            (task['id'], task['execution_version'])).fetchone()
-        code = (row['telemetry'] or {}).get('error_code', '') if row else ''
+        trace = row['telemetry'] or {} if row else {}
+        code = trace.get('error_code', '')
+        # 旧版本未单独标记计划校验错误；已经调用模型但未接纳计划/执行 SQL，同样可手动重新解析。
+        if not code and trace.get('model_calls') and not trace.get('sql_calls') and not task['contract_version']:
+            code = 'model_plan_fields'
         available = code.startswith('model_') and not task['input'].get('push_plan') and not task['input'].get('query_contract')
     return {**info, 'available': available, 'error_code': code}
 

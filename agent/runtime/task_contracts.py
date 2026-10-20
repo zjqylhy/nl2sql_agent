@@ -11,7 +11,7 @@ from .push import DEFINITIONS, DIMENSIONS, Period, PushFilter, PushPlan, require
 class Scope(StrictModel):
     filters: list[PushFilter] = Field(default_factory=list, max_length=8)
     periods: dict[str, Period] = Field(min_length=1, max_length=4)
-    observation_hours: int = Field(ge=1, le=8760, strict=True)
+    observation_hours: int | None = Field(default=None, ge=1, le=8760, strict=True)
     as_of: datetime | None = None
 
 
@@ -34,11 +34,20 @@ class Selection(StrictModel):
 
 
 class ResultRequirements(StrictModel):
-    metrics: list[str] = Field(min_length=1, max_length=12)
+    kind: Literal['metrics','dimension_values'] = 'metrics'
+    metrics: list[str] = Field(default_factory=list, max_length=12)
     dimensions: list[str] = Field(default_factory=list, max_length=2)
     period_names: list[str] = Field(min_length=1, max_length=4)
     selection: Selection | None = None
     coverage: Literal['complete'] = 'complete'
+
+    @model_validator(mode='after')
+    def valid(self):
+        if self.kind == 'metrics' and not self.metrics:
+            raise ValueError('指标取数至少需要一个指标')
+        if self.kind == 'dimension_values' and (self.metrics or not self.dimensions or self.selection):
+            raise ValueError('维度取值只指定维度，不能混入指标或指标排名')
+        return self
 
 
 class AnswerItem(StrictModel):
@@ -72,6 +81,11 @@ class TaskContract(StrictModel):
             raise ValueError('明确取数必须同时提供结果要求与完整计划')
         if self.task_type == 'analysis' and (not self.target_metrics or not self.answer_items or self.execution_plan is not None):
             raise ValueError('开放分析需要目标指标和回答事项，不能提交固定执行计划')
+        values = self.task_type == 'query' and self.result_requirements.kind == 'dimension_values'
+        if values and (self.scope.observation_hours is not None or self.scope.as_of is not None):
+            raise ValueError('发送记录的维度取值不使用回执观察窗口或设备状态时点')
+        if not values and self.scope.observation_hours is None:
+            raise ValueError('指标取数和开放分析必须明确观察时长')
         metrics = self.target_metrics or self.result_requirements.metrics
         if len(set(metrics)) != len(metrics) or not set(metrics) <= set(DEFINITIONS):
             raise ValueError('目标指标未知或重复')
@@ -95,6 +109,8 @@ class TaskContract(StrictModel):
                         filters=[*self.scope.filters, *filters])
 
     def required_metrics(self):
+        if self.task_type == 'query' and self.result_requirements.kind == 'dimension_values':
+            return ['sent']
         metrics = self.target_metrics or self.result_requirements.metrics
         return required_metrics(self.plan_for(next(iter(self.scope.periods)), metrics))
 
@@ -106,9 +122,14 @@ def validate_contract(contract, source, allowed):
         raise ValueError('约定的指标目录版本已过期，请重新解析任务')
     if not set(contract.required_metrics()) <= set(allowed):
         raise ValueError('缺少目标指标及其计算依赖的权限')
-    metrics = contract.target_metrics or contract.result_requirements.metrics
-    for period in contract.scope.periods:
-        contract.plan_for(period, metrics).check_source(source)
+    if contract.task_type == 'query' and contract.result_requirements.kind == 'dimension_values':
+        from .push_values import ValuesPlan
+        for period in contract.scope.periods.values():
+            ValuesPlan(dimensions=contract.result_requirements.dimensions,time_range=period,filters=contract.scope.filters).check_source(source)
+    else:
+        metrics = contract.target_metrics or contract.result_requirements.metrics
+        for period in contract.scope.periods:
+            contract.plan_for(period, metrics).check_source(source)
     permissions = contract.exploration_permissions
     if not set(permissions.metrics) <= set(allowed) & set(DEFINITIONS):
         raise ValueError('调查指标未授权')

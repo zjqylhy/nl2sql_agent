@@ -148,6 +148,11 @@ def required_metrics(plan):
     return sorted(result)
 
 
+def whole_days(period):
+    return all(not any((at.hour,at.minute,at.second,at.microsecond))
+               for at in (period.start.astimezone(SHANGHAI),period.end_exclusive.astimezone(SHANGHAI)))
+
+
 def compile_push(plan, *, use_daily=True):
     params = []
     def parameter(value):
@@ -173,8 +178,7 @@ def compile_push(plan, *, use_daily=True):
                       'unknown_devices': "SUM(CASE WHEN s.push_status='unknown' THEN 1 ELSE 0 END)",
                       'active_devices': 'SUM(CASE WHEN a.device_id IS NOT NULL THEN 1 ELSE 0 END)',
                       'active_valid_devices': "SUM(CASE WHEN a.device_id IS NOT NULL AND s.push_status='valid' THEN 1 ELSE 0 END)"}
-    elif use_daily and all(not any((at.hour,at.minute,at.second,at.microsecond))
-            for at in (plan.time_range.start.astimezone(SHANGHAI),plan.time_range.end_exclusive.astimezone(SHANGHAI))):
+    elif use_daily and whole_days(plan.time_range):
         # 只对齐整日时使用精确小时门槛汇总；部分日期范围仍查询逐条明细。
         hours=parameter(plan.observation_hours)
         prefix=f'WITH windowed AS (SELECT *,{hours} AS observation_hours FROM metric_push_daily_outcomes) '
@@ -272,7 +276,6 @@ def result_for(plan, raw, source, usage, sql, params):
 
 
 def execute_push(source, plan, allowed, usage):
-    from . import app as runtime, telemetry
     try:
         plan.check_source(source)
     except ValueError as exc:
@@ -280,6 +283,18 @@ def execute_push(source, plan, allowed, usage):
     if not set(required_metrics(plan)) <= set(allowed):
         raise HTTPException(403, '缺少指标或其分子分母的完整权限')
     sql, params = compile_push(plan)
+    raw = query_rows(source,sql,params)
+    result = result_for(plan, raw, source, usage, sql, params)
+    # 行数之外限制实际载荷，避免宽行结果拖垮保存与后续分析。
+    import json
+    if len(json.dumps(result, ensure_ascii=False).encode()) > 524288:
+        raise HTTPException(422, '结果超过 512 KiB，请缩小范围或分组后重查')
+    return result
+
+
+def query_rows(source, sql, params):
+    """指标与维度取值共用同一只读、超时和行数边界。"""
+    from . import app as runtime, telemetry
     try:
         import asyncio
         import os
@@ -293,12 +308,7 @@ def execute_push(source, plan, allowed, usage):
             raise HTTPException(422, '结果超过 1000 组，请缩小查询范围')
     except (psycopg.Error, TimeoutError) as exc:
         raise HTTPException(503, '推送数据暂时不可用或查询超时') from exc
-    result = result_for(plan, raw, source, usage, sql, params)
-    # 行数之外限制实际载荷，避免宽行结果拖垮保存与后续分析。
-    import json
-    if len(json.dumps(result, ensure_ascii=False).encode()) > 524288:
-        raise HTTPException(422, '结果超过 512 KiB，请缩小范围或分组后重查')
-    return result
+    return raw
 
 
 def metric_catalog():

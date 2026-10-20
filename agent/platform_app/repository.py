@@ -88,6 +88,9 @@ def query_clarification(task):
 
 def public_task(task):
     value = {key: value for key, value in task.items() if key not in {"conversation_context", "admission_version", "lease_until", "next_seq", "ready_at", "query_dialogue", "query_version", "push_turn_context"}}
+    # 旧失败记录保留原始诊断；对外不再展示校验框架堆栈和文档链接。
+    if 'https://errors.pydantic.dev/' in (value.get('error') or ''):
+        value['error'] = '模型返回的取数计划字段不完整或格式不正确，未执行查询；可保留原问题和补充条件后重试。'
     if task["kind"] == "query" and not task["conversation_id"]:
         value["clarification"] = query_clarification(task)
     return value
