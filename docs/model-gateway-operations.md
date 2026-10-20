@@ -1,6 +1,6 @@
 # 模型网关操作说明
 
-2026-10-21：用户已确认远程 API/Worker 改用 `https://api.linhengyi.xyz/v1`。远程 Compose 移除旧 SSH 隧道依赖及私有 CA 挂载，使用标准 HTTPS 证书校验；实施状态与验收范围见[域名切换规格](gateway-domain-spec.md)。下文 Windows 本地隧道方式继续独立适用。
+2026-10-21：远程 API/Worker 已改用 `https://api.linhengyi.xyz/v1`。远程 Compose 移除旧 SSH 隧道依赖及私有 CA 挂载，使用标准 HTTPS 证书校验；验证结果及回退见[域名切换发布记录](gateway-domain-deployment.md)。下文 Windows 本地隧道方式继续独立适用。
 
 当前 `use_gateway.ps1` 与 `compose.gateway-local.yaml` 作用于 Python API/Worker；下文旧独立 `agent` 服务命令属于历史版本。服务器部署使用 `compose.python-private.yaml`，保留 CA 与主机名校验。
 
