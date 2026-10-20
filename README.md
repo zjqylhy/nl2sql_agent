@@ -37,6 +37,10 @@
 
 公开数据检索与字段参考见 [数据说明](evals/push/README.txt)。公开研究数据不完整覆盖该业务，当前模拟数据与历史 Olist 评测成绩分别记录。
 
+## 服务器访问
+
+正式入口：[推送与设备分析工作台](https://nl2sql-agent.linhengyi.xyz)。使用现有租户与账号登录，无需 SSH 隧道。HTTPS、备案展示、验证结果与运维限制见[域名发布记录](docs/domain-https-deployment.md)。
+
 ## Windows 本地运行
 
 需要 Python 3.12、Node.js、PostgreSQL，或 Docker Desktop Linux containers。首次配置从 `.env.example` 复制 `.env`；已有 `.env` 请保留并补充所需字段。各账号使用独立随机密码。
